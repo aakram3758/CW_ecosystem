@@ -71,17 +71,12 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000e1', true);
 select pg_temp.ok((select count(*) from public.requests) = 0, 'signed-in user without profile sees no requests');
 select pg_temp.ok((select count(*) from public.cities) = 0, 'no profile → no reference data');
-select pg_temp.err('select public.staff_overview()', 'NOT_ALLOWED', 'no profile cannot call staff RPC');
+select pg_temp.err('select public.staff_late_branches()', 'NOT_ALLOWED', 'no profile cannot call staff RPC');
 
 \echo '--- general manager'
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000a1', true);
 select pg_temp.ok((select count(*) from public.request_list) = (select count(*) from public.requests), 'GM sees every request in request_list');
-select pg_temp.ok((select (public.staff_overview() ->> 'waiting')::int) = 14, 'overview waiting = 14');
-select pg_temp.ok((select (public.staff_overview() ->> 'needs_decision')::int) = 4, 'overview needs_decision = 4');
-select pg_temp.ok((select (public.staff_overview() ->> 'stale_decisions')::int) = 1, 'overview stale = 1');
-select pg_temp.ok((select (public.staff_overview((select jed from ids), null) ->> 'waiting')::int) < 14, 'overview city filter narrows');
 select pg_temp.ok((select count(*) from public.staff_late_branches()) = 3, 'late branches = 3');
-select pg_temp.ok((select (public.staff_report(private.ops_today() - 30, private.ops_today()) -> 'totals' ->> 'full')::int) = 13, 'report: 13 full visits in 30 days');
 
 select pg_temp.ok((select count(*) from public.staff_list_staff() where active) = 2, 'staff list shows 2 active dashboard users');
 select pg_temp.err('select public.staff_set_account_active(''00000000-0000-0000-0000-0000000000a1'', false)', 'CANNOT_DEACTIVATE_SELF', 'cannot deactivate yourself');
@@ -149,7 +144,7 @@ select pg_temp.ok((select count(*) from public.request_list) > 0 and not exists 
 select pg_temp.ok((select count(*) from public.branches) = 1, 'branch sees only its own branch row');
 select pg_temp.ok((select count(*) from public.drivers) = 0, 'branch cannot list drivers');
 select pg_temp.ok((select count(*) from public.profiles) = 1, 'branch sees only its own profile');
-select pg_temp.err('select public.staff_overview()', 'NOT_ALLOWED', 'branch cannot call staff RPCs');
+select pg_temp.err('select public.staff_late_branches()', 'NOT_ALLOWED', 'branch cannot call staff RPCs');
 select pg_temp.err('select public.staff_set_account_active(''00000000-0000-0000-0000-0000000000a1'', false)', 'NOT_ALLOWED', 'branch cannot deactivate accounts');
 select pg_temp.err(format('select public.branch_create_request(%L, null, 50, null, ''سعد'', ''0512345678'')', (select card from ids)), 'DUPLICATE_OPEN_REQUEST', 'branch duplicate blocked (card scheduled)');
 select pg_temp.err(format('select public.branch_create_request(%L, null, 50, null, ''سعد'', ''12345'')', (select id from public.materials where code = 'bread')), 'INVALID_PHONE', 'phone format checked');

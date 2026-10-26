@@ -10,10 +10,10 @@ so the two apps can never disagree.
 
 | Folder | What |
 | --- | --- |
-| `migrations/` | The schema, applied in order (01 → 11). Already applied to the live project. |
+| `migrations/` | The schema, applied in order (01 → 12). Already applied to the live project. |
 | `functions/` | Edge Functions `create-account` and `reset-password` (deployed, JWT required, staff only). |
 | `seed/demo.sql` | Demo branches, drivers and 40 requests in every state, dated relative to the day it runs. Already loaded. |
-| `tests/lifecycle.sql` | 81 end-to-end checks as GM / supervisor / branch / driver. Runs in one transaction and rolls back. |
+| `tests/lifecycle.sql` | 76 end-to-end checks as GM / supervisor / branch / driver. Runs in one transaction and rolls back. |
 
 ## Rules enforced by the database
 
@@ -62,7 +62,7 @@ After that, every other account is created from the dashboard.
 
 ## RPCs (called with `supabase.rpc(name, args)`)
 
-Staff: `staff_overview`, `staff_late_branches`, `staff_report`, `staff_create_request`, `staff_cancel_request`,
+Staff: `staff_late_branches`, `staff_report_v2`, `staff_create_request`, `staff_cancel_request`,
 `staff_approve_plan`, `staff_change_plan_driver`, `staff_decide`, `staff_undo_reschedule`,
 `staff_list_staff`, `staff_update_staff`, `staff_set_account_active`.
 Branch app: `branch_set_location`, `branch_create_request`, `branch_update_request`, `branch_cancel_request`.
