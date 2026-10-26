@@ -1,0 +1,192 @@
+@import 'tailwindcss';
+
+/* ------------------------------------------------------------------
+   Design tokens — copied from the Clouds Water Ops Dashboard design.
+   Theme is switched with <html data-theme="light|dark">.
+   ------------------------------------------------------------------ */
+:root,
+:root[data-theme='light'] {
+  --bg: #f4f6fa;
+  --surface: #ffffff;
+  --surface2: #edf1f7;
+  --line: #dfe6ef;
+  --text: #0b1b2e;
+  --muted: #566a82;
+  --primary: #1f4e8c;
+  --primary-h: #163a66;
+  --primary-soft: #e6eef8;
+  --accent: #b08d2e;
+  --accent-text: #7a5f14;
+  --accent-soft: #f7efd9;
+  --success: #19764a;
+  --success-soft: #e3f3ea;
+  --danger: #ef6b5e;
+  --danger-text: #b3382c;
+  --danger-soft: #fdecea;
+  --shadow: 0 12px 30px rgba(11, 27, 46, 0.1);
+  --side: #0b2340;
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --bg: #071322;
+  --surface: #0f2136;
+  --surface2: #17304a;
+  --line: #1d3b58;
+  --text: #eaf1f8;
+  --muted: #9bb0c6;
+  --primary: #2e6bb8;
+  --primary-h: #24579a;
+  --primary-soft: rgba(46, 107, 184, 0.22);
+  --accent: #e8ce84;
+  --accent-text: #e8ce84;
+  --accent-soft: rgba(232, 206, 132, 0.15);
+  --success: #46c489;
+  --success-soft: rgba(70, 196, 137, 0.14);
+  --danger: #ef6b5e;
+  --danger-text: #f49a90;
+  --danger-soft: rgba(239, 107, 94, 0.16);
+  --shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  --side: #06101d;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans: 'Tajawal', system-ui, sans-serif;
+
+  /* Theme-aware tokens */
+  --color-canvas: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface2);
+  --color-line: var(--line);
+  --color-ink: var(--text);
+  --color-muted: var(--muted);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-h);
+  --color-primary-soft: var(--primary-soft);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-text);
+  --color-accent-soft: var(--accent-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-danger: var(--danger);
+  --color-danger-ink: var(--danger-text);
+  --color-danger-soft: var(--danger-soft);
+  --color-side: var(--side);
+
+  /* Fixed brand colors (same in both themes) */
+  --color-navy: #0b2340;
+  --color-navy-ink: #0b1b2e;
+  --color-gold: #e8ce84;
+  --color-coral: #ef6b5e;
+  --color-side-text: #c9d6e4;
+  --color-side-muted: #9bb0c6;
+  --color-side-label: #8fa5bd;
+  --color-on-dark: #eaf1f8;
+
+  --shadow-card: var(--shadow);
+  --shadow-pop: 0 18px 40px rgba(11, 27, 46, 0.25);
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Tajawal', system-ui, sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+/* Form controls from the design (.fld). Native <select> keeps keyboard + RTL behaviour for free. */
+@layer components {
+  .fld {
+    height: 44px;
+    width: 100%;
+    box-sizing: border-box;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--text);
+    padding: 0 12px;
+    font-size: 14px;
+  }
+  textarea.fld {
+    height: auto;
+    padding: 10px 12px;
+    resize: vertical;
+    line-height: 1.6;
+  }
+  .fld:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 1px;
+  }
+  .fld[aria-invalid='true'] {
+    border-color: var(--danger);
+  }
+  .fld:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  .fld-on-dark {
+    height: 44px;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.07);
+    color: #fff;
+    padding: 0 12px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .fld-on-dark option {
+    color: #0b1b2e;
+    background: #fff;
+  }
+  .fld-on-dark:focus-visible {
+    outline: 2px solid #e8ce84;
+    outline-offset: 1px;
+  }
+  input[type='checkbox'].check {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--primary);
+    cursor: pointer;
+    margin: 0;
+  }
+}
+
+/* Striped placeholder used where photos will appear (no real photos in the mock). */
+.photo-placeholder {
+  background: repeating-linear-gradient(135deg, var(--surface2) 0 10px, var(--surface) 10px 20px);
+}
+
+@keyframes sk {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.skeleton {
+  animation: sk 1.4s ease-in-out infinite;
+  background: var(--surface2);
+  border-radius: 10px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+  * {
+    transition: none !important;
+  }
+}
