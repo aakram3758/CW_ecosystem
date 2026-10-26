@@ -105,12 +105,6 @@ const ar = {
     DRIVER_WRONG_CITY: 'السائق من مدينة أخرى.',
     UNDO_NOT_POSSIBLE: 'لم يعد التراجع ممكنًا — تغيّر الطلب أو مرّت 15 دقيقة.',
   } as Record<string, string>,
-
-  comingSoon: {
-    title: 'قريبًا',
-    body: 'هذه الشاشة ضمن التصميم المعتمد، وسيتم تحويلها في المرحلة القادمة.',
-    back: 'العودة إلى النظرة العامة',
-  },
 };
 
 export type CommonDict = typeof ar;
@@ -212,12 +206,6 @@ const en: CommonDict = {
     DRIVER_WRONG_MATERIAL: "The driver doesn't work on this material.",
     DRIVER_WRONG_CITY: 'The driver is in another city.',
     UNDO_NOT_POSSIBLE: "Undo is no longer possible — the request changed or 15 minutes passed.",
-  },
-
-  comingSoon: {
-    title: 'Coming soon',
-    body: 'This screen is part of the approved design and will be converted in the next step.',
-    back: 'Back to Overview',
   },
 };
 
