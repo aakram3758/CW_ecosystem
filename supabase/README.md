@@ -10,10 +10,11 @@ so the two apps can never disagree.
 
 | Folder | What |
 | --- | --- |
-| `migrations/` | The schema, applied in order (01 → 12). Already applied to the live project. |
-| `functions/` | Edge Functions `create-account` and `reset-password` (deployed, JWT required, staff only). |
+| `migrations/` | The schema, applied in order (01 → 15). Already applied to the live project. |
+| `functions/` | Edge Functions `create-account` and `reset-password` (deployed, JWT required, staff only) and `sign-in` (deployed, no JWT — it is the sign-in for the branch + driver apps). |
 | `seed/demo.sql` | Demo branches, drivers and 40 requests in every state, dated relative to the day it runs. Already loaded. |
-| `tests/lifecycle.sql` | 76 end-to-end checks as GM / supervisor / branch / driver. Runs in one transaction and rolls back. |
+| `tests/lifecycle.sql` | 76 end-to-end checks as GM / supervisor / branch / driver. Runs in one transaction and rolls back. Expects the demo seed data. |
+| `tests/phase2.sql` | Checks for 13–15 (morning notice, sign-in lock, temporary passwords). Ends with a deliberate error that rolls back; the message says `ALL CHECKS PASSED`. |
 
 ## Rules enforced by the database
 
@@ -22,6 +23,7 @@ so the two apps can never disagree.
 - A driver belongs to one material and one city; the plan rejects any other driver.
 - Ops cancel waiting or scheduled requests with a reason; branches cancel only while waiting (shows struck-through in Scheduling).
 - Driver outcomes: full → completed; partial / failed → needs decision. Photo required for full + partial, reason for partial + failed.
+- 08:00 Riyadh (cron): each branch with a visit today gets a «موعد الاستلام اليوم» notification (once per visit).
 - 20:00 Riyadh (cron): visits with no outcome → needs decision. 09:00 Riyadh: digest for decisions older than 24 h.
 - Decisions: reschedule (undo within 15 min by the same user) or close with a reason.
 - Every dashboard user has general-manager permissions. Each material has one manager (`materials.manager_id`) who gets that material's notifications; staff who manage no material get everything.
@@ -47,6 +49,18 @@ so the two apps can never disagree.
 
 Every new or reset account gets a 6-digit temporary password and `must_change_password = true`. After
 `supabase.auth.updateUser({ password })` the app calls `rpc('complete_password_change')`.
+
+**Password rule.** A password the user chooses must be 8+ characters with at least one Latin letter and one digit —
+set in Supabase → Authentication → Email (*Minimum length 8*, *Letters and digits*), so Auth itself enforces it on
+every path. The Auth admin API enforces it too, so the 6-digit temporary password is written by the database
+(`set_temp_password`, service role only); signing in with it still works. A reset also lifts a sign-in lock.
+
+**Sign-in lock (branch + driver apps).** The apps sign in through the `sign-in` Edge Function, not
+`signInWithPassword`: `POST { email, password }` → `200 { session }` (then `supabase.auth.setSession(session)`),
+`401 { error: 'INVALID_CREDENTIALS', attempts_left }`, or `429 { error: 'LOCKED', retry_after }`. 5 wrong passwords
+within 15 minutes lock that login for 15 minutes. The Password Verification hook (the in-Auth way) needs the Team
+plan. Limits: a client that calls Supabase Auth directly with the public key skips the lock; the lock is per login, so
+anyone who knows a login can lock it on purpose (ops can lift it with *Reset password*).
 
 ### First dashboard user (one time)
 
