@@ -1,0 +1,353 @@
+# Clouds Water — mobile app (Expo)
+
+One app, two roles: **branch** and **driver**. Arabic RTL first with English, light and dark, online only in v1.
+This file is the plan and the progress. There are no GitHub Issues for this phase — tick the boxes here as the work lands.
+
+Written in English to match the rest of the repo and because Codex reads it.
+
+## How we work
+
+Claude plans and reviews, Codex implements, Ahmed decides. For each bite below: Claude writes a brief into
+`apps/mobile/briefs/` → Codex implements → Claude reviews the diff → local commit on `feat/mobile-app`.
+**Nothing is pushed** until the whole app has been tried on a real device and Ahmed says go. A local commit is
+not a push; it never leaves the machine.
+
+The brief is the ticket. It is committed so that reviewing a diff means comparing it against something written
+down beforehand, rather than against memory.
+
+`main` deploys the dashboard to Vercel, so the mobile branch stays off `main` for the whole phase.
+
+No over-engineering. The app is small; the plan is three phases, not eight milestones.
+
+## Stack
+
+Expo (current SDK) · Expo Router · TypeScript · TanStack Query · React Hook Form + Zod · supabase-js with
+`expo-secure-store` session storage · `expo-image-picker` + `expo-image-manipulator` · `expo-location` ·
+i18n with RTL. Same shape as `apps/dashboard`, so one person can read both.
+
+Settled: **Expo SDK 58, React Native 0.88, React 19.3, TypeScript 6** (the dashboard stays on TypeScript 5.9 —
+each workspace resolves its own, and bumping the dashboard is not this phase's job). Mobile only: no
+`react-native-web`, no `react-dom`, no web output. Testing is Expo Go on a phone.
+
+`apps/*` is already an npm workspace, so `apps/mobile` is picked up by the root `npm install`. The monorepo
+wiring is done and proven — see *What the skeleton is* below. **There are two React copies on disk** (Expo pins
+19.3.0 exactly; the dashboard's `^19.2.0` resolves to 19.3.1) and that is expected: `metro.config.js` makes the
+mobile bundle resolve every `react` to the nested 19.3.0, which is what keeps "Invalid hook call" away. Its
+comment says so; don't dedupe them by loosening Expo's pin.
+
+No `packages/` in this phase. The only shareable things are the error-code map and the generated DB types, and both
+are small enough to live in `apps/mobile` until something else needs them.
+
+---
+
+## Source material
+
+The approved designs are interactive prototypes, every screen in light, dark, Arabic and English, with every state:
+
+- Branch — <https://claude.ai/artifact/E44BzENzJyyKFxufMtq9PG>
+- Driver — <https://claude.ai/artifact/MWmiNstUkiysG5CafuswWY>
+
+**The prototypes are not portable.** Each is a single ~165 KB class component built on web DOM and the `<x-dc>`
+runtime, with simulated state (`setTimeout`) and hardcoded sample arrays. React Native has neither. Screens get
+re-implemented, not ported.
+
+**Three things were lifted verbatim** rather than retyped, because retyping invites drift from approved copy.
+Claude did this extraction in phase 0; Codex builds on top of it:
+
+| What | From | To | |
+| --- | --- | --- | --- |
+| Copy — 260 branch + 214 driver keys per language | `T.ar` / `T.en` | `src/i18n/ar.ts`, `src/i18n/en.ts` | done |
+| 40 icons as SVG path data | the branch `I` object | `src/ui/icons.ts` | done |
+| Colours per theme, Tajawal weights | inline styles + `cw.css` | `src/ui/tokens.ts` | done |
+
+Each file's header records what was changed on the way in and why. The approved design changes (below)
+are already applied, and every edited string is marked `[changed]` beside its original.
+
+`tokens.ts` holds **only values one of the canvases actually states**. It deliberately has no spacing,
+radius or font-size scale: the designs don't state one, and a plausible invented scale sitting next to real
+tokens is worse than no scale, because it gets trusted. Screens use their artboard's literal values until a
+repeated value earns a name there.
+
+**Business rules are taken from the database, never from the prototype.** They already disagree — see
+*Prototype vs database* below.
+
+### Decided: one icon language, and it is the branch's
+
+The branch canvas draws its own 24×24 SVG paths; the driver canvas used the Phosphor icon font (duotone /
+bold / fill, ~80 glyphs in its `cw.css`), whose glyphs cannot be extracted — they live inside woff2 files.
+**The branch's set is the reference for both roles**, so there is no Phosphor dependency and no icon font to
+ship. Same for the typeface: Tajawal, which both designs already used anyway.
+
+Most of what the driver needs is already there or maps onto it: bell-ringing → `bell`, package → `box`,
+storefront → `store`, translate → `globe`, list-checks → `checks`, seal-check → `seal`, the three refresh
+arrows → `retry`, lock-key and password → `lock` / `key`, and so on.
+
+**Twelve are genuinely missing** and have to be drawn in the same hand (1.6 stroke, 24×24, round caps) when
+the driver screens are built — bite 4, not before:
+
+`map-trifold` (open in Maps) · `navigation-arrow` (suggested stop) · `x-circle` (failed outcome) ·
+`calendar-check` and `calendar-x` (next plan approved / not) · `magnifying-glass-plus` (enlarge photo) ·
+`eye-slash` (hide password) · `device-mobile` (account) · `sun` and `circle-half` (theme: light / system) ·
+`caret-up` · `circle-notch` (spinner).
+
+A handful more were decorative in the driver design (recycle, coffee, palette, flag-checkered, path,
+circle-dashed, user-minus, hourglass): each gets the nearest icon from the set or no icon at all, decided
+screen by screen rather than by drawing eight one-off glyphs.
+
+### Decided: the driver's demo data is bound to real data
+
+Done, in the same pass. A sentence that carried demo data now takes a placeholder — `{name}` the driver,
+`{material}` their material, `{branch}` a branch label, `{date}` a formatted day, `{when}` a formatted time,
+`{n}` a count — and a string that was *only* demo data is gone, because a row supplies it: the driver's name
+and initials, the city, the formatted dates and month, the material name, and the four sample notifications
+with their timestamps (real notification text arrives as `notifications.title_ar` / `body_ar`, already
+written by the database).
+
+The driver namespace went from 229 keys to 214; 16 of them now take a placeholder. A checker confirms both
+languages still hold the same keys, that each key takes the same placeholders in both, and that no demo
+name, city or date is left anywhere in the copy.
+
+---
+
+## Phase 0 — before the first screen
+
+- [x] Generated the TypeScript types from the live database into `src/data/database.types.ts` (1,353 lines, by
+      the Supabase CLI — regenerate with
+      `npx supabase gen types typescript --project-id vuotbcicuhzjmtmudwgs`).
+      Every mock in phase A is written to **this** shape, so phase B swaps a data source instead of rewriting screens.
+- [x] Lifted the copy, icons and tokens out of the prototypes (see *Source material*).
+- [x] Wrote down what every screen reads and writes — see *Data per screen* below.
+- [x] Edge Function `chains` — active chains (code + both names) with no JWT, for the branch side of the
+      sign-in screen. An Edge Function, not a grant to `anon`, so "anon can't read or call anything" stays
+      literally true. Deployed and verified: an unauthenticated `GET
+      https://vuotbcicuhzjmtmudwgs.supabase.co/functions/v1/chains`, with no `apikey` header at all,
+      returns the five active chains. Redeploy with
+      `npx supabase functions deploy chains --project-ref vuotbcicuhzjmtmudwgs --no-verify-jwt`
+      (the `--no-verify-jwt` flag matters — this repo has no `config.toml` to carry it).
+
+**Two things in the live chain data for ops to fix from the dashboard, not in code:** the Danube chain's
+English name and code are spelled `Danbue` / `danbue`, and a chain called «تست السلسلة» / "Test Serious"
+(`testserious`) is still active — which means it will appear in the sign-in picker of every branch in the
+real app. The function returns exactly what the table holds, as it should.
+
+## Data per screen
+
+What each screen reads and writes, from the live schema. Reads go through RLS — a branch sees its own rows,
+a driver sees what is assigned to them — and **every write is an RPC**. Phase A's mock data is shaped like
+these reads; phase B swaps the source.
+
+### Both roles
+
+| Need | Call |
+| --- | --- |
+| Chain picker (before sign-in) | `GET functions/v1/chains` |
+| Sign in | `POST functions/v1/sign-in` `{ email, password }` → `auth.setSession(session)` |
+| Who am I | `profiles` → `role, display_name, display_name_en, must_change_password, active` where `id = auth.uid()` |
+| Change password | `auth.updateUser({ password })` then `rpc('complete_password_change')` |
+| Verify the current password (Account → change password) | `POST functions/v1/sign-in` with the same email before `updateUser` |
+| Notifications | `notifications` → `id, kind, title_ar, title_en, body_ar, body_en, link, request_id, read_at, created_at`, newest first |
+| Mark them read | `rpc('mark_notifications_read')` |
+| Ops phone | `app_settings` → `value` where `key = 'ops_phone'` |
+
+Notification text is already written in both languages by the database; the app picks the column, it never
+composes the sentence.
+
+### Branch
+
+| Screen | Reads | Writes |
+| --- | --- | --- |
+| Set location | `branches` → `lat, lng, location_confirmed_at` (own row by RLS) | `rpc('branch_set_location', { p_lat, p_lng })` |
+| Home, My requests, Details | `request_list` → `number, status, kg, note, contact_name, contact_phone, branch_photo_path, visit_day, created_at, material_*, subtype_*, last_outcome, last_attempt_day, last_attempt_at, last_reason_ar/_en, closed_reason, cancel_note` | — |
+| Request timeline | `request_events` → `from_status, to_status, actor_kind, note, created_at`; `visit_attempts` → `outcome, visit_day, note, reason_id, photo_path, recorded_at` | — |
+| Create, step 1 (material) | `materials` → `id, code, name_ar, name_en, color_light, color_dark, icon, contact_phone, sort_order` where `active`; `material_subtypes` → `id, material_id, code, name_ar, name_en` where `active`; plus own open requests from `request_list` where `status in ('waiting','scheduled','needs_decision')` to lock what is taken | — |
+| Create, steps 2–3 | — | `rpc('branch_create_request', { p_material_id, p_subtype_id, p_kg, p_note, p_contact_name, p_contact_phone, p_photo_path })` → `{ id, number }` |
+| Edit request | as Details | `rpc('branch_update_request', { p_request_id, p_kg, p_note, p_contact_name, p_contact_phone, p_photo_path })` |
+| Cancel request | — | `rpc('branch_cancel_request', { p_request_id })` |
+| Contact the manager | `materials.contact_phone`, falling back to `app_settings.ops_phone` | — |
+| Account | `branches` → `branch_number, name, address, lat, lng, location_confirmed_at` with `chains(code, name_ar, name_en)` and `districts(name_ar, name_en, cities(name_ar, name_en))` nested | — |
+
+Scale photo: upload to `request-photos` at `branch/<branch_id>/<name>`, then pass that path to the RPC — the
+row is only written once the file is there. Reading one back needs `createSignedUrl`; the bucket is private.
+
+### Driver
+
+| Screen | Reads | Writes |
+| --- | --- | --- |
+| Who am I | `drivers` → `id, full_name, full_name_en, phone, city_id, material_id` where `user_id = auth.uid()`, with `materials(name_ar, name_en)` for the truck line and `cities(name_ar, name_en)` for Account | — |
+| Home, Today's plan | `request_list` where `driver_id = <me>` and `visit_day = <today, Riyadh>` — every stop of the day whatever its status now, with `last_outcome` giving each one's ring | — |
+| Stop details | one `request_list` row → `number, kg, note, contact_name, contact_phone, branch_photo_path, created_at, branch_name, branch_number, chain_name_*, district_name_*, branch_address, branch_access_notes, branch_phone, lat, lng` | — |
+| Record outcome | `reasons` → `id, label_ar, label_en` where `kind = 'failed'` and `active`, by `sort_order` | `rpc('driver_record_outcome', { p_request_id, p_outcome, p_reason_id, p_reason_text, p_note, p_photo_path })` |
+| Next plan | `request_list` where `driver_id = <me>` and `visit_day = <next working day>`; no rows means the plan isn't approved yet | — |
+| History | `visit_attempts` where `driver_id = <me>` and `visit_day` between the chosen dates, filtered by `outcome` | — |
+| Account | the driver row above | — |
+
+Scale photo: upload to `request-photos` at `request/<request_id>/<name>`, then the RPC.
+
+**One thing to confirm in phase B — driver history.** `visit_attempts` is readable by the driver who recorded
+it, but the branch and request labels come from `requests`, which a driver may read only while
+`driver_id = <me>`. Direct reassignment is safe: `staff_change_plan_driver` only moves rows still
+`scheduled`, so a recorded visit never moves. But a *reschedule* decision sends the request back to
+`waiting`, and the next approved plan may give it to a different driver — after which the first driver's
+history row survives while its branch name does not. Build the history screen so a row renders without the
+joined request, see whether it actually happens, and only then decide whether it needs a small
+`security definer` function. Not worth a migration on a hunch.
+
+## Phase A — the shell
+
+All screens of both roles, both languages, both themes, on mock data in the real shape. Five bites; Claude reviews
+each one before the next starts.
+
+### Bite 1 — foundation, sign-in, password change
+
+Auth is **real from day one**. A fake sign-in proves nothing — the temporary password, the forced change and the
+5-attempt lock are all server behaviour, and faking them means building them twice.
+
+- [x] **The skeleton** — Expo app in the workspace, Metro wiring proven, Tajawal loading, RTL on by default,
+      a placeholder screen that renders the lifted tokens and copy. Done by Claude, not Codex, for one
+      reason: config correctness can't be judged by reading a diff, only by running it. Everything below
+      this line can be. What was checked: `npm install` at the root, one React per bundle (`npm ls react`),
+      `tsc --noEmit` clean, `npm run bundle` produces a 2.6 MB Hermes bundle with the fonts resolved from
+      the hoisted root — which is the actual proof the workspace wiring works — and `npm run build` for the
+      dashboard still passes. Not checked by Claude: it running on a real phone. That is Ahmed with Expo Go.
+- [ ] Theme provider and language provider over the lifted tokens and copy.
+      RTL note: React Native reads the direction once at startup, so switching language needs a reload —
+      the provider owns that, `_layout.tsx` only sets the Arabic-first default.
+- [ ] Supabase client with secure session storage; TanStack Query; online/offline detection
+- [ ] Shared loading / error / empty / offline components
+- [ ] Splash
+- [ ] Sign-in: **Branch | Driver** segmented switch above the fields — remembered on the device, opens on the last
+      side used; switching clears the typed fields and any error. Branch → chain picker + branch number + password.
+      Driver → mobile number + password.
+- [ ] Sign-in through the `sign-in` Edge Function: `401 INVALID_CREDENTIALS { attempts_left }`,
+      `429 LOCKED { retry_after }` — both rendered as the designs' text
+- [ ] Forced password change: `auth.updateUser({ password })` → `rpc('complete_password_change')`,
+      `PASSWORD_NOT_CHANGED` handled. Rule: 8+ characters with at least one Latin letter and one digit
+- [ ] Role routing from `profiles.role`; if the account belongs to the other side, sign out and say so
+- [ ] Error-code → message map covering every UPPER_SNAKE code in `supabase/README.md`
+
+**Done when** a real branch account and a real driver account each sign in on a phone, change the temporary
+password, and land on their own role's home.
+
+### Bite 2 — branch screens
+
+Set branch location · home · create request (material → weight + photo → review) · subtype sheets with
+open-request locking · request sent · request details before and after the visit day is set · my requests ·
+notifications · account.
+
+### Bite 3 — branch states
+
+Home loading / error / new branch with no requests · offline retry bar · location permission denied ·
+create-request input errors · send failed while offline · details being rescheduled after a failed pickup ·
+details with the manager · cancel confirmation · contact-manager sheet · no requests.
+
+### Bite 4 — driver screens
+
+Home with progress · today's plan by district · stop details · record outcome (all collected / quantity differs /
+pickup failed) · camera · the three success screens · next plan (view only) · history with period and filter ·
+past visit detail · notifications · account · contact-ops sheet · enlarged branch photo · log-out confirmation.
+
+### Bite 5 — driver states
+
+Home loading / no approved plan / not scheduled today / all visits done / offline banner · stop already recorded ·
+stop couldn't load · stop with no branch photo · plan loading / couldn't load · sending / not sent / no internet
+while sending (the photo and the choice stay on screen) · next plan not approved yet · notifications empty ·
+history empty.
+
+### Checkpoint
+
+Expo Go on Ahmed's phone. Both journeys end to end, both languages, both themes. **Phase B does not start until
+Ahmed says the design is right.**
+
+## Phase B — wiring
+
+Mock data out, Supabase in. Reads go through RLS, every write goes through an RPC.
+
+- [ ] Branch reads: `request_list`, `branches`, `notifications`, reference tables
+- [ ] Branch writes: `branch_set_location`, `branch_create_request`, `branch_update_request`, `branch_cancel_request`
+- [ ] Driver reads: assigned requests, `visit_attempts`, `notifications`
+- [ ] Driver writes: `driver_record_outcome`
+- [ ] Everyone: `mark_notifications_read`
+- [ ] Photo upload — private bucket `request-photos`: branch → `branch/<branch_id>/…`, driver → `request/<request_id>/…`
+- [ ] The four migrations below
+- [ ] Every error code from the README mapped to its designed message
+
+## Phase C — device testing, then one push
+
+Both roles on real accounts, both languages, both themes, the failure paths included. Then — and only on Ahmed's
+word — `feat/mobile-app` is pushed and a PR opened.
+
+---
+
+## Backend changes
+
+Each one is a **new** migration; nothing already applied is ever edited. Convention: `2026MMDD000N00_name.sql`,
+continuing after the applied 01–16.
+
+| # | What | When |
+| --- | --- | --- |
+| — | Edge Function `chains` — active chains, no JWT | phase 0 |
+| 17 | `branch_set_location` refuses once `location_confirmed_at` is set; only the dashboard can change it after | phase B |
+| 18 | Maximum 5,000 kg, enforced in `branch_create_request` **and** `branch_update_request` | phase B |
+| 19 | `branches.name_en` + a field on the dashboard's branches screen + **fix `private.request_label(…, 'en')`**, which today falls back to the Arabic `b.name` so English notifications show Arabic branch names | phase B |
+
+Three, not the four first written here. The fourth was going to add `materials.contact_phone` — see below.
+
+### Checked, needs nothing
+
+**The material manager's number already exists.** An earlier draft of this plan called it a gap; that was wrong.
+Migration 11 added `materials.contact_phone` (`alter table … add column`, which is why a grep of the `create table`
+missed it), `staff_set_material_manager(p_material_id, p_manager_id, p_contact_phone)` writes it, the dashboard's
+materials screen already edits it and already falls back to `app_settings.ops_phone`, and the reference-table read
+policy lets any signed-in user — a branch included — read it. The column even accepts a unified `9200XXXXX`
+number, not just `05…`. Nothing to migrate; the app just reads `materials.contact_phone` and falls back to
+`app_settings.ops_phone`. The rule stays: **no number means the contact button hides**, never a dead button.
+
+**The driver's "next plan" screen needs no new RLS.** `plan_approvals` is staff-only, but `staff_approve_plan` is
+what writes `driver_id` and `visit_day` — so a driver seeing assigned rows for tomorrow already means the plan is
+approved, and no rows means it isn't.
+
+**Material colours need no tokens.** `materials.color_light` / `color_dark` hold them, and the seeded values match
+both designs exactly (`#B5773A`/`#D89A5B` cardboard, `#1F6FB8`/`#5C9BE0` plastic, and so on). Only the soft tints,
+which have no column, were lifted into `src/ui/tokens.ts`.
+
+---
+
+## Prototype vs database
+
+Found while reading both against each other. The database wins every time.
+
+| | Prototype | Database |
+| --- | --- | --- |
+| Mobile number | `^5\d{8}$`, shown as `+966 55 …` | `^05[0-9]{8}$` |
+| Weight ceiling | 5,000 kg in the form | no ceiling yet — migration 18 |
+| Branch location | treated as locked after confirming | can be re-confirmed — migration 17 |
+| English branch name | shown | column doesn't exist — migration 19 |
+| Material codes | `cardboard`, `plastic`, `paper`, `metal`, `bread` | `card`, `plas`, `paper`, `metal`, `bread` |
+| Aluminium subtype | code `alu`, label «ألمنيوم» | code `aluminium`, label «ألومنيوم» |
+| Metal icon | drawn as a can | `materials.icon` = `hex` |
+
+The last three are why nothing keys off a material by the prototype's name: read `materials` and
+`material_subtypes` and key off `code`. `src/ui/icons.ts` maps the database's five icon keys onto the lifted
+set, with `hex` pointing at the can the branch canvas actually drew — no icon was invented.
+
+**Phone normalisation:** keep the designed input and the `+966` display, normalise to `05XXXXXXXX` at the edge.
+The driver's login is built from it: `d-05XXXXXXXX@drivers.cloudswater.co`, from `drivers.phone`.
+The branch's login is `b-<chain code>-<branch number>@branches.cloudswater.co`.
+
+## Approved design changes
+
+- **Branch** — the password rule reads "an English letter and a number"; the sign-out sheet says "chain and branch
+  number" instead of "mobile number", and the leftover "Mobile number" label on the sign-in screen goes with it.
+- **Driver** — the permanent 6-digit PIN becomes a password on the same rule as the branch (8+, one Latin letter,
+  one digit). Every "PIN" string becomes "password": `password`, `showPw`, `forgot`, `loginErr`, `loginErrN`,
+  `lockedBody`, and the locked-login artboard label. Only the **temporary** password is 6 digits.
+- **Sign-in** — one screen for both roles with the Branch | Driver switch above the fields.
+
+## Deferred — not in this phase
+
+Push notifications (in-app only for now) · store publishing and EAS builds (the Apple / Google / Expo accounts are
+being set up in the client's name; testing is on Ahmed's own devices with Expo Go or a development build) ·
+the Excel branch-import script.
+
+The unified ops number and the materials' contact numbers get filled from the dashboard later. Every screen handles
+their absence: the contact button hides rather than showing a number that isn't there.
