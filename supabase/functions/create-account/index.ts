@@ -63,8 +63,9 @@ Deno.serve(async (req) => {
     return json({ error: 'INVALID_KIND' }, 400);
   }
 
-  const password = tempPassword();
-  const { data: created, error: authError } = await db.auth.admin.createUser({ email, password, email_confirm: true });
+  // No password here: Auth would reject 6 digits under the 8-char letters+digits rule (it sets a long random one).
+  // The 6-digit temporary password is written by the database below.
+  const { data: created, error: authError } = await db.auth.admin.createUser({ email, email_confirm: true });
   if (authError || !created.user) {
     const exists = /already/i.test(authError?.message ?? '');
     return json({ error: exists ? 'LOGIN_EXISTS' : 'AUTH_ERROR', detail: authError?.message }, exists ? 409 : 500);
@@ -82,6 +83,12 @@ Deno.serve(async (req) => {
   if (profileError) {
     await db.auth.admin.deleteUser(userId); // keep auth and profiles in step
     return json({ error: 'PROFILE_FAILED', detail: profileError.message }, 500);
+  }
+  const password = tempPassword();
+  const { error: passwordError } = await db.rpc('set_temp_password', { p_user_id: userId, p_password: password });
+  if (passwordError) {
+    await db.auth.admin.deleteUser(userId); // profile cascades; the branch/driver link is set back to null
+    return json({ error: 'AUTH_ERROR', detail: passwordError.message }, 500);
   }
   if (materialIds.length) await db.from('materials').update({ manager_id: userId }).in('id', materialIds);
 
