@@ -106,10 +106,81 @@ name, city or date is left anywhere in the copy.
       `npx supabase gen types typescript --project-id vuotbcicuhzjmtmudwgs`).
       Every mock in phase A is written to **this** shape, so phase B swaps a data source instead of rewriting screens.
 - [x] Lifted the copy, icons and tokens out of the prototypes (see *Source material*).
-- [ ] Write down the real query and RPC signatures each screen needs (one short table, in this file).
-      Waiting on nothing — next job.
-- [ ] Edge Function `chains` — active chains (name + code) with no JWT, for the branch side of the sign-in screen.
-      An Edge Function, not a grant to `anon`, so "anon can't read or call anything" stays literally true.
+- [x] Wrote down what every screen reads and writes — see *Data per screen* below.
+- [x] Edge Function `chains` — active chains (code + both names) with no JWT, for the branch side of the
+      sign-in screen. An Edge Function, not a grant to `anon`, so "anon can't read or call anything" stays
+      literally true. Deployed and verified: an unauthenticated `GET
+      https://vuotbcicuhzjmtmudwgs.supabase.co/functions/v1/chains`, with no `apikey` header at all,
+      returns the five active chains. Redeploy with
+      `npx supabase functions deploy chains --project-ref vuotbcicuhzjmtmudwgs --no-verify-jwt`
+      (the `--no-verify-jwt` flag matters — this repo has no `config.toml` to carry it).
+
+**Two things in the live chain data for ops to fix from the dashboard, not in code:** the Danube chain's
+English name and code are spelled `Danbue` / `danbue`, and a chain called «تست السلسلة» / "Test Serious"
+(`testserious`) is still active — which means it will appear in the sign-in picker of every branch in the
+real app. The function returns exactly what the table holds, as it should.
+
+## Data per screen
+
+What each screen reads and writes, from the live schema. Reads go through RLS — a branch sees its own rows,
+a driver sees what is assigned to them — and **every write is an RPC**. Phase A's mock data is shaped like
+these reads; phase B swaps the source.
+
+### Both roles
+
+| Need | Call |
+| --- | --- |
+| Chain picker (before sign-in) | `GET functions/v1/chains` |
+| Sign in | `POST functions/v1/sign-in` `{ email, password }` → `auth.setSession(session)` |
+| Who am I | `profiles` → `role, display_name, display_name_en, must_change_password, active` where `id = auth.uid()` |
+| Change password | `auth.updateUser({ password })` then `rpc('complete_password_change')` |
+| Verify the current password (Account → change password) | `POST functions/v1/sign-in` with the same email before `updateUser` |
+| Notifications | `notifications` → `id, kind, title_ar, title_en, body_ar, body_en, link, request_id, read_at, created_at`, newest first |
+| Mark them read | `rpc('mark_notifications_read')` |
+| Ops phone | `app_settings` → `value` where `key = 'ops_phone'` |
+
+Notification text is already written in both languages by the database; the app picks the column, it never
+composes the sentence.
+
+### Branch
+
+| Screen | Reads | Writes |
+| --- | --- | --- |
+| Set location | `branches` → `lat, lng, location_confirmed_at` (own row by RLS) | `rpc('branch_set_location', { p_lat, p_lng })` |
+| Home, My requests, Details | `request_list` → `number, status, kg, note, contact_name, contact_phone, branch_photo_path, visit_day, created_at, material_*, subtype_*, last_outcome, last_attempt_day, last_attempt_at, last_reason_ar/_en, closed_reason, cancel_note` | — |
+| Request timeline | `request_events` → `from_status, to_status, actor_kind, note, created_at`; `visit_attempts` → `outcome, visit_day, note, reason_id, photo_path, recorded_at` | — |
+| Create, step 1 (material) | `materials` → `id, code, name_ar, name_en, color_light, color_dark, icon, contact_phone, sort_order` where `active`; `material_subtypes` → `id, material_id, code, name_ar, name_en` where `active`; plus own open requests from `request_list` where `status in ('waiting','scheduled','needs_decision')` to lock what is taken | — |
+| Create, steps 2–3 | — | `rpc('branch_create_request', { p_material_id, p_subtype_id, p_kg, p_note, p_contact_name, p_contact_phone, p_photo_path })` → `{ id, number }` |
+| Edit request | as Details | `rpc('branch_update_request', { p_request_id, p_kg, p_note, p_contact_name, p_contact_phone, p_photo_path })` |
+| Cancel request | — | `rpc('branch_cancel_request', { p_request_id })` |
+| Contact the manager | `materials.contact_phone`, falling back to `app_settings.ops_phone` | — |
+| Account | `branches` → `branch_number, name, address, lat, lng, location_confirmed_at` with `chains(code, name_ar, name_en)` and `districts(name_ar, name_en, cities(name_ar, name_en))` nested | — |
+
+Scale photo: upload to `request-photos` at `branch/<branch_id>/<name>`, then pass that path to the RPC — the
+row is only written once the file is there. Reading one back needs `createSignedUrl`; the bucket is private.
+
+### Driver
+
+| Screen | Reads | Writes |
+| --- | --- | --- |
+| Who am I | `drivers` → `id, full_name, full_name_en, phone, city_id, material_id` where `user_id = auth.uid()`, with `materials(name_ar, name_en)` for the truck line and `cities(name_ar, name_en)` for Account | — |
+| Home, Today's plan | `request_list` where `driver_id = <me>` and `visit_day = <today, Riyadh>` — every stop of the day whatever its status now, with `last_outcome` giving each one's ring | — |
+| Stop details | one `request_list` row → `number, kg, note, contact_name, contact_phone, branch_photo_path, created_at, branch_name, branch_number, chain_name_*, district_name_*, branch_address, branch_access_notes, branch_phone, lat, lng` | — |
+| Record outcome | `reasons` → `id, label_ar, label_en` where `kind = 'failed'` and `active`, by `sort_order` | `rpc('driver_record_outcome', { p_request_id, p_outcome, p_reason_id, p_reason_text, p_note, p_photo_path })` |
+| Next plan | `request_list` where `driver_id = <me>` and `visit_day = <next working day>`; no rows means the plan isn't approved yet | — |
+| History | `visit_attempts` where `driver_id = <me>` and `visit_day` between the chosen dates, filtered by `outcome` | — |
+| Account | the driver row above | — |
+
+Scale photo: upload to `request-photos` at `request/<request_id>/<name>`, then the RPC.
+
+**One thing to confirm in phase B — driver history.** `visit_attempts` is readable by the driver who recorded
+it, but the branch and request labels come from `requests`, which a driver may read only while
+`driver_id = <me>`. Direct reassignment is safe: `staff_change_plan_driver` only moves rows still
+`scheduled`, so a recorded visit never moves. But a *reschedule* decision sends the request back to
+`waiting`, and the next approved plan may give it to a different driver — after which the first driver's
+history row survives while its branch name does not. Build the history screen so a row renders without the
+joined request, see whether it actually happens, and only then decide whether it needs a small
+`security definer` function. Not worth a migration on a hunch.
 
 ## Phase A — the shell
 
