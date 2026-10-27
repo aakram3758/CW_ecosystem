@@ -254,6 +254,14 @@ Set branch location · home · create request (material → weight + photo → r
 open-request locking · request sent · request details before and after the visit day is set · my requests ·
 notifications · account.
 
+**One decision to revisit in phase B — the branch is a single route.** All eight screens live under
+`/branch` and switch on state in `src/branch/app.tsx`, the way the prototype itself works, with the
+Android back button handled per screen. Nothing is wrong with it and it keeps the screens close to the
+approved design, but it means there is no route per screen. A push notification that should open one
+request therefore cannot deep-link to it — it has to land on `/branch` and set state. Notifications are
+deferred, so decide this when they are built, not before: either give the branch nested routes then, or
+accept an app that opens on home and selects the request itself.
+
 ### Bite 3 — branch states
 
 Home loading / error / new branch with no requests · offline retry bar · location permission denied ·
