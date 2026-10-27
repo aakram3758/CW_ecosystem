@@ -7,11 +7,18 @@
  * (`light`, `dark`, `logout`, `version`…); they are not merged, because the two designs were
  * approved independently and silently unifying their copy would be a design decision.
  *
- * Marked `[changed]` below are the three approved changes applied during extraction:
+ * Marked `[changed]` below are the approved changes applied during extraction:
  *   · branch `logoutB` — says "chain and branch number" instead of "mobile number"
  *   · driver login + password screens — the permanent 6-digit PIN became a password on the
  *     branch's rule (8+ characters, a Latin letter and a digit), so every "PIN" became "password"
  *   · driver password rules — now the branch's three rules
+ *
+ * The driver's demo data is bound to real data rather than frozen in the copy: sentences that
+ * carried it take a placeholder (`hi`, `allDoneSub`, `truckLine`, `inDistricts`, `nextPlanValue`,
+ * `planChangedBody`, `approvedAt`, `today`, `yesterday`), and values that were only demo data are
+ * gone, because a row supplies them — the driver's name and initials, the city, the formatted
+ * dates and month, the material name, and the four sample notifications with their timestamps
+ * (real ones arrive as `notifications.title_ar` / `body_ar`, already written by the database).
  *
  * The branch `phone` / `errPhone` keys are the *contact person's* mobile on the create-request
  * screen, not a sign-in field: the branch signs in with chain + branch number.
@@ -81,17 +88,17 @@ export const ar = {
     newPw: 'كلمة المرور الجديدة', confirmPw: 'أعد كتابة كلمة المرور',
     // [changed] the driver's rules are now the branch's rules
     rule8: '8 أحرف على الأقل', ruleNum: 'تحتوي على حرف ورقم', ruleMatch: 'التأكيد مطابق', saveContinue: 'حفظ ومتابعة',
-    hi: 'أهلًا خالد', truckLine: 'شاحنة بلاستيك', date: 'الاثنين، 19 أكتوبر', dateShort: 'الاثنين 19 أكتوبر',
-    inDistricts: 'في 3 أحياء', progress: 'تقدّم اليوم', suggested: 'الزيارة المقترحة', sameDistrict: 'في نفس الحي', openDetails: 'عرض التفاصيل',
-    allStops: 'كل الزيارات', byDistrict: 'حسب الحي', allDoneTitle: 'أنهيت خطة اليوم', allDoneSub: 'أحسنت يا خالد، سجّلت كل الزيارات.',
+    hi: 'أهلًا {name}', truckLine: 'شاحنة {material}',
+    inDistricts: 'في {n} أحياء', progress: 'تقدّم اليوم', suggested: 'الزيارة المقترحة', sameDistrict: 'في نفس الحي', openDetails: 'عرض التفاصيل',
+    allStops: 'كل الزيارات', byDistrict: 'حسب الحي', allDoneTitle: 'أنهيت خطة اليوم', allDoneSub: 'أحسنت يا {name}، سجّلت كل الزيارات.',
     noPlanHead: 'لا توجد خطة معتمدة', noPlanSub: 'لهذا اليوم بعد', noPlanBody: 'ستظهر زياراتك هنا فور اعتماد العمليات للخطة، وسيصلك إشعار.',
     refresh: 'تحديث', contactOps: 'تواصل مع العمليات', offHead: 'لست مجدولًا', offSub: 'للعمل اليوم',
-    offBody: 'حدّدت العمليات أنك لا تعمل اليوم. إن كان هذا خطأ فتواصل معهم.', nextPlan: 'الخطة القادمة', nextPlanValue: 'الثلاثاء 20 أكتوبر · 6 زيارات',
-    view: 'عرض', planChangedTitle: 'تم تعديل خطة اليوم', planChangedBody: 'أُضيفت زيارة: الدانوب #21 – السلامة', gotIt: 'حسنًا',
+    offBody: 'حدّدت العمليات أنك لا تعمل اليوم. إن كان هذا خطأ فتواصل معهم.', nextPlan: 'الخطة القادمة', nextPlanValue: '{date} · {n} زيارات',
+    view: 'عرض', planChangedTitle: 'تم تعديل خطة اليوم', planChangedBody: 'أُضيفت زيارة: {branch}', gotIt: 'حسنًا',
     support: 'الدعم', notifAria: 'الإشعارات', navAria: 'التنقل الرئيسي', navToday: 'اليوم', navUpcoming: 'القادمة', navHistory: 'السجل', navAccount: 'حسابي',
     planTitle: 'خطة اليوم', filter: 'تصفية الزيارات', remaining: 'المتبقية', all: 'الكل', anyOrder: 'زُر الفروع بالترتيب الذي يناسبك',
     districtDone: 'مكتمل', newTag: 'جديدة', suggestedTag: 'مقترحة', draftTag: 'مسودة محفوظة – لم تُرسل',
-    st_todo: 'لم تُزر', st_full: 'تمت', st_partial: 'كمية مختلفة', st_failed: 'تعذّرت', kg: 'كجم', plastic: 'بلاستيك',
+    st_todo: 'لم تُزر', st_full: 'تمت', st_partial: 'كمية مختلفة', st_failed: 'تعذّرت', kg: 'كجم',
     request: 'الطلب', address: 'العنوان', access: 'تعليمات الوصول', callBranch: 'اتصال بالفرع', openMaps: 'فتح الموقع في خرائط الجوال',
     declared: 'الوزن المعلن من الفرع', branchPhoto: 'صورة الميزان من الفرع', tapEnlarge: 'اضغط للتكبير', branchNote: 'ملاحظة الفرع',
     requestedOn: 'طُلب في', record: 'تسجيل نتيجة الزيارة', continueDraft: 'متابعة التسجيل', recordedAs: 'تم التسجيل',
@@ -112,20 +119,18 @@ export const ar = {
     sFullTitle: 'تم الاستلام وأُغلق الطلب', sPartialTitle: 'تم تسجيل الاستلام', sPartialSub: 'الكمية مختلفة – الطلب الآن «يحتاج قرار»', sFailedTitle: 'تم تسجيل تعذّر الاستلام', sFailedSub: 'الطلب الآن «يحتاج قرار» عند المشرف',
     todayProgress: 'تقدّم اليوم', next: 'الزيارة التالية', toPlan: 'العودة للخطة', backHome: 'الرئيسية', lastDone: 'كانت هذه آخر زيارة اليوم',
     upTitle: 'الخطة القادمة', viewOnly: 'للعرض فقط', approved: 'معتمدة', upEmpty: 'لم تُعتمد الخطة القادمة بعد', upEmptySub: 'سيصلك إشعار فور اعتمادها من العمليات.',
-    approvedAt: 'يوم العمل التالي · اعتُمدت اليوم 10:20',
+    approvedAt: 'يوم العمل التالي · اعتُمدت {when}',
     contactLabel: 'صاحب الطلب', callContact: 'اتصال بصاحب الطلب', noBranchPhoto: 'لم يرفق الفرع صورة للميزان', noBranchPhotoSub: 'اعتمد على الوزن المكتوب، وصوّر الميزان عند الاستلام.',
     lockedTitle: 'تم إيقاف الدخول مؤقتًا', lockedBody: '5 محاولات خاطئة. حاول بعد 15 دقيقة، أو تواصل مع العمليات لفتح الحساب.',
     // [changed] was: 'الرقم السري غير صحيح – تبقّى {n}'
     loginErrN: 'كلمة المرور غير صحيحة – تبقّى {n}',
     left: 'زيارات باقية', left1: 'زيارة باقية', leftShort: 'باقية',
     period: 'الفترة', changePeriod: 'تغيير الفترة', rangeTitle: 'اختر الفترة', from: 'من', to: 'إلى', qToday: 'اليوم', qYesterday: 'أمس', q7: 'آخر 7 أيام', qMonth: 'هذا الشهر',
-    apply: 'عرض النتائج', month: 'أكتوبر 2026', mon: 'أكتوبر', f_all: 'الكل', rangeEmpty: 'لا توجد زيارات في هذه الفترة', rangeEmptySub: 'جرّب فترة أخرى أو غيّر الفلتر.',
+    apply: 'عرض النتائج', f_all: 'الكل', rangeEmpty: 'لا توجد زيارات في هذه الفترة', rangeEmptySub: 'جرّب فترة أخرى أو غيّر الفلتر.',
     visitsUnit: 'زيارات', driverPhoto: 'صورة الميزان التي أرسلتها', genNote: 'بقي جزء من الكمية لم يُجهّز بعد', noteLbl: 'ملاحظتك', reasonLbl: 'السبب', todayW: 'اليوم', yestW: 'أمس',
-    histTitle: 'السجل', today: 'اليوم – الاثنين 19 أكتوبر', yesterday: 'أمس – الأحد 18 أكتوبر', histEmpty: 'لا توجد زيارات مسجّلة بعد', histEmptySub: 'ستظهر زياراتك هنا بعد تسجيل نتائجها.',
+    histTitle: 'السجل', today: 'اليوم – {date}', yesterday: 'أمس – {date}', histEmpty: 'لا توجد زيارات مسجّلة بعد', histEmptySub: 'ستظهر زياراتك هنا بعد تسجيل نتائجها.',
     notifTitle: 'الإشعارات', unread: 'غير مقروء', notifEmpty: 'لا توجد إشعارات', notifEmptySub: 'ستصلك هنا تحديثات خططك.',
-    n1Title: 'اعتُمدت خطتك القادمة', n1Body: 'الثلاثاء 20 أكتوبر · 6 زيارات في حيّين', n3Title: 'اعتُمدت خطة اليوم', n3Body: '8 زيارات في 3 أحياء',
-    t1: '10:20', t2: '09:12', t3: 'أمس 21:40',
-    accTitle: 'حسابي', initials: 'خ', driverName: 'خالد العتيبي', city: 'جدة', cityLabel: 'المدينة', mobileLabel: 'الجوال',
+    accTitle: 'حسابي', cityLabel: 'المدينة', mobileLabel: 'الجوال',
     language: 'اللغة', theme: 'المظهر', light: 'فاتح', dark: 'داكن', system: 'النظام', changePw: 'تغيير كلمة المرور', logout: 'تسجيل الخروج',
     logoutQ: 'تسجيل الخروج؟', logoutBody: 'ستحتاج رقم جوالك وكلمة المرور للدخول مرة أخرى.', cancel: 'إلغاء', version: 'الإصدار 1.0.0',
     opsTitle: 'فريق العمليات', opsBody: 'للاستفسار عن الخطة أو الحساب أو كلمة المرور.', opsNumber: '[رقم العمليات]', call: 'اتصال',

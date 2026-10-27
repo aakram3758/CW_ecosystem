@@ -1,10 +1,16 @@
 /**
  * Design tokens, lifted from the approved prototypes — the branch canvas (`[data-theme]` blocks)
- * and the driver canvas (`cw.css` `.cw-light` / `.cw-dark`). Do not invent values here: a colour
- * that isn't in this file isn't in the designs.
+ * and the driver canvas (`cw.css` `.cw-light` / `.cw-dark`).
  *
- * The two canvases define almost the same palette under different names. Where they disagreed,
- * the driver canvas won (it is the newer of the two) — those six values are marked `[driver]`.
+ * **Everything in this file is a value one of the two canvases actually states.** Nothing is
+ * interpolated into a scale. An earlier draft had invented `space`, `radius` and font-size scales
+ * that looked plausible and were not in either design; they are gone, because a made-up token that
+ * sits next to real ones is worse than no token — it gets trusted. Screens use the literal values
+ * their artboard uses until a repeated value earns a name here.
+ *
+ * The two canvases define almost the same palette under different names. Where they disagreed, the
+ * **branch** canvas wins: it is the reference for the shared visual language (Ahmed's call).
+ * Those six values are marked `[branch]` with the driver's variant beside them.
  *
  * Material colours are NOT here: `materials.color_light` / `materials.color_dark` hold them in the
  * database, and the seeded values already match both designs exactly. Only the soft tints, which
@@ -24,13 +30,13 @@ export const palette = {
 
     primary: '#1F4E8C',
     primary2: '#163A66',
-    primarySoft: '#E4ECF7', // [driver] branch had rgba(31,78,140,.10)
+    primarySoft: 'rgba(31,78,140,.10)', // [branch] driver had #E4ECF7
     onPrimary: '#FFFFFF',
     link: '#1F4E8C',
 
     accent: '#B08D2E',
     accentSoft: '#F7EFD9',
-    accentText: '#7A5C0F', // [driver] branch had #6E5413
+    accentText: '#6E5413', // [branch] driver had #7A5C0F
 
     success: '#19764A',
     successSoft: '#E3F3EA',
@@ -40,8 +46,8 @@ export const palette = {
     warningSoft: '#FBEFDC',
 
     danger: '#EF6B5E',
-    dangerSoft: '#FDEBE9', // [driver] branch had #FDECEA
-    dangerText: '#B3382C', // [driver] branch had #B3261E
+    dangerSoft: '#FDECEA', // [branch] driver had #FDEBE9
+    dangerText: '#B3261E', // [branch] driver had #B3382C
 
     navy: '#0B2340',
     gold: '#E8CE84',
@@ -69,7 +75,7 @@ export const palette = {
     primary2: '#24579A',
     primarySoft: 'rgba(46,107,184,.20)',
     onPrimary: '#FFFFFF',
-    link: '#8DB8EE', // [driver] branch had #8DB6EA
+    link: '#8DB6EA', // [branch] driver had #8DB8EE
 
     accent: '#E8CE84',
     accentSoft: 'rgba(232,206,132,.15)',
@@ -83,8 +89,8 @@ export const palette = {
     warningSoft: 'rgba(224,163,70,.14)',
 
     danger: '#EF6B5E',
-    dangerSoft: 'rgba(239,107,94,.16)',
-    dangerText: '#F49A90', // [driver] branch had #F4978C
+    dangerSoft: 'rgba(239,107,94,.14)', // [branch] driver had .16
+    dangerText: '#F4978C', // [branch] driver had #F49A90
 
     navy: '#0B2340',
     gold: '#E8CE84',
@@ -93,7 +99,7 @@ export const palette = {
     skeleton: '#17304A',
     skeletonHighlight: '#1F3B58',
     toast: '#EAF1F8',
-    scrim: 'rgba(0,0,0,.62)',
+    scrim: 'rgba(3,9,17,.72)', // [branch] driver had rgba(0,0,0,.62)
 
     mapBg: '#10253C',
     mapBlock: '#17304A',
@@ -108,7 +114,7 @@ export const palette = {
 export const materialSoft = {
   light: {
     card: '#F6EBDD',
-    plas: '#E3EEF8', // [driver] branch had #E2EEFA
+    plas: '#E2EEFA', // [branch] driver had #E3EEF8
     paper: '#E2F2E9',
     metal: '#E9EDF2',
     bread: '#DDF1F1',
@@ -122,35 +128,26 @@ export const materialSoft = {
   },
 } as const;
 
-/** The ring colour for a visit's outcome on the driver's home and plan screens. */
+/** Ring colour per visit outcome on the driver's home and plan screens, as its `RING` map sets it. */
 export const outcomeRing = {
   full: 'success',
   partial: 'accent',
   failed: 'danger',
   todo: 'ringTodo',
-} as const;
+} as const satisfies Record<string, keyof (typeof palette)['light']>;
 
-export const radius = {
-  sm: 8,
-  md: 12,
-  lg: 18,
-  xl: 22,
-  pill: 999,
-  tile: 18,
-  phone: 28,
-} as const;
-
-export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 } as const;
-
-/** Tajawal, the only family in both designs. Weights as loaded by the prototypes. */
+/** Tajawal is the only family in either design. Weights and base size as the prototypes load them. */
 export const type = {
   family: 'Tajawal',
   weight: { regular: '400', medium: '500', bold: '700', heavy: '800' },
-  size: { xs: 12, sm: 13, base: 15, md: 17, lg: 20, xl: 24, display: 32 },
+  baseSize: 15,
   lineHeight: 1.5,
 } as const;
 
-/** Minimum touch target, held across both designs. */
+/**
+ * Not from the designs — the iOS and Android minimum touch target. Here because every screen has to
+ * honour it and it is easy to forget, not because an artboard states it.
+ */
 export const minTouch = 44;
 
 export type Palette = (typeof palette)['light'];

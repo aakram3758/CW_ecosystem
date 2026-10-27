@@ -2,18 +2,15 @@
  * English copy, lifted verbatim from the approved prototypes' `T.en` dictionaries.
  * Same rules and the same three `[changed]` edits as `ar.ts` — see that file's header.
  *
- * Two things to know before wiring (phase B):
+ * No prototype sample value survives in either namespace. The branch dictionary ended with
+ * `chainV`, `cityV`, `districtV`, `branchTitle` and `addressV`, and the driver's carried its demo
+ * driver's name, city, truck, dates and sample notifications; all of it is demo data dressed as
+ * copy, so a sentence that held it now takes a `{placeholder}` and a bare value is gone. The real
+ * ones come from `branches` / `chains` / `districts` / `drivers` / `materials`, and notification
+ * text from `notifications.title_en` / `body_en`.
  *
- * 1. Prototype sample values are NOT here. The branch dictionary ended with `chainV`, `cityV`,
- *    `districtV`, `branchTitle` and `addressV`; those were demo data dressed as copy and are
- *    dropped — the real values come from `branches` / `chains` / `districts`.
- *
- * 2. Several driver strings still have the demo driver's name, truck and dates baked in:
- *    `hi`, `allDoneSub`, `driverName`, `initials`, `truckLine`, `date`, `dateShort`,
- *    `inDistricts`, `city`, `today`, `yesterday`, `month`, `mon`, `nextPlanValue`,
- *    `planChangedBody`, `approvedAt`, `n1Body`, `n3Body`, `t1`–`t3`. They are kept word for word
- *    because that is the approved wording, but each needs a `{placeholder}` when it meets real
- *    data. Doing that is a copy change, so it goes past Ahmed first.
+ * Placeholders in use: `{name}` the driver, `{material}` their material, `{branch}` a branch's
+ * label, `{date}` a formatted day, `{when}` a formatted time, `{n}` a count.
  */
 
 export const en = {
@@ -80,17 +77,17 @@ export const en = {
     newPw: 'New password', confirmPw: 'Re-enter password',
     // [changed] the driver's rules are now the branch's rules
     rule8: 'At least 8 characters', ruleNum: 'Contains a letter and a number', ruleMatch: 'Confirmation matches', saveContinue: 'Save and continue',
-    hi: 'Hi Khalid', truckLine: 'Plastic truck', date: 'Monday, 19 October', dateShort: 'Mon 19 Oct',
-    inDistricts: 'across 3 districts', progress: 'Today’s progress', suggested: 'Suggested next stop', sameDistrict: 'Same district', openDetails: 'Open details',
-    allStops: 'All visits', byDistrict: 'By district', allDoneTitle: 'Today’s plan is done', allDoneSub: 'Well done, Khalid. Every visit is recorded.',
+    hi: 'Hi {name}', truckLine: '{material} truck',
+    inDistricts: 'across {n} districts', progress: 'Today’s progress', suggested: 'Suggested next stop', sameDistrict: 'Same district', openDetails: 'Open details',
+    allStops: 'All visits', byDistrict: 'By district', allDoneTitle: 'Today’s plan is done', allDoneSub: 'Well done, {name}. Every visit is recorded.',
     noPlanHead: 'No approved plan', noPlanSub: 'for today yet', noPlanBody: 'Your visits will appear here as soon as Operations approves the plan. We’ll notify you.',
     refresh: 'Refresh', contactOps: 'Contact Operations', offHead: 'You’re not scheduled', offSub: 'to work today',
-    offBody: 'Operations marked you as not working today. If that’s wrong, contact them.', nextPlan: 'Your next plan', nextPlanValue: 'Tue 20 Oct · 6 visits',
-    view: 'View', planChangedTitle: 'Today’s plan changed', planChangedBody: 'Visit added: Danube #21 – Al Salamah', gotIt: 'Got it',
+    offBody: 'Operations marked you as not working today. If that’s wrong, contact them.', nextPlan: 'Your next plan', nextPlanValue: '{date} · {n} visits',
+    view: 'View', planChangedTitle: 'Today’s plan changed', planChangedBody: 'Visit added: {branch}', gotIt: 'Got it',
     support: 'Support', notifAria: 'Notifications', navAria: 'Main navigation', navToday: 'Today', navUpcoming: 'Next', navHistory: 'History', navAccount: 'Account',
     planTitle: 'Today’s plan', filter: 'Filter visits', remaining: 'Remaining', all: 'All', anyOrder: 'Visit branches in any order you like',
     districtDone: 'Complete', newTag: 'New', suggestedTag: 'Suggested', draftTag: 'Draft saved – not sent',
-    st_todo: 'Not visited', st_full: 'Done', st_partial: 'Different qty', st_failed: 'Failed', kg: 'kg', plastic: 'Plastic',
+    st_todo: 'Not visited', st_full: 'Done', st_partial: 'Different qty', st_failed: 'Failed', kg: 'kg',
     request: 'Request', address: 'Address', access: 'Access instructions', callBranch: 'Call branch', openMaps: 'Open in your phone’s Maps',
     declared: 'Weight declared by branch', branchPhoto: 'Branch’s scale photo', tapEnlarge: 'Tap to enlarge', branchNote: 'Branch note',
     requestedOn: 'Requested on', record: 'Record visit outcome', continueDraft: 'Continue recording', recordedAs: 'Recorded',
@@ -111,20 +108,18 @@ export const en = {
     sFullTitle: 'Collected – request closed', sPartialTitle: 'Pickup recorded', sPartialSub: 'Quantity differs – request now “Needs decision”', sFailedTitle: 'Failed pickup recorded', sFailedSub: 'Request now “Needs decision” for the supervisor',
     todayProgress: 'Today’s progress', next: 'Next visit', toPlan: 'Back to plan', backHome: 'Home', lastDone: 'That was today’s last visit',
     upTitle: 'Next plan', viewOnly: 'View only', approved: 'Approved', upEmpty: 'Your next plan isn’t approved yet', upEmptySub: 'You’ll be notified as soon as Operations approves it.',
-    approvedAt: 'Next working day · approved today 10:20',
+    approvedAt: 'Next working day · approved {when}',
     contactLabel: 'Requested by', callContact: 'Call requester', noBranchPhoto: 'The branch didn’t attach a scale photo', noBranchPhotoSub: 'Go by the stated weight and photograph the scale at pickup.',
     lockedTitle: 'Sign-in paused', lockedBody: '5 wrong attempts. Try again in 15 minutes, or contact Operations to unlock.',
     // [changed] was: 'Wrong PIN – {n} left'
     loginErrN: 'Wrong password – {n} left',
     left: 'visits left', left1: 'visit left', leftShort: 'left',
     period: 'Period', changePeriod: 'Change period', rangeTitle: 'Choose a period', from: 'From', to: 'To', qToday: 'Today', qYesterday: 'Yesterday', q7: 'Last 7 days', qMonth: 'This month',
-    apply: 'Show results', month: 'October 2026', mon: 'Oct', f_all: 'All', rangeEmpty: 'No visits in this period', rangeEmptySub: 'Try another period or filter.',
+    apply: 'Show results', f_all: 'All', rangeEmpty: 'No visits in this period', rangeEmptySub: 'Try another period or filter.',
     visitsUnit: 'visits', driverPhoto: 'Scale photo you sent', genNote: 'Part of the quantity wasn’t ready', noteLbl: 'Your note', reasonLbl: 'Reason', todayW: 'Today', yestW: 'Yesterday',
-    histTitle: 'History', today: 'Today – Mon 19 Oct', yesterday: 'Yesterday – Sun 18 Oct', histEmpty: 'No recorded visits yet', histEmptySub: 'Visits appear here after you record their outcome.',
+    histTitle: 'History', today: 'Today – {date}', yesterday: 'Yesterday – {date}', histEmpty: 'No recorded visits yet', histEmptySub: 'Visits appear here after you record their outcome.',
     notifTitle: 'Notifications', unread: 'Unread', notifEmpty: 'No notifications', notifEmptySub: 'Updates about your plans will appear here.',
-    n1Title: 'Your next plan is approved', n1Body: 'Tue 20 Oct · 6 visits in 2 districts', n3Title: 'Today’s plan approved', n3Body: '8 visits in 3 districts',
-    t1: '10:20', t2: '09:12', t3: 'Yesterday 21:40',
-    accTitle: 'Account', initials: 'K', driverName: 'Khalid Al-Otaibi', city: 'Jeddah', cityLabel: 'City', mobileLabel: 'Mobile',
+    accTitle: 'Account', cityLabel: 'City', mobileLabel: 'Mobile',
     language: 'Language', theme: 'Theme', light: 'Light', dark: 'Dark', system: 'System', changePw: 'Change password', logout: 'Log out',
     logoutQ: 'Log out?', logoutBody: 'You’ll need your mobile number and password to sign in again.', cancel: 'Cancel', version: 'Version 1.0.0',
     opsTitle: 'Operations team', opsBody: 'For questions about your plan, account or password.', opsNumber: '[Operations number]', call: 'Call',

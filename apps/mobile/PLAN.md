@@ -46,34 +46,56 @@ Claude did this extraction in phase 0; Codex builds on top of it:
 
 | What | From | To | |
 | --- | --- | --- | --- |
-| Copy — 260 branch + 229 driver keys per language | `T.ar` / `T.en` | `src/i18n/ar.ts`, `src/i18n/en.ts` | done |
+| Copy — 260 branch + 214 driver keys per language | `T.ar` / `T.en` | `src/i18n/ar.ts`, `src/i18n/en.ts` | done |
 | 40 icons as SVG path data | the branch `I` object | `src/ui/icons.ts` | done |
-| Colours per theme, radii, Tajawal weights | inline styles + `cw.css` | `src/ui/tokens.ts` | done |
+| Colours per theme, Tajawal weights | inline styles + `cw.css` | `src/ui/tokens.ts` | done |
 
-Each file's header records what was changed on the way in and why. The three approved design changes
-(below) are already applied, and every edited string is marked `[changed]` beside its original.
+Each file's header records what was changed on the way in and why. The approved design changes (below)
+are already applied, and every edited string is marked `[changed]` beside its original.
+
+`tokens.ts` holds **only values one of the canvases actually states**. It deliberately has no spacing,
+radius or font-size scale: the designs don't state one, and a plausible invented scale sitting next to real
+tokens is worse than no scale, because it gets trusted. Screens use their artboard's literal values until a
+repeated value earns a name there.
 
 **Business rules are taken from the database, never from the prototype.** They already disagree — see
 *Prototype vs database* below.
 
-### Open: the two designs do not share an icon language
+### Decided: one icon language, and it is the branch's
 
-The branch canvas draws its own 24×24 SVG paths — all 40 are now in `src/ui/icons.ts`. The driver canvas
-instead uses the **Phosphor icon font** (duotone / bold / fill, ~80 glyphs declared in its `cw.css`), and those
-glyphs cannot be extracted as paths: they live inside woff2 files. So one of:
+The branch canvas draws its own 24×24 SVG paths; the driver canvas used the Phosphor icon font (duotone /
+bold / fill, ~80 glyphs in its `cw.css`), whose glyphs cannot be extracted — they live inside woff2 files.
+**The branch's set is the reference for both roles**, so there is no Phosphor dependency and no icon font to
+ship. Same for the typeface: Tajawal, which both designs already used anyway.
 
-- **(a)** `phosphor-react-native` for the driver, the lifted SVG set for the branch — faithful to both approved
-  designs, two icon sources in one app.
-- **(b)** Phosphor for both roles — one icon language, but it changes the branch's 40 icons slightly.
+Most of what the driver needs is already there or maps onto it: bell-ringing → `bell`, package → `box`,
+storefront → `store`, translate → `globe`, list-checks → `checks`, seal-check → `seal`, the three refresh
+arrows → `retry`, lock-key and password → `lock` / `key`, and so on.
 
-Not decided. (a) is the faithful option and matches "exactly like the design"; (b) is the tidier one.
+**Twelve are genuinely missing** and have to be drawn in the same hand (1.6 stroke, 24×24, round caps) when
+the driver screens are built — bite 4, not before:
 
-### Open: driver copy with demo data baked in
+`map-trifold` (open in Maps) · `navigation-arrow` (suggested stop) · `x-circle` (failed outcome) ·
+`calendar-check` and `calendar-x` (next plan approved / not) · `magnifying-glass-plus` (enlarge photo) ·
+`eye-slash` (hide password) · `device-mobile` (account) · `sun` and `circle-half` (theme: light / system) ·
+`caret-up` · `circle-notch` (spinner).
 
-About twenty driver strings still carry the demo driver's name, truck and dates (`hi` = "Hi Khalid",
-`date` = "Monday, 19 October", `truckLine`, `approvedAt`, `t1`–`t3`…). They are in the files word for word
-because that is the approved wording, but each needs a `{placeholder}` before it meets real data.
-`src/i18n/en.ts` lists every one. Introducing the placeholders is a copy change, so it goes past Ahmed.
+A handful more were decorative in the driver design (recycle, coffee, palette, flag-checkered, path,
+circle-dashed, user-minus, hourglass): each gets the nearest icon from the set or no icon at all, decided
+screen by screen rather than by drawing eight one-off glyphs.
+
+### Decided: the driver's demo data is bound to real data
+
+Done, in the same pass. A sentence that carried demo data now takes a placeholder — `{name}` the driver,
+`{material}` their material, `{branch}` a branch label, `{date}` a formatted day, `{when}` a formatted time,
+`{n}` a count — and a string that was *only* demo data is gone, because a row supplies it: the driver's name
+and initials, the city, the formatted dates and month, the material name, and the four sample notifications
+with their timestamps (real notification text arrives as `notifications.title_ar` / `body_ar`, already
+written by the database).
+
+The driver namespace went from 229 keys to 214; 16 of them now take a placeholder. A checker confirms both
+languages still hold the same keys, that each key takes the same placeholders in both, and that no demo
+name, city or date is left anywhere in the copy.
 
 ---
 
