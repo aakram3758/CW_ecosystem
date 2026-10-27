@@ -27,7 +27,13 @@
         }
       ],
       "expo-secure-store",
-      "expo-localization"
+      [
+        "expo-localization",
+        {
+          "supportsRTL": true,
+          "forcesRTL": true
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

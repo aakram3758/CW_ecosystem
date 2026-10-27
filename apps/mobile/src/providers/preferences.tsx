@@ -27,12 +27,17 @@ type Preferences = {
 
 const PreferencesContext = createContext<Preferences | null>(null);
 
-async function applyDirection(language: Language) {
+// Ask native for a direction. This does NOT take effect now: I18nManager.isRTL is a native constant
+// read at launch, and forceRTL only records what the next launch should use.
+//
+// Never reload from here to "apply" it. reloadAppAsync restarts the JS bundle while the native
+// constant keeps its launch value, so `isRTL !== rtl` is still true on the next mount — which
+// reloads again, forever. That loop is what a mismatched direction used to cause on every boot.
+function requestDirection(language: Language) {
   const rtl = language === 'ar';
   I18nManager.allowRTL(true);
   I18nManager.forceRTL(rtl);
-  // Native layout direction is fixed at startup, so persisting language must precede reloading.
-  if (I18nManager.isRTL !== rtl) await reloadAppAsync();
+  return rtl;
 }
 
 export function PreferencesProvider({ children }: PropsWithChildren) {
@@ -57,7 +62,10 @@ export function PreferencesProvider({ children }: PropsWithChildren) {
       setLanguageState(nextLanguage);
       setThemeState(savedTheme === 'light' || savedTheme === 'dark' ? savedTheme : 'system');
       setSideState(savedSide === 'driver' ? 'driver' : 'branch');
-      await applyDirection(nextLanguage);
+      // Boot records the direction and renders whatever the app launched with. A first install
+      // whose saved language disagrees with the launch direction looks right from the second
+      // launch; reloading to fix it here is what caused the loop.
+      requestDirection(nextLanguage);
       if (live) setReady(true);
     })().catch(error => { if (live) setError(error); });
     return () => { live = false; };
@@ -68,9 +76,13 @@ export function PreferencesProvider({ children }: PropsWithChildren) {
     language, themeChoice, theme, colors: palette[theme], copy: language === 'ar' ? ar : en,
     side, ready, error, retry: () => setAttempt(value => value + 1),
     setLanguage: async value => {
+      // Persist first: the reload below throws the current JS state away.
       await SecureStore.setItemAsync('cw.language', value);
-      await applyDirection(value);
       setLanguageState(value);
+      // One reload, and only when the user themself switched language — never on boot. If native
+      // ignores the request (Expo Go does not always honour forceRTL), this still reloads exactly
+      // once, because the boot path above never reloads.
+      if (requestDirection(value) !== I18nManager.isRTL) await reloadAppAsync();
     },
     setTheme: async value => {
       await SecureStore.setItemAsync('cw.theme', value);
