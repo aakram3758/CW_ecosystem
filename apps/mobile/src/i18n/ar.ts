@@ -25,6 +25,26 @@
  */
 
 export const ar = {
+  shared: {
+    roleBranch: 'فرع',
+    roleDriver: 'سائق',
+    wrongSideBranch: 'هذا الحساب حساب سائق. بدّل إلى «سائق» وسجّل الدخول من هناك.',
+    wrongSideDriver: 'هذا الحساب حساب فرع. بدّل إلى «فرع» وسجّل الدخول من هناك.',
+    accountInactive: 'هذا الحساب موقوف. تواصل مع فريق التشغيل.',
+    samePassword: 'اختر كلمة مرور مختلفة عن المؤقتة.',
+    loading: 'جارٍ التحميل…',
+    arabic: 'العربية',
+    english: 'الإنجليزية',
+    phonePrefix: '+966',
+    phonePlaceholder: '5X XXX XXXX',
+    noChains: 'لا توجد سلاسل متاحة. تواصل مع فريق التشغيل.',
+    unsupportedRole: 'هذا الحساب غير مخصّص لتطبيق الفرع أو السائق.',
+    forgotNoPhone: 'تواصل مع فريق التشغيل لإعادة تعيين كلمة المرور.',
+    // Neither design drew a "hide" label for a single password field: the branch pairs the singular
+    // `showPass` with the plural `hidePw` from its two-field screen. This is that pair's missing
+    // singular half, worded off `showPass` — confirm it at the design review.
+    hidePassword: 'إخفاء كلمة المرور',
+  },
   branch: {
     next: 'متابعة', splashA: 'استلام أسهل لمواد فرعك', splashB: 'ماء الغيوم للفروع',
     loginTitle: 'أهلًا بفرعك', loginSub: 'سجّل الدخول بحساب الفرع الذي أرسله لك فريق التشغيل.',

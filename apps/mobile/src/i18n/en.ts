@@ -14,6 +14,26 @@
  */
 
 export const en = {
+  shared: {
+    roleBranch: 'Branch',
+    roleDriver: 'Driver',
+    wrongSideBranch: 'This is a driver account. Switch to "Driver" and sign in there.',
+    wrongSideDriver: 'This is a branch account. Switch to "Branch" and sign in there.',
+    accountInactive: 'This account is disabled. Contact the Operations team.',
+    samePassword: 'Choose a password different from the temporary one.',
+    loading: 'Loading…',
+    arabic: 'Arabic',
+    english: 'English',
+    phonePrefix: '+966',
+    phonePlaceholder: '5X XXX XXXX',
+    noChains: 'No chains are available. Contact the Operations team.',
+    unsupportedRole: 'This account cannot use the branch or driver app.',
+    forgotNoPhone: 'Contact the Operations team to reset your password.',
+    // Neither design drew a "hide" label for a single password field: the branch pairs the singular
+    // `showPass` with the plural `hidePw` from its two-field screen. This is that pair's missing
+    // singular half, worded off `showPass` — confirm it at the design review.
+    hidePassword: 'Hide password',
+  },
   branch: {
     next: 'Continue', splashA: 'Easier pickups for your branch', splashB: 'Clouds Water for Branches',
     loginTitle: 'Welcome, branch team', loginSub: 'Log in with the branch account the Operations team sent you.',
