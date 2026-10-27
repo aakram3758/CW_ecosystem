@@ -11,6 +11,7 @@
     "dev": "npm run dev -w apps/dashboard",
     "build": "npm run build -w apps/dashboard",
     "preview": "npm run preview -w apps/dashboard",
-    "typecheck": "npm run typecheck -w apps/dashboard"
+    "mobile": "npm run start -w apps/mobile",
+    "typecheck": "npm run typecheck -w apps/dashboard && npm run typecheck -w apps/mobile"
   }
 }

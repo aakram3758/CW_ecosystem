@@ -21,9 +21,15 @@ Expo (current SDK) · Expo Router · TypeScript · TanStack Query · React Hook 
 `expo-secure-store` session storage · `expo-image-picker` + `expo-image-manipulator` · `expo-location` ·
 i18n with RTL. Same shape as `apps/dashboard`, so one person can read both.
 
-`apps/*` is already an npm workspace, so `apps/mobile` is picked up by the root `npm install`. Metro has to watch the
-workspace root, and React must resolve to one copy — the dashboard pins React 19.2 and Expo pins its own. **Proving
-this is the first task of bite 1**, before any screen: root install, dashboard still builds, Metro resolves.
+Settled: **Expo SDK 58, React Native 0.88, React 19.3, TypeScript 6** (the dashboard stays on TypeScript 5.9 —
+each workspace resolves its own, and bumping the dashboard is not this phase's job). Mobile only: no
+`react-native-web`, no `react-dom`, no web output. Testing is Expo Go on a phone.
+
+`apps/*` is already an npm workspace, so `apps/mobile` is picked up by the root `npm install`. The monorepo
+wiring is done and proven — see *What the skeleton is* below. **There are two React copies on disk** (Expo pins
+19.3.0 exactly; the dashboard's `^19.2.0` resolves to 19.3.1) and that is expected: `metro.config.js` makes the
+mobile bundle resolve every `react` to the nested 19.3.0, which is what keeps "Invalid hook call" away. Its
+comment says so; don't dedupe them by loosening Expo's pin.
 
 No `packages/` in this phase. The only shareable things are the error-code map and the generated DB types, and both
 are small enough to live in `apps/mobile` until something else needs them.
@@ -192,8 +198,16 @@ each one before the next starts.
 Auth is **real from day one**. A fake sign-in proves nothing — the temporary password, the forced change and the
 5-attempt lock are all server behaviour, and faking them means building them twice.
 
-- [ ] Expo app in the workspace; Metro + React resolution proven (see Stack)
-- [ ] Tokens, theme provider, language provider, RTL, Tajawal
+- [x] **The skeleton** — Expo app in the workspace, Metro wiring proven, Tajawal loading, RTL on by default,
+      a placeholder screen that renders the lifted tokens and copy. Done by Claude, not Codex, for one
+      reason: config correctness can't be judged by reading a diff, only by running it. Everything below
+      this line can be. What was checked: `npm install` at the root, one React per bundle (`npm ls react`),
+      `tsc --noEmit` clean, `npm run bundle` produces a 2.6 MB Hermes bundle with the fonts resolved from
+      the hoisted root — which is the actual proof the workspace wiring works — and `npm run build` for the
+      dashboard still passes. Not checked by Claude: it running on a real phone. That is Ahmed with Expo Go.
+- [ ] Theme provider and language provider over the lifted tokens and copy.
+      RTL note: React Native reads the direction once at startup, so switching language needs a reload —
+      the provider owns that, `_layout.tsx` only sets the Arabic-first default.
 - [ ] Supabase client with secure session storage; TanStack Query; online/offline detection
 - [ ] Shared loading / error / empty / offline components
 - [ ] Splash
