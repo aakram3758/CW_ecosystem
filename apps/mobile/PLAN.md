@@ -183,14 +183,34 @@ row is only written once the file is there. Reading one back needs `createSigned
 
 Scale photo: upload to `request-photos` at `request/<request_id>/<name>`, then the RPC.
 
-**One thing to confirm in phase B — driver history.** `visit_attempts` is readable by the driver who recorded
-it, but the branch and request labels come from `requests`, which a driver may read only while
-`driver_id = <me>`. Direct reassignment is safe: `staff_change_plan_driver` only moves rows still
-`scheduled`, so a recorded visit never moves. But a *reschedule* decision sends the request back to
-`waiting`, and the next approved plan may give it to a different driver — after which the first driver's
-history row survives while its branch name does not. Build the history screen so a row renders without the
-joined request, see whether it actually happens, and only then decide whether it needs a small
-`security definer` function. Not worth a migration on a hunch.
+**Driver history — confirmed, it does happen.** This was written as a hunch to test in phase B. It was
+checked against the live database instead, and it is real and deterministic, not a maybe.
+
+`visit_attempts_read` matches on `driver_id = private.my_driver_id()`, so a driver keeps their own
+recorded visit for good. The branch label does not come with it: `branches_read` admits a driver through
+`private.my_driver_branch_ids()`, which is exactly
+
+```sql
+select distinct r.branch_id from public.requests r where r.driver_id = private.my_driver_id()
+```
+
+and `requests_read` admits them on the same `driver_id = <me>`. Both therefore hang on `requests.driver_id`
+*still pointing at that driver right now*. Direct reassignment is safe — `staff_change_plan_driver` only
+moves rows still `scheduled`, so a recorded visit never moves. The reschedule decision is not:
+`staff_decide` with `p_decision = 'reschedule'` runs
+
+```sql
+set status = 'waiting', visit_day = null, driver_id = null, decision_since = null
+```
+
+It **nulls `driver_id`**. The moment ops reschedules a visit a driver already attempted, that driver loses
+the request and — if it was their only one for that branch — the branch too, while the `visit_attempts` row
+stays readable. Their history shows a row with no branch, no material and no request number. This follows
+the most ordinary action ops takes after a failed visit, so it is the normal case, not an edge one.
+
+Fix in phase B as migration 20: widen the driver's read to what they have a `visit_attempts` row for,
+rather than only what they are assigned right now. Build the history screen so a row still renders without
+its joined request either way — ops can reschedule at any moment.
 
 ## Phase A — the shell
 
@@ -268,7 +288,7 @@ Mock data out, Supabase in. Reads go through RLS, every write goes through an RP
 - [ ] Driver writes: `driver_record_outcome`
 - [ ] Everyone: `mark_notifications_read`
 - [ ] Photo upload — private bucket `request-photos`: branch → `branch/<branch_id>/…`, driver → `request/<request_id>/…`
-- [ ] The four migrations below
+- [ ] The four migrations below (17-20)
 - [ ] Every error code from the README mapped to its designed message
 
 ## Phase C — device testing, then one push
@@ -289,8 +309,18 @@ continuing after the applied 01–16.
 | 17 | `branch_set_location` refuses once `location_confirmed_at` is set; only the dashboard can change it after | phase B |
 | 18 | Maximum 5,000 kg, enforced in `branch_create_request` **and** `branch_update_request` | phase B |
 | 19 | `branches.name_en` + a field on the dashboard's branches screen + **fix `private.request_label(…, 'en')`**, which today falls back to the Arabic `b.name` so English notifications show Arabic branch names | phase B |
+| 20 | A driver may read the branch and request behind any `visit_attempts` row of their own, not only what they are assigned right now — see *Driver history* above | phase B |
 
-Three, not the four first written here. The fourth was going to add `materials.contact_phone` — see below.
+All four premises were checked against the live database on 2026-10-27, not assumed:
+
+- `branch_set_location` runs `update … location_confirmed_at = now()` with no guard at all, so a branch
+  can move its pin after ops has verified it, any number of times. → 17
+- `branch_create_request` and `branch_update_request` both check only `p_kg is null or p_kg <= 0`. There
+  is no upper bound anywhere, so five million kilograms is accepted. Both need the cap, not one. → 18
+- `public.branches` has a single `name` column and no `name_en`. → 19
+- `staff_decide`'s reschedule branch nulls `driver_id`. → 20
+
+The migration first written here as the fourth was going to add `materials.contact_phone` — see below.
 
 ### Checked, needs nothing
 
@@ -320,7 +350,7 @@ Found while reading both against each other. The database wins every time.
 | --- | --- | --- |
 | Mobile number | `^5\d{8}$`, shown as `+966 55 …` | `^05[0-9]{8}$` |
 | Weight ceiling | 5,000 kg in the form | no ceiling yet — migration 18 |
-| Branch location | treated as locked after confirming | can be re-confirmed — migration 17 |
+| Branch location | treated as locked after confirming | can be re-confirmed, no guard — migration 17 |
 | English branch name | shown | column doesn't exist — migration 19 |
 | Material codes | `cardboard`, `plastic`, `paper`, `metal`, `bread` | `card`, `plas`, `paper`, `metal`, `bread` |
 | Aluminium subtype | code `alu`, label «ألمنيوم» | code `aluminium`, label «ألومنيوم» |
