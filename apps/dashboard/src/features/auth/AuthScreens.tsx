@@ -167,7 +167,8 @@ export function LoginPage({ notice }: { notice?: 'not_staff' | 'inactive' | 'exp
 
 const changeSchema = z
   .object({
-    password: z.string().min(8, 'rule').regex(/[A-Za-z؀-ۿ]/, 'rule').regex(/\d/, 'rule'),
+    // Same rule as Supabase Auth ("Letters and digits" = at least one Latin letter and one digit).
+    password: z.string().min(8, 'rule').regex(/[A-Za-z]/, 'rule').regex(/\d/, 'rule'),
     confirm: z.string(),
   })
   .refine((v) => v.password === v.confirm, { path: ['confirm'], message: 'match' });

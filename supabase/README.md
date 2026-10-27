@@ -10,11 +10,11 @@ so the two apps can never disagree.
 
 | Folder | What |
 | --- | --- |
-| `migrations/` | The schema, applied in order (01 → 15). Already applied to the live project. |
+| `migrations/` | The schema, applied in order (01 → 16). Already applied to the live project. |
 | `functions/` | Edge Functions `create-account` and `reset-password` (deployed, JWT required, staff only) and `sign-in` (deployed, no JWT — it is the sign-in for the branch + driver apps). |
 | `seed/demo.sql` | Demo branches, drivers and 40 requests in every state, dated relative to the day it runs. Already loaded. |
 | `tests/lifecycle.sql` | 76 end-to-end checks as GM / supervisor / branch / driver. Runs in one transaction and rolls back. Expects the demo seed data. |
-| `tests/phase2.sql` | Checks for 13–15 (morning notice, sign-in lock, temporary passwords). Ends with a deliberate error that rolls back; the message says `ALL CHECKS PASSED`. |
+| `tests/phase2.sql` | Checks for 13–16 (morning notice, sign-in lock, temporary passwords). Ends with a deliberate error that rolls back; the message says `ALL CHECKS PASSED`. |
 
 ## Rules enforced by the database
 
@@ -54,6 +54,7 @@ Every new or reset account gets a 6-digit temporary password and `must_change_pa
 set in Supabase → Authentication → Email (*Minimum length 8*, *Letters and digits*), so Auth itself enforces it on
 every path. The Auth admin API enforces it too, so the 6-digit temporary password is written by the database
 (`set_temp_password`, service role only); signing in with it still works. A reset also lifts a sign-in lock.
+`complete_password_change` refuses with `PASSWORD_NOT_CHANGED` while the account still has its temporary password.
 
 **Sign-in lock (branch + driver apps).** The apps sign in through the `sign-in` Edge Function, not
 `signInWithPassword`: `POST { email, password }` → `200 { session }` (then `supabase.auth.setSession(session)`),

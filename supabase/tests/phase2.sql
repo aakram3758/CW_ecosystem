@@ -1,4 +1,4 @@
--- Checks for migrations 13–15: morning notice, login lockout, temporary passwords.
+-- Checks for migrations 13–16: morning notice, login lockout, temporary passwords.
 -- Paste into the SQL editor and run as one batch. It always ends with an error on purpose: the error rolls everything
 -- back, and its message reads "ALL CHECKS PASSED" when every check passed (otherwise "FAIL: <check>").
 
@@ -98,5 +98,20 @@ select pg_temp.err($$select public.set_temp_password('00000000-0000-0000-0000-00
 select pg_temp.ok(not has_function_privilege('authenticated', 'public.set_temp_password(uuid, text)', 'EXECUTE')
   and has_function_privilege('service_role', 'public.set_temp_password(uuid, text)', 'EXECUTE'),
   'set_temp_password: service role only');
+
+-- ---------------------------------------------------------------- 16: the temporary password must really be changed
+grant execute on all functions in schema pg_temp to authenticated;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000f0b1', true);
+select pg_temp.err('select public.complete_password_change()', 'PASSWORD_NOT_CHANGED', 'cannot clear the flag while still on the temporary password');
+reset role;
+update auth.users set encrypted_password = extensions.crypt('NewPass2026', extensions.gen_salt('bf', 10)) where id = '00000000-0000-0000-0000-00000000f0b1'; -- what auth.updateUser does
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000f0b1', true);
+select public.complete_password_change();
+reset role;
+select pg_temp.ok(not (select must_change_password from public.profiles where id = '00000000-0000-0000-0000-00000000f0b1')
+  and not exists (select 1 from private.temp_passwords where user_id = '00000000-0000-0000-0000-00000000f0b1'),
+  'after a real change the flag clears');
 
 do $$ begin raise exception 'ALL CHECKS PASSED (rolled back on purpose)'; end $$;
