@@ -1,6 +1,6 @@
-import { useState, type PropsWithChildren } from 'react';
+import { useState, type PropsWithChildren, type ReactNode } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text,
-  TextInput, View, type TextInputProps, type TextProps } from 'react-native';
+  TextInput, View, type TextInputProps, type TextProps, type StyleProp, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { icons } from '@/ui/icons';
@@ -16,25 +16,42 @@ export function Label({ style, ...props }: TextProps) {
     textAlign: language === 'ar' ? 'right' : 'left', writingDirection: language === 'ar' ? 'rtl' : 'ltr' }, style]} />;
 }
 
-export function Title({ children }: PropsWithChildren) {
-  return <Label accessibilityRole="header" style={{ fontFamily: 'Tajawal_800ExtraBold', fontSize: 28,
-    lineHeight: 28 * typography.lineHeight }}>{children}</Label>;
+export function Title({ children, style }: PropsWithChildren<{ style?: TextProps['style'] }>) {
+  return <Label accessibilityRole="header" style={[{ fontFamily: 'Tajawal_800ExtraBold', fontSize: 28,
+    lineHeight: 28 * typography.lineHeight }, style]}>{children}</Label>;
 }
 
-export function Icon({ name, color }: { name: string; color?: string }) {
+export function Icon({ name, color, size = 24, tint }: { name: string; color?: string; size?: number; tint?: string }) {
   const { colors } = usePreferences();
-  const icon = icons[name];
-  return <Svg viewBox="0 0 24 24" width={24} height={24} accessible={false}>
-    {icon.f ? <Path d={icon.f} fill={colors.primarySoft} /> : null}
+  const icon = icons[name] ?? icons.box;
+  return <Svg viewBox="0 0 24 24" width={size} height={size} accessible={false}>
+    {icon.f ? <Path d={icon.f} fill={tint ?? colors.primarySoft} /> : null}
     <Path d={icon.s} stroke={color ?? colors.primary} strokeWidth={1.6}
       strokeLinecap="round" strokeLinejoin="round" fill="none" />
   </Svg>;
 }
 
-export function Button({ label, onPress, disabled = false, secondary = false, selected }: {
+export function Button({ label, onPress, disabled = false, secondary = false, selected,
+  variant, tone = 'primary', icon, style }: {
   label: string; onPress: () => void; disabled?: boolean; secondary?: boolean; selected?: boolean;
+  variant?: 'branch'; tone?: 'primary' | 'gold' | 'muted' | 'outline' | 'danger' | 'text';
+  icon?: string; style?: StyleProp<ViewStyle>;
 }) {
   const { colors } = usePreferences();
+  if (variant === 'branch') {
+    const foreground = tone === 'gold' ? colors.navy : tone === 'text' ? colors.dangerText
+      : tone === 'muted' || tone === 'outline' ? colors.text : colors.onPrimary;
+    const background = tone === 'gold' ? colors.gold : tone === 'muted' ? colors.surface2
+      : tone === 'outline' || tone === 'text' ? 'transparent' : tone === 'danger' ? colors.danger : colors.primary;
+    return <Pressable accessibilityRole="button" accessibilityState={{ disabled, selected }} disabled={disabled}
+      onPress={onPress} style={({ pressed }) => [{ minHeight: 52, borderRadius: 14, paddingHorizontal: 16,
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+        backgroundColor: background, opacity: disabled ? .5 : pressed ? .78 : 1,
+        borderWidth: tone === 'outline' ? 1.5 : 0, borderColor: colors.line }, style]}>
+      {icon ? <Icon name={icon} color={foreground} tint={foreground} /> : null}
+      <Label style={{ color: foreground, fontFamily: 'Tajawal_800ExtraBold', fontSize: 16, textAlign: 'center' }}>{label}</Label>
+    </Pressable>;
+  }
   return <Pressable accessibilityRole="button" accessibilityState={{ disabled, selected }}
     disabled={disabled} onPress={onPress} style={({ pressed }) => ({
       minHeight: minTouch, padding: 14, borderRadius: 12, alignItems: 'center', justifyContent: 'center',
@@ -47,35 +64,40 @@ export function Button({ label, onPress, disabled = false, secondary = false, se
   </Pressable>;
 }
 
-export function Screen({ children }: PropsWithChildren) {
+export function Screen({ children, header, footer, contentStyle, safeColor }: PropsWithChildren<{
+  header?: ReactNode; footer?: ReactNode; contentStyle?: StyleProp<ViewStyle>; safeColor?: string;
+}>) {
   const { colors } = usePreferences();
-  return <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1, padding: 24, gap: 24 }}>
+  return <SafeAreaView style={{ flex: 1, backgroundColor: safeColor ?? colors.bg }}>
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      {header}
+      <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}
+        contentContainerStyle={[{ flexGrow: 1, padding: 24, gap: 24 }, contentStyle]}>
         {children}
       </ScrollView>
+      {footer}
     </KeyboardAvoidingView>
   </SafeAreaView>;
 }
 
-export function Card({ children }: PropsWithChildren) {
+export function Card({ children, style }: PropsWithChildren<{ style?: StyleProp<ViewStyle> }>) {
   const { colors } = usePreferences();
-  return <View style={{ backgroundColor: colors.surface, borderRadius: 12, borderWidth: 1,
-    borderColor: colors.line, padding: 14, gap: 14 }}>{children}</View>;
+  return <View style={[{ backgroundColor: colors.surface, borderRadius: 12, borderWidth: 1,
+    borderColor: colors.line, padding: 14, gap: 14 }, style]}>{children}</View>;
 }
 
-export function Field({ label, error, prefix, ...props }: TextInputProps & {
-  label: string; error?: string; prefix?: string;
+export function Field({ label, error, prefix, variant, ...props }: TextInputProps & {
+  label: string; error?: string; prefix?: string; variant?: 'branch';
 }) {
   const { colors, language } = usePreferences();
-  return <View style={{ gap: 8 }}>
-    <Label>{label}</Label>
+  return <View style={{ gap: variant ? 6 : 8 }}>
+    <Label style={variant ? { fontSize: 14, fontFamily: 'Tajawal_700Bold' } : undefined}>{label}</Label>
     <View style={{ flexDirection: 'row', alignItems: 'center', direction: prefix ? 'ltr' : undefined,
-      borderWidth: 1, borderColor: error ? colors.danger : colors.line, borderRadius: 12,
+      borderWidth: 1, borderColor: error ? colors.danger : colors.line, borderRadius: variant ? 14 : 12,
       backgroundColor: colors.surface, paddingHorizontal: 14 }}>
       {prefix ? <Label style={{ writingDirection: 'ltr', textAlign: 'left' }}>{prefix}</Label> : null}
       <TextInput accessibilityLabel={label} placeholderTextColor={colors.muted} {...props}
-      style={[{ flex: 1, minHeight: minTouch, padding: 14, color: colors.text,
+      style={[{ flex: 1, minHeight: variant ? 52 : minTouch, padding: 14, color: colors.text,
         fontFamily: 'Tajawal_400Regular', fontSize: typography.baseSize,
         textAlign: language === 'ar' ? 'right' : 'left' }, props.style]} />
     </View>
@@ -140,14 +162,38 @@ export function AppSplash() {
   </View></Screen>;
 }
 
-export function PreferencesControls() {
-  const { copy, side, language, themeChoice, setLanguage, setTheme } = usePreferences();
+export function PreferencesControls({ variant }: { variant?: 'branch' } = {}) {
+  const { copy, colors, side, language, themeChoice, setLanguage, setTheme } = usePreferences();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   async function update(action: () => Promise<void>) {
     setBusy(true); setError(null);
     try { await action(); } catch (error) { setError(error); } finally { setBusy(false); }
   }
+  if (variant === 'branch') return <View style={{ gap: 16 }}>
+    {[
+      { label: copy.branch.language, icon: 'globe', options: [
+        { label: copy.shared.arabic, selected: language === 'ar', action: () => setLanguage('ar') },
+        { label: copy.shared.english, selected: language === 'en', action: () => setLanguage('en') },
+      ] },
+      { label: copy.branch.theme, icon: 'moon', options: (['light', 'dark', 'system'] as const).map(choice => ({
+        label: copy.branch[choice], selected: themeChoice === choice, action: () => setTheme(choice),
+      })) },
+    ].map(group => <View key={group.icon} style={{ gap: 6 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}><Icon name={group.icon} size={20} />
+        <Label style={{ fontFamily: 'Tajawal_800ExtraBold' }}>{group.label}</Label></View>
+      <View style={{ flexDirection: 'row', gap: 4, padding: 4, borderRadius: 14, backgroundColor: colors.surface2 }}>
+        {group.options.map(option => <Pressable key={option.label} accessibilityRole="button"
+          accessibilityState={{ selected: option.selected, disabled: busy }} disabled={busy}
+          onPress={() => void update(option.action)} style={{ flex: 1, minHeight: minTouch, borderRadius: 11,
+            justifyContent: 'center', backgroundColor: option.selected ? colors.surface : 'transparent' }}>
+          <Label style={{ textAlign: 'center', fontFamily: 'Tajawal_700Bold', fontSize: 14,
+            color: option.selected ? colors.text : colors.muted }}>{option.label}</Label>
+        </Pressable>)}
+      </View>
+    </View>)}
+    {error ? <Message>{errorMessage(error, copy, side)}</Message> : null}
+  </View>;
   return <View style={{ gap: 8 }}>
     <Label>{copy.branch.language}</Label>
     <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>

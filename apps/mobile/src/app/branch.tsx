@@ -1,6 +1,6 @@
 import { AuthGate } from '@/ui/auth-gate';
-import { RoleHome } from '@/ui/role-home';
+import { BranchApp } from '@/branch/app';
 
 export default function BranchHome() {
-  return <AuthGate route="/branch"><RoleHome role="branch" /></AuthGate>;
+  return <AuthGate route="/branch"><BranchApp /></AuthGate>;
 }

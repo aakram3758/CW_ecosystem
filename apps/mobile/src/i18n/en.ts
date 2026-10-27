@@ -15,6 +15,18 @@
 
 export const en = {
   shared: {
+    // Main's material/subtype hints and map label live outside its T dictionary; the screens still need them.
+    materialHintCard: 'Flattened boxes and cartons',
+    materialHintPlas: 'Mixed or stretch film',
+    materialHintPaper: 'Office and printed paper',
+    materialHintMetal: 'Iron, copper or aluminium',
+    materialHintBread: 'Dry and surplus bread',
+    subtypeHintMix: 'Mixed bottles and plastic items',
+    subtypeHintStretch: 'Pallet and shipment wrap film',
+    subtypeHintIron: 'Shelves, iron parts and scrap',
+    subtypeHintCopper: 'Copper wires and pipes',
+    subtypeHintAluminium: 'Drink cans and aluminium trays',
+    mapStreet: 'Prince Majed St',
     roleBranch: 'Branch',
     roleDriver: 'Driver',
     wrongSideBranch: 'This is a driver account. Switch to "Driver" and sign in there.',

@@ -26,6 +26,18 @@
 
 export const ar = {
   shared: {
+    // Main's material/subtype hints and map label live outside its T dictionary; the screens still need them.
+    materialHintCard: 'صناديق وكراتين مفرودة',
+    materialHintPlas: 'مكس أو استرتش',
+    materialHintPaper: 'ورق مكتبي ومطبوعات',
+    materialHintMetal: 'حديد أو نحاس أو ألمنيوم',
+    materialHintBread: 'خبز يابس وفائض المخبز',
+    subtypeHintMix: 'عبوات وأغراض بلاستيك مختلطة',
+    subtypeHintStretch: 'نايلون تغليف الطبليات والشحنات',
+    subtypeHintIron: 'رفوف وقطع حديد وخردة',
+    subtypeHintCopper: 'أسلاك ومواسير نحاس',
+    subtypeHintAluminium: 'علب مشروبات وصواني ألمنيوم',
+    mapStreet: 'شارع الأمير ماجد',
     roleBranch: 'فرع',
     roleDriver: 'سائق',
     wrongSideBranch: 'هذا الحساب حساب سائق. بدّل إلى «سائق» وسجّل الدخول من هناك.',

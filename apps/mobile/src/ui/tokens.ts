@@ -19,6 +19,14 @@
 
 export type ThemeName = 'light' | 'dark';
 
+// Literal artwork colours from Main.dc.html, shared by its scale thumbnail and schematic map.
+export const branchArtwork = {
+  photoTop: '#3A4A5E', photoBottom: '#1E2A38', display: '#0E1A12', digits: '#7CF0A8',
+  locationDot: '#2E7BE0', locationRing: 'rgba(46,123,224,.18)',
+  heroTile: 'rgba(255,255,255,.1)', heroLine: 'rgba(255,255,255,.08)',
+  heroGoldLine: 'rgba(232,206,132,.22)', accountLine: 'rgba(255,255,255,.12)',
+} as const;
+
 export const palette = {
   light: {
     bg: '#F4F6FA',
