@@ -7,9 +7,13 @@ Written in English to match the rest of the repo and because Codex reads it.
 
 ## How we work
 
-Claude plans and reviews, Codex implements, Ahmed decides. For each bite below: Claude writes a short brief →
-Codex implements → Claude reviews the diff → local commit on `feat/mobile-app`. **Nothing is pushed** until the whole
-app has been tried on a real device and Ahmed says go. A local commit is not a push; it never leaves the machine.
+Claude plans and reviews, Codex implements, Ahmed decides. For each bite below: Claude writes a brief into
+`apps/mobile/briefs/` → Codex implements → Claude reviews the diff → local commit on `feat/mobile-app`.
+**Nothing is pushed** until the whole app has been tried on a real device and Ahmed says go. A local commit is
+not a push; it never leaves the machine.
+
+The brief is the ticket. It is committed so that reviewing a diff means comparing it against something written
+down beforehand, rather than against memory.
 
 `main` deploys the dashboard to Vercel, so the mobile branch stays off `main` for the whole phase.
 
