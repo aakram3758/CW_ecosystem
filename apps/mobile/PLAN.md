@@ -41,25 +41,51 @@ The approved designs are interactive prototypes, every screen in light, dark, Ar
 runtime, with simulated state (`setTimeout`) and hardcoded sample arrays. React Native has neither. Screens get
 re-implemented, not ported.
 
-**Three things are lifted verbatim** rather than retyped, because retyping invites drift from approved copy.
-Claude does this extraction (the source is already in hand), Codex builds on top of it:
+**Three things were lifted verbatim** rather than retyped, because retyping invites drift from approved copy.
+Claude did this extraction in phase 0; Codex builds on top of it:
 
-| What | From | To |
-| --- | --- | --- |
-| Copy, ~200 keys per language | `T.ar` / `T.en` | `src/i18n/ar.ts`, `src/i18n/en.ts` |
-| ~40 icons as SVG path data | the `I` object | `src/ui/icons.ts` (react-native-svg) |
-| Colours per theme, per material, radii, Tajawal weights | inline styles + `cw.css` | `src/ui/tokens.ts` |
+| What | From | To | |
+| --- | --- | --- | --- |
+| Copy — 260 branch + 229 driver keys per language | `T.ar` / `T.en` | `src/i18n/ar.ts`, `src/i18n/en.ts` | done |
+| 40 icons as SVG path data | the branch `I` object | `src/ui/icons.ts` | done |
+| Colours per theme, radii, Tajawal weights | inline styles + `cw.css` | `src/ui/tokens.ts` | done |
+
+Each file's header records what was changed on the way in and why. The three approved design changes
+(below) are already applied, and every edited string is marked `[changed]` beside its original.
 
 **Business rules are taken from the database, never from the prototype.** They already disagree — see
 *Prototype vs database* below.
+
+### Open: the two designs do not share an icon language
+
+The branch canvas draws its own 24×24 SVG paths — all 40 are now in `src/ui/icons.ts`. The driver canvas
+instead uses the **Phosphor icon font** (duotone / bold / fill, ~80 glyphs declared in its `cw.css`), and those
+glyphs cannot be extracted as paths: they live inside woff2 files. So one of:
+
+- **(a)** `phosphor-react-native` for the driver, the lifted SVG set for the branch — faithful to both approved
+  designs, two icon sources in one app.
+- **(b)** Phosphor for both roles — one icon language, but it changes the branch's 40 icons slightly.
+
+Not decided. (a) is the faithful option and matches "exactly like the design"; (b) is the tidier one.
+
+### Open: driver copy with demo data baked in
+
+About twenty driver strings still carry the demo driver's name, truck and dates (`hi` = "Hi Khalid",
+`date` = "Monday, 19 October", `truckLine`, `approvedAt`, `t1`–`t3`…). They are in the files word for word
+because that is the approved wording, but each needs a `{placeholder}` before it meets real data.
+`src/i18n/en.ts` lists every one. Introducing the placeholders is a copy change, so it goes past Ahmed.
 
 ---
 
 ## Phase 0 — before the first screen
 
-- [ ] Generate the TypeScript types from Supabase into `src/data/database.types.ts`.
+- [x] Generated the TypeScript types from the live database into `src/data/database.types.ts` (1,353 lines, by
+      the Supabase CLI — regenerate with
+      `npx supabase gen types typescript --project-id vuotbcicuhzjmtmudwgs`).
       Every mock in phase A is written to **this** shape, so phase B swaps a data source instead of rewriting screens.
+- [x] Lifted the copy, icons and tokens out of the prototypes (see *Source material*).
 - [ ] Write down the real query and RPC signatures each screen needs (one short table, in this file).
+      Waiting on nothing — next job.
 - [ ] Edge Function `chains` — active chains (name + code) with no JWT, for the branch side of the sign-in screen.
       An Edge Function, not a grant to `anon`, so "anon can't read or call anything" stays literally true.
 
@@ -152,19 +178,26 @@ continuing after the applied 01–16.
 | 17 | `branch_set_location` refuses once `location_confirmed_at` is set; only the dashboard can change it after | phase B |
 | 18 | Maximum 5,000 kg, enforced in `branch_create_request` **and** `branch_update_request` | phase B |
 | 19 | `branches.name_en` + a field on the dashboard's branches screen + **fix `private.request_label(…, 'en')`**, which today falls back to the Arabic `b.name` so English notifications show Arabic branch names | phase B |
-| 20 | `materials.contact_phone` + a field on the dashboard's materials screen | phase B |
 
-Migration 20 closes a real gap: the branch design has a "contact the manager" sheet with a number, but `materials`
-has no contact column and `profiles_read` is self-or-staff, so a branch cannot read a staff member's phone at all.
-Until it lands, the sheet falls back to `app_settings.ops_phone`, which branches *can* read — and that fallback stays
-afterwards for any material with no number. Same rule everywhere: **no number means the contact button hides**, it
-never shows a dead button.
+Three, not the four first written here. The fourth was going to add `materials.contact_phone` — see below.
 
 ### Checked, needs nothing
 
-The driver's "next plan" screen does not need new RLS. `plan_approvals` is staff-only, but `staff_approve_plan` is
+**The material manager's number already exists.** An earlier draft of this plan called it a gap; that was wrong.
+Migration 11 added `materials.contact_phone` (`alter table … add column`, which is why a grep of the `create table`
+missed it), `staff_set_material_manager(p_material_id, p_manager_id, p_contact_phone)` writes it, the dashboard's
+materials screen already edits it and already falls back to `app_settings.ops_phone`, and the reference-table read
+policy lets any signed-in user — a branch included — read it. The column even accepts a unified `9200XXXXX`
+number, not just `05…`. Nothing to migrate; the app just reads `materials.contact_phone` and falls back to
+`app_settings.ops_phone`. The rule stays: **no number means the contact button hides**, never a dead button.
+
+**The driver's "next plan" screen needs no new RLS.** `plan_approvals` is staff-only, but `staff_approve_plan` is
 what writes `driver_id` and `visit_day` — so a driver seeing assigned rows for tomorrow already means the plan is
 approved, and no rows means it isn't.
+
+**Material colours need no tokens.** `materials.color_light` / `color_dark` hold them, and the seeded values match
+both designs exactly (`#B5773A`/`#D89A5B` cardboard, `#1F6FB8`/`#5C9BE0` plastic, and so on). Only the soft tints,
+which have no column, were lifted into `src/ui/tokens.ts`.
 
 ---
 
@@ -178,6 +211,13 @@ Found while reading both against each other. The database wins every time.
 | Weight ceiling | 5,000 kg in the form | no ceiling yet — migration 18 |
 | Branch location | treated as locked after confirming | can be re-confirmed — migration 17 |
 | English branch name | shown | column doesn't exist — migration 19 |
+| Material codes | `cardboard`, `plastic`, `paper`, `metal`, `bread` | `card`, `plas`, `paper`, `metal`, `bread` |
+| Aluminium subtype | code `alu`, label «ألمنيوم» | code `aluminium`, label «ألومنيوم» |
+| Metal icon | drawn as a can | `materials.icon` = `hex` |
+
+The last three are why nothing keys off a material by the prototype's name: read `materials` and
+`material_subtypes` and key off `code`. `src/ui/icons.ts` maps the database's five icon keys onto the lifted
+set, with `hex` pointing at the can the branch canvas actually drew — no icon was invented.
 
 **Phone normalisation:** keep the designed input and the `+966` display, normalise to `05XXXXXXXX` at the edge.
 The driver's login is built from it: `d-05XXXXXXXX@drivers.cloudswater.co`, from `drivers.phone`.
