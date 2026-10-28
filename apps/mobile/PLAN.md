@@ -217,6 +217,16 @@ its joined request either way — ops can reschedule at any moment.
 All screens of both roles, both languages, both themes, on mock data in the real shape. Five bites; Claude reviews
 each one before the next starts.
 
+**Where we are — 28 October 2026.** Bites 1 and 2 are done and run on a real phone. The branch side is
+walked end to end there: a real account signs in through the `sign-in` function, is forced through the
+password change, confirms its location and reaches every branch screen. The driver side of bite 1 is
+*not* verified on a device — its home is still the placeholder until bite 4 — so bite 1's "done when"
+below is met for the branch only.
+
+The one bug a device found that review could not: the app reloaded itself forever at launch, because
+boot asked native for a right-to-left direction and then reloaded to apply it, while a JS reload
+cannot change the native constant it was testing. Fixed in `a995e9e`.
+
 ### Bite 1 — foundation, sign-in, password change
 
 Auth is **real from day one**. A fake sign-in proves nothing — the temporary password, the forced change and the
@@ -229,21 +239,21 @@ Auth is **real from day one**. A fake sign-in proves nothing — the temporary p
       `tsc --noEmit` clean, `npm run bundle` produces a 2.6 MB Hermes bundle with the fonts resolved from
       the hoisted root — which is the actual proof the workspace wiring works — and `npm run build` for the
       dashboard still passes. Not checked by Claude: it running on a real phone. That is Ahmed with Expo Go.
-- [ ] Theme provider and language provider over the lifted tokens and copy.
+- [x] Theme provider and language provider over the lifted tokens and copy.
       RTL note: React Native reads the direction once at startup, so switching language needs a reload —
       the provider owns that, `_layout.tsx` only sets the Arabic-first default.
-- [ ] Supabase client with secure session storage; TanStack Query; online/offline detection
-- [ ] Shared loading / error / empty / offline components
-- [ ] Splash
-- [ ] Sign-in: **Branch | Driver** segmented switch above the fields — remembered on the device, opens on the last
+- [x] Supabase client with secure session storage; TanStack Query; online/offline detection
+- [x] Shared loading / error / empty / offline components
+- [x] Splash
+- [x] Sign-in: **Branch | Driver** segmented switch above the fields — remembered on the device, opens on the last
       side used; switching clears the typed fields and any error. Branch → chain picker + branch number + password.
       Driver → mobile number + password.
-- [ ] Sign-in through the `sign-in` Edge Function: `401 INVALID_CREDENTIALS { attempts_left }`,
+- [x] Sign-in through the `sign-in` Edge Function: `401 INVALID_CREDENTIALS { attempts_left }`,
       `429 LOCKED { retry_after }` — both rendered as the designs' text
-- [ ] Forced password change: `auth.updateUser({ password })` → `rpc('complete_password_change')`,
+- [x] Forced password change: `auth.updateUser({ password })` → `rpc('complete_password_change')`,
       `PASSWORD_NOT_CHANGED` handled. Rule: 8+ characters with at least one Latin letter and one digit
-- [ ] Role routing from `profiles.role`; if the account belongs to the other side, sign out and say so
-- [ ] Error-code → message map covering every UPPER_SNAKE code in `supabase/README.md`
+- [x] Role routing from `profiles.role`; if the account belongs to the other side, sign out and say so
+- [x] Error-code → message map covering every UPPER_SNAKE code in `supabase/README.md`
 
 **Done when** a real branch account and a real driver account each sign in on a phone, change the temporary
 password, and land on their own role's home.
