@@ -87,7 +87,11 @@ export function Header({ title, onBack, trailing }: { title: string; onBack?: ()
   return <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8 }}>
     {onBack ? <IconButton icon={language === 'ar' ? 'caretR' : 'caretL'} label={copy.branch.back} onPress={onBack} /> : <View style={{ width: 48 }} />}
     <Title style={[styles.h2, styles.grow, { textAlign: 'center', lineHeight: 23.4 }]}>{title}</Title>
-    <View style={{ width: 48, alignItems: 'center' }}>{trailing}</View>
+    {/* 48 wide when it holds an icon button, so it balances the back button and leaves the title
+        centred — but only a minimum. The location screen puts the «مرة واحدة» pill here, and in a
+        48px box it wrapped into a circle. The canvas's header is a grid whose end column the pill
+        simply overflows; this is the same intent without relying on overflow. */}
+    <View style={{ minWidth: 48, alignItems: 'flex-end', justifyContent: 'center' }}>{trailing}</View>
   </View>;
 }
 export function Footer({ children }: PropsWithChildren) {

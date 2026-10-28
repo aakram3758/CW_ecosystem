@@ -86,13 +86,20 @@ export function DetailsScreen() {
         <View style={styles.grow}><Label style={[styles.heavy, { fontSize: 17 }]}>{f.requestName(row)}</Label><Muted style={{ fontSize: 13 }}>{f.stamp(row.created_at)}</Muted></View>
         <Label style={[styles.heavy, { fontSize: 18 }]}>{f.kg(row.kg)}</Label>
       </View>
-      <View style={[styles.row, { minHeight: 60, borderTopWidth: 1, borderTopColor: colors.line }]}>
-        <Icon name="cal" color={colors.muted} /><Muted style={styles.grow}>{t.visitDay}</Muted>
-        <Label style={[styles.heavy, { flexShrink: 1, color: row.visit_day ? colors.text : colors.muted }]}>{f.date(row.visit_day, true)}</Label>
+      {/* Label above its value with the icon beside both, rather than the canvas's label on one
+          side and value on the other — Ahmed's call after reading it on a phone, where the two
+          ended up at opposite edges with a hand's width of nothing between them. This is the shape
+          the create screen's review step already uses, so the two now read the same. */}
+      <View style={[styles.row, { minHeight: 64, paddingVertical: 12, borderTopWidth: 1, borderTopColor: colors.line }]}>
+        <Tile icon="cal" />
+        <View style={[styles.grow, { gap: 2 }]}><Muted style={{ fontSize: 13 }}>{t.visitDay}</Muted>
+          <Label style={[styles.heavy, { color: row.visit_day ? colors.text : colors.muted }]}>{f.date(row.visit_day, true)}</Label></View>
       </View>
-      <View style={[styles.row, { minHeight: 60, paddingVertical: 8, borderTopWidth: 1, borderTopColor: colors.line }]}>
-        <Icon name="user" color={colors.muted} /><Muted style={styles.grow}>{t.contactT}</Muted>
-        <View style={{ flexShrink: 1 }}><Label style={styles.heavy}>{row.contact_name}</Label><Muted style={{ fontSize: 13 }}>{f.phone(row.contact_phone)}</Muted></View>
+      <View style={[styles.row, { minHeight: 64, paddingVertical: 12, borderTopWidth: 1, borderTopColor: colors.line }]}>
+        <Tile icon="user" />
+        <View style={[styles.grow, { gap: 2 }]}><Muted style={{ fontSize: 13 }}>{t.contactT}</Muted>
+          <Label style={styles.heavy}>{row.contact_name}</Label>
+          <Muted style={{ fontSize: 13 }}>{f.phone(row.contact_phone)}</Muted></View>
       </View>
       <View style={[styles.row, { paddingVertical: 12, alignItems: 'flex-start', borderTopWidth: 1, borderTopColor: colors.line }]}>
         {row.branch_photo_path && material ? <Photo kg={row.kg ?? 0} material={material} size={72} /> : <Tile icon="camera" size={72} color={colors.muted} />}

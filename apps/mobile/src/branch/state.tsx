@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, type PropsWithChildren } from 'react';
+import * as SecureStore from 'expo-secure-store';
 import * as mock from '@/data/mock/branch';
 import type { Database } from '@/data/database.types';
 
@@ -10,8 +11,27 @@ type EditArgs = Omit<Database['public']['Functions']['branch_update_request']['A
 export const isOpen = (row: mock.RequestListRow) =>
   row.status === 'waiting' || row.status === 'scheduled' || row.status === 'needs_decision';
 
+// A branch confirms its pin once and should never be asked again — `locOnce` says so on the screen
+// itself. On mock data "never again" lasted until the next launch, because the confirmation lived
+// in React state, so signing in sent you back to the map. Keeping it on the device makes phase A
+// behave the way the wired app will. `SecureStore.getItem` is the synchronous read, so the first
+// render already knows and the map does not flash past.
+//
+// Phase B deletes this: `branches.location_confirmed_at` is the real answer.
+const SAVED_LOCATION = 'cw.mock.location';
+type SavedLocation = { lat: number; lng: number; at: string };
+function savedLocation(): SavedLocation | null {
+  try {
+    const raw = SecureStore.getItem(SAVED_LOCATION);
+    return raw ? JSON.parse(raw) as SavedLocation : null;
+  } catch { return null; }
+}
+
 function useBranchState() {
-  const [branch, setBranch] = useState(mock.branch);
+  const [branch, setBranch] = useState(() => {
+    const saved = savedLocation();
+    return saved ? { ...mock.branch, lat: saved.lat, lng: saved.lng, location_confirmed_at: saved.at } : mock.branch;
+  });
   const [requests, setRequests] = useState(mock.requestList);
   const [events, setEvents] = useState(mock.events);
   const [notifications, setNotifications] = useState(mock.notifications);
@@ -48,7 +68,10 @@ function useBranchState() {
     today: mock.mockToday, photoPath: mock.photoPath,
     back: () => setPage(tab),
     confirmLocation: (lat: number, lng: number) => {
-      setBranch(row => ({ ...row, lat, lng, location_confirmed_at: mock.mockNow })); navigate('home');
+      setBranch(row => ({ ...row, lat, lng, location_confirmed_at: mock.mockNow }));
+      void SecureStore.setItemAsync(SAVED_LOCATION,
+        JSON.stringify({ lat, lng, at: mock.mockNow } satisfies SavedLocation)).catch(() => {});
+      navigate('home');
     },
     create: (args: mock.CreateRequestArgs) => {
       const row = mock.newRequest(args, Math.max(...requests.map(r => r.number ?? 0)) + 1);

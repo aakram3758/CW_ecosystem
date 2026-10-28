@@ -338,6 +338,13 @@ one.
       «لديك طلب مفتوح لهذه المادة / عرضه». Ahmed's call is to improve on the canvas but go simpler and cleaner
       than our band — the lock and the way in, without a sentence explaining itself.
 
+**Two places where Ahmed asked to go past the canvas**, both after reading them on a phone, and
+both recorded here so the difference does not look like drift later: the material lock (above),
+and the request-details rows, where the canvas puts the label on one side and the value on the
+other. On a 390pt screen that leaves them at opposite edges with nothing between, so each row is
+now its icon, the label, and the value under it — the shape the create screen already used for
+its review step.
+
 **Not a bug.** The branch name on the phone does not match the canvas because the screen is still on mock
 data; Ahmed said to ignore it. It goes away in phase B.
 
@@ -385,6 +392,9 @@ Mock data out, Supabase in. Reads go through RLS, every write goes through an RP
 - [ ] Everyone: `mark_notifications_read`
 - [ ] Photo upload — private bucket `request-photos`: branch → `branch/<branch_id>/…`, driver → `request/<request_id>/…`
 - [ ] The four migrations below (17-20)
+- [ ] Delete the device-side location memory in `branch/state.tsx` — it exists only so phase A
+      stops asking a branch to place its pin on every launch; `branches.location_confirmed_at`
+      is the real answer
 - [ ] Every error code from the README mapped to its designed message
 
 ## Phase C — device testing, then one push
