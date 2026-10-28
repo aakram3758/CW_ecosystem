@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { View, type GestureResponderEvent } from 'react-native';
 import Svg, { Circle, Path, Rect, Text as SvgText } from 'react-native-svg';
 import { currentLocation } from '@/data/device';
+import { ltr } from '@/i18n/copy';
 import { usePreferences } from '@/providers/preferences';
 import { Button, ErrorLine, Label, Sheet, Title } from '@/ui/components';
 import { branchArtwork } from '@/ui/tokens';
@@ -81,7 +82,7 @@ export function LocationScreen() {
       <BranchMap {...coords} center={center} onMove={(lat, lng) => setCoords({ lat, lng })} />
       {locationError ? <ErrorLine>{locationError}</ErrorLine> : null}
       <View style={{ gap: 8 }}><Muted style={{ fontSize: 12.5 }}>{t.locHint}</Muted>
-        <Muted style={{ fontSize: 12.5, writingDirection: 'ltr' }}>{coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}</Muted></View>
+        <Muted style={{ fontSize: 12.5 }}>{ltr(`${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`)}</Muted></View>
     </PageFrame>
     {confirming ? <Sheet onClose={() => setConfirming(false)}>
       <Tile icon="pin" size={56} iconSize={28} color={colors.accentText} background={colors.accentSoft} />

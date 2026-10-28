@@ -3,7 +3,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, View, type StyleProp, type Vi
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Stop, Rect, Text as SvgText } from 'react-native-svg';
 import type { MaterialRow, RequestListRow } from '@/data/mock/branch';
-import { interpolate } from '@/i18n/copy';
+import { interpolate, ltr } from '@/i18n/copy';
 import { usePreferences } from '@/providers/preferences';
 import { Card, Icon, Label, Screen, Title } from '@/ui/components';
 import { materialIcon } from '@/ui/icons';
@@ -34,7 +34,10 @@ export function useBranchFormat() {
   const requestName = (row: RequestListRow) => [language === 'ar' ? row.material_name_ar : row.material_name_en,
     language === 'ar' ? row.subtype_name_ar : row.subtype_name_en].filter(Boolean).join(' · ');
   const kg = (value: number | null) => `${(value ?? 0).toLocaleString('en-US')} ${t.kgUnit}`;
-  const phone = (value: string | null) => value?.startsWith('05') ? `${copy.shared.phonePrefix} ${value.slice(1, 3)} ${value.slice(3, 6)} ${value.slice(6)}` : value ?? '';
+  // Isolated, not merely right-styled: a phone number is digits and a '+' in an Arabic
+  // paragraph, which the bidi algorithm will happily reverse. See `ltr`.
+  const phone = (value: string | null) => value?.startsWith('05')
+    ? ltr(`${copy.shared.phonePrefix} ${value.slice(1, 3)} ${value.slice(3, 6)} ${value.slice(6)}`) : value ?? '';
   const materialStyle = (m: MaterialRow) => ({ color: theme === 'dark' ? m.color_dark : m.color_light,
     background: materialSoft[theme][m.code as keyof typeof materialSoft.light] ?? colors.surface2,
     icon: materialIcon[m.icon] ?? 'box' });

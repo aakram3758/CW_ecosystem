@@ -92,7 +92,7 @@ export function DetailsScreen() {
       </View>
       <View style={[styles.row, { minHeight: 60, paddingVertical: 8, borderTopWidth: 1, borderTopColor: colors.line }]}>
         <Icon name="user" color={colors.muted} /><Muted style={styles.grow}>{t.contactT}</Muted>
-        <View style={{ flexShrink: 1 }}><Label style={styles.heavy}>{row.contact_name}</Label><Muted style={{ fontSize: 13, writingDirection: 'ltr' }}>{f.phone(row.contact_phone)}</Muted></View>
+        <View style={{ flexShrink: 1 }}><Label style={styles.heavy}>{row.contact_name}</Label><Muted style={{ fontSize: 13 }}>{f.phone(row.contact_phone)}</Muted></View>
       </View>
       <View style={[styles.row, { paddingVertical: 12, alignItems: 'flex-start', borderTopWidth: 1, borderTopColor: colors.line }]}>
         {row.branch_photo_path && material ? <Photo kg={row.kg ?? 0} material={material} size={72} /> : <Tile icon="camera" size={72} color={colors.muted} />}

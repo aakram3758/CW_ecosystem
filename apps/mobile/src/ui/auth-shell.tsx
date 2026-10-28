@@ -15,7 +15,7 @@ import { useState, type PropsWithChildren, type ReactNode } from 'react';
 import { Image, Pressable, TextInput, View, type TextInputProps } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePreferences } from '@/providers/preferences';
-import { ErrorLine, Icon, Label, Sheet } from '@/ui/components';
+import { ErrorLine, Icon, Label, PreferencesIcons, Sheet } from '@/ui/components';
 import { branchArtwork, minTouch, softFill } from '@/ui/tokens';
 
 /**
@@ -51,8 +51,13 @@ export function AuthHero({ title, sub }: { title: string; sub: string }): ReactN
       borderWidth: 1, borderColor: branchArtwork.heroLine, left: -90, top: -60 }} />
     <View style={{ position: 'absolute', width: 180, height: 180, borderRadius: 90,
       borderWidth: 1, borderColor: branchArtwork.heroGoldLine, right: -60, bottom: -40 }} />
-    <Image source={require('../../assets/cw-mark.png')} accessible={false} resizeMode="contain"
-      style={{ width: 84, height: 44, alignSelf: 'flex-start' }} />
+    {/* The mark and the two preference buttons share one row: both are 44 high, so this costs the
+        hero no height, and the buttons land opposite the mark instead of above the heading. */}
+    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+      <Image source={require('../../assets/cw-mark.png')} accessible={false} resizeMode="contain"
+        style={{ width: 84, height: 44 }} />
+      <PreferencesIcons onDark />
+    </View>
     <Label accessibilityRole="header" style={{ fontFamily: 'Tajawal_800ExtraBold', fontSize: 30,
       lineHeight: 39, color: colors.onPrimary, marginTop: 10 }}>{title}</Label>
     <Label style={{ fontSize: 15, lineHeight: 24.75, color: colors.onPrimary, opacity: .82,

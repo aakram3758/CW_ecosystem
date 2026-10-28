@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, BackHandler, Image, Pressable, TextInput, View } from 'react-native';
 import { takePhoto, pickPhoto, type Photo as DevicePhoto } from '@/data/device';
 import type { MaterialRow, SubtypeRow } from '@/data/mock/branch';
-import { interpolate } from '@/i18n/copy';
+import { interpolate, ltr } from '@/i18n/copy';
 import { usePreferences } from '@/providers/preferences';
 import { Button, Card, ErrorLine, Field, Icon, Label, Sheet, TextLink, Title } from '@/ui/components';
 import { isOpen, useBranch } from './state';
@@ -84,7 +84,7 @@ export function CreateScreen() {
   ];
   return <>
     <PageFrame title={editing ? t.editT : t.newReq} onBack={back}
-      trailing={<Muted style={{ fontSize: 12 }}>{interpolate(t.stepOf, { n: step })}</Muted>}
+      trailing={<Muted style={{ fontSize: 12 }}>{ltr(interpolate(t.stepOf, { n: step }))}</Muted>}
       top={<View style={{ flexDirection: 'row', gap: 6, paddingHorizontal: 20, paddingTop: 4, paddingBottom: 8 }}>
         {[t.stepMat, t.stepWt, t.stepRev].map((label, i) => <View key={label} style={{ flex: 1, gap: 6 }}>
           <View style={{ height: 5, borderRadius: 9, backgroundColor: i < step ? colors.accent : colors.line }} />
@@ -181,8 +181,12 @@ export function CreateScreen() {
             accessibilityLabel={t.photo} style={{ width: 104, height: 104, borderRadius: 16 }} />
             : <Photo material={material} kg={weight} />}
             <View style={styles.grow}><Label style={[styles.heavy, { color: colors.success }]}>{t.photoOk}</Label>
-              <View style={{ flexDirection: 'row', gap: 4, flexWrap: 'wrap' }}>
-                <TextLink label={t.retake} onPress={() => void choosePhoto(true)} /><TextLink label={t.remove}
+              {/* Icons rather than the canvas's two text links — Ahmed's call. The thumbnail
+                  already says what this row is about, so the words were doing little, and two
+                  48px targets beside a photo read faster than two short links. */}
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <IconButton icon="retry" label={t.retake} onPress={() => void choosePhoto(true)} />
+                <IconButton icon="x" label={t.remove}
                   onPress={() => { setPhoto('none'); setChosenPhoto(null); setPhotoError(''); }} />
               </View>
             </View>
@@ -195,7 +199,7 @@ export function CreateScreen() {
             placeholderTextColor={colors.muted} style={{ minHeight: 72, paddingVertical: 10, paddingHorizontal: 12, borderWidth: 1,
               borderColor: colors.line, borderRadius: 14, color: colors.text, fontFamily: 'Tajawal_500Medium', fontSize: 15,
               lineHeight: 24, textAlign: f.language === 'ar' ? 'right' : 'left', textAlignVertical: 'top' }} />
-          <Muted style={{ fontSize: 12, alignSelf: 'flex-end', writingDirection: 'ltr' }}>{note.length} / 200</Muted>
+          <Muted style={{ fontSize: 12, alignSelf: 'flex-end' }}>{ltr(`${note.length} / 200`)}</Muted>
         </Card>
         <Card style={styles.card}>
           <View style={[styles.row, { justifyContent: 'space-between' }]}><Label style={[styles.heavy, { fontSize: 16 }]}>{t.contactT}</Label><Pill>{t.required}</Pill></View>
@@ -215,7 +219,7 @@ export function CreateScreen() {
               ? <Tile {...f.materialStyle(material)} /> : <Tile icon={row.icon} />}
             <View style={styles.grow}><Muted style={{ fontSize: 13 }}>{row.label}</Muted>
               <Label style={styles.heavy}>{row.value}</Label>
-              {i === 3 ? <Muted style={{ writingDirection: 'ltr' }}>{f.phone(`0${contactPhone}`)}</Muted> : null}
+              {i === 3 ? <Muted>{f.phone(`0${contactPhone}`)}</Muted> : null}
             </View>
             <TextLink label={t.edit} onPress={row.edit} />
           </View>)}

@@ -1,6 +1,5 @@
 import { createContext, useContext, useEffect, useState, type PropsWithChildren } from 'react';
 import { I18nManager, useColorScheme } from 'react-native';
-import { reloadAppAsync } from 'expo';
 import * as SecureStore from 'expo-secure-store';
 import { ar } from '@/i18n/ar';
 import { en } from '@/i18n/en';
@@ -33,9 +32,10 @@ const PreferencesContext = createContext<Preferences | null>(null);
 // Ask native for a direction. This does NOT take effect now: I18nManager.isRTL is a native constant
 // read at launch, and forceRTL only records what the next launch should use.
 //
-// Never reload from here to "apply" it. reloadAppAsync restarts the JS bundle while the native
-// constant keeps its launch value, so `isRTL !== rtl` is still true on the next mount — which
-// reloads again, forever. That loop is what a mismatched direction used to cause on every boot.
+// Nothing reloads to "apply" it, from here or anywhere. A JS reload cannot change a native
+// constant, so testing one against the other and reloading is a loop with no exit — which is
+// exactly what a mismatched direction used to cause on every boot. The app's own direction is a
+// style set from `language` in `AppProviders`, which takes effect on the next render.
 function requestDirection(language: Language) {
   const rtl = language === 'ar';
   I18nManager.allowRTL(true);
@@ -83,13 +83,14 @@ export function PreferencesProvider({ children }: PropsWithChildren) {
     language, themeChoice, theme, colors: palette[theme], copy: language === 'ar' ? ar : en,
     side, onboarded, ready, error, retry: () => setAttempt(value => value + 1),
     setLanguage: async value => {
-      // Persist first: the reload below throws the current JS state away.
-      await SecureStore.setItemAsync('cw.language', value);
       setLanguageState(value);
-      // One reload, and only when the user themself switched language — never on boot. If native
-      // ignores the request (Expo Go does not always honour forceRTL), this still reloads exactly
-      // once, because the boot path above never reloads.
-      if (requestDirection(value) !== I18nManager.isRTL) await reloadAppAsync();
+      // Tell native, for the next cold start and for anything it draws itself. Nothing in this app
+      // lays out by `I18nManager.isRTL` any more — `AppProviders` sets `direction` from this very
+      // state — so the switch takes effect on the next render and **nothing reloads**. It used to,
+      // and that was wrong twice over: it is not needed, and it threw away whatever the user was
+      // in the middle of typing, which from the password screen is the password itself.
+      requestDirection(value);
+      await SecureStore.setItemAsync('cw.language', value);
     },
     setTheme: async value => {
       await SecureStore.setItemAsync('cw.theme', value);

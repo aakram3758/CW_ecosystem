@@ -11,7 +11,7 @@ import { useAuth } from '@/providers/auth';
 import { usePreferences } from '@/providers/preferences';
 import { useOnline } from '@/providers/query';
 import { AuthGate } from '@/ui/auth-gate';
-import { Button, Card, Field, Icon, Label, Message, OfflineBar, PreferencesControls, Screen, Title } from '@/ui/components';
+import { Button, Card, Field, Icon, Label, Message, OfflineBar, PreferencesIcons, Screen, Title } from '@/ui/components';
 
 function PasswordForm() {
   const { copy, side, colors } = usePreferences();
@@ -57,7 +57,12 @@ function PasswordForm() {
 
   return <Screen>
     <Stack.Screen options={{ gestureEnabled: false, headerBackVisible: false }} />
-    <Icon name="key" />
+    {/* Opposite the key, not at the foot of the screen: the full language and theme controls used
+        to sit below the form and took a third of it. */}
+    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+      <Icon name="key" />
+      <PreferencesIcons />
+    </View>
     <View style={{ gap: 8 }}><Title>{branch ? copy.branch.pwdT : copy.driver.cpTitle}</Title>
       <Label>{branch ? copy.branch.pwdSub : copy.driver.cpSubFirst}</Label></View>
     <OfflineBar />
@@ -85,7 +90,6 @@ function PasswordForm() {
       <Button label={busy ? copy.branch.saving : branch ? copy.branch.savePass : copy.driver.saveContinue}
         disabled={busy || !online || !rules.every(Boolean)} onPress={() => void submit()} />
     </Card>
-    <PreferencesControls />
   </Screen>;
 }
 

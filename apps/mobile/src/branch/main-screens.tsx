@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, View } from 'react-native';
-import { interpolate } from '@/i18n/copy';
+import { interpolate, ltr } from '@/i18n/copy';
 import { useAuth } from '@/providers/auth';
 import { usePreferences } from '@/providers/preferences';
 import { errorMessage } from '@/data/errors';
@@ -36,7 +36,7 @@ export function HomeScreen() {
       <View style={{ position: 'absolute', width: 180, height: 180, borderRadius: 90, borderWidth: 1,
         borderColor: branchArtwork.heroGoldLine, right: -60, bottom: -40 }} />
       <View style={[styles.row, { justifyContent: 'space-between', paddingHorizontal: 20 }]}>
-        <Label style={[styles.heavy, { fontSize: 16, color: colors.onPrimary, flex: 1 }]}>{t.splashB}</Label>
+        <Label style={[styles.heavy, { fontSize: 16, color: colors.onPrimary, flexShrink: 1 }]}>{t.splashB}</Label>
         <View style={{ flexDirection: 'row', gap: 8 }}>
           {data.opsPhone ? <Pressable accessibilityRole="button" accessibilityLabel={t.support} onPress={() => contact(t.opsT, data.opsPhone)}
             style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: branchArtwork.heroTile, alignItems: 'center', justifyContent: 'center' }}>
@@ -52,7 +52,7 @@ export function HomeScreen() {
       </View>
       <View style={{ paddingTop: 22, paddingHorizontal: 20, gap: 14 }}>
         <View style={[styles.row, { gap: 6 }]}><Icon name="pin" size={18} color={colors.gold} />
-          <Label style={[styles.bold, { color: colors.gold, fontSize: 14, flex: 1 }]}>{data.branch.name} · {f.name(data.city)}</Label></View>
+          <Label style={[styles.bold, { color: colors.gold, fontSize: 14, flexShrink: 1 }]}>{data.branch.name} · {f.name(data.city)}</Label></View>
         <Title style={{ fontSize: 30, lineHeight: 39, color: colors.onPrimary }}>{t.heroQ}{'\n'}
           <Label style={{ fontSize: 30, lineHeight: 39, color: colors.gold, fontFamily: 'Tajawal_800ExtraBold' }}>{t.heroA}</Label>
         </Title>
@@ -187,7 +187,7 @@ export function AccountScreen() {
         <View style={[styles.row, { justifyContent: 'space-between' }]}><Title style={{ fontSize: 16 }}>{t.savedLoc}</Title><Pill icon="lock">{t.viewOnly}</Pill></View>
         <BranchMap lat={data.branch.lat!} lng={data.branch.lng!} small />
         <Muted style={{ fontSize: 13 }}>{t.locLocked}</Muted>
-        <Muted style={{ fontSize: 13, writingDirection: 'ltr' }}>{data.branch.lat?.toFixed(5)}, {data.branch.lng?.toFixed(5)}</Muted>
+        <Muted style={{ fontSize: 13 }}>{ltr(`${data.branch.lat?.toFixed(5)}, ${data.branch.lng?.toFixed(5)}`)}</Muted>
       </Card>
       <Card style={{ borderRadius: 18, padding: 16 }}><PreferencesControls variant="branch" /></Card>
       <Card style={{ borderRadius: 18, paddingHorizontal: 14, paddingVertical: 0, gap: 0 }}>

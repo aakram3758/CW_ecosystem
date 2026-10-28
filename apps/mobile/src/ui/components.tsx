@@ -4,16 +4,22 @@ import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, Sc
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { icons } from '@/ui/icons';
-import { minTouch, softFill, type as typography } from '@/ui/tokens';
+import { branchArtwork, minTouch, softFill, type as typography } from '@/ui/tokens';
 import { usePreferences } from '@/providers/preferences';
 import { useOnline } from '@/providers/query';
 import { errorMessage } from '@/data/errors';
 
 export function Label({ style, ...props }: TextProps) {
-  const { colors, language } = usePreferences();
+  const { colors } = usePreferences();
+  // `textAlign: 'auto'`, not `'right'` picked from the language. 'auto' aligns the text by its own
+  // first strong character, falling back to the direction the box inherits — so Arabic goes right,
+  // Latin goes left, and a line of digits follows the layout around it. That is what we always
+  // meant, and `'right'` was not delivering it: a Label whose box is wider than its text, which in
+  // practice means any Label with `flex: 1`, drew its Arabic hard against the left edge on Android.
+  // The screen title and the branch line on the home hero were both sitting there.
   return <Text {...props} style={[{ fontFamily: 'Tajawal_400Regular', fontSize: typography.baseSize,
     lineHeight: typography.baseSize * typography.lineHeight, color: colors.text,
-    textAlign: language === 'ar' ? 'right' : 'left', writingDirection: language === 'ar' ? 'rtl' : 'ltr' }, style]} />;
+    textAlign: 'auto' }, style]} />;
 }
 
 export function Title({ children, style }: PropsWithChildren<{ style?: TextProps['style'] }>) {
@@ -268,6 +274,46 @@ export function AppSplash() {
     <Label>{side === 'branch' ? copy.branch.splashA : copy.driver.tagline}</Label>
     <Loading /><OfflineBar />
   </View></Screen>;
+}
+
+/**
+ * Language and theme as two 44×44 buttons, for the screens that come before sign-in.
+ *
+ * Those screens have nowhere else to put them — Account is behind the password — and a phone that
+ * opens in Arabic would otherwise have no way to reach English. The full controls used to sit at
+ * the bottom of the password screen and took a third of it, which is what Ahmed objected to, so
+ * this is the same two icons the Account screen uses, shrunk to the canvas's `.hb` hero button:
+ * 44×44, radius 14, on a tenth-white tile over navy, or on `surface2` anywhere else.
+ *
+ * The globe is a straight toggle because there are exactly two languages. The moon opens a sheet,
+ * because there are three themes and one of them is «حسب النظام».
+ */
+export function PreferencesIcons({ onDark = false }: { onDark?: boolean } = {}) {
+  const { copy, colors, language, themeChoice, setLanguage, setTheme } = usePreferences();
+  const [sheet, setSheet] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const foreground = onDark ? colors.onPrimary : colors.text;
+  async function update(action: () => Promise<void>) {
+    setBusy(true);
+    try { await action(); } finally { setBusy(false); }
+  }
+  const button = (icon: string, label: string, onPress: () => void) =>
+    <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={busy} onPress={onPress}
+      style={({ pressed }) => ({ width: 44, height: 44, borderRadius: 14, alignItems: 'center',
+        justifyContent: 'center', opacity: busy ? .5 : pressed ? .78 : 1,
+        backgroundColor: onDark ? branchArtwork.heroTile : colors.surface2 })}>
+      <Icon name={icon} size={22} color={foreground} tint={softFill(foreground)} />
+    </Pressable>;
+  return <View style={{ flexDirection: 'row', gap: 8 }}>
+    {button('globe', copy.branch.language, () => void update(() => setLanguage(language === 'ar' ? 'en' : 'ar')))}
+    {button('moon', copy.branch.theme, () => setSheet(true))}
+    {sheet ? <Sheet onClose={() => setSheet(false)}>
+      <Title style={{ fontSize: 18 }}>{copy.branch.theme}</Title>
+      <Segmented label={copy.branch.theme} value={themeChoice} disabled={busy}
+        options={(['light', 'dark', 'system'] as const).map(choice => ({ value: choice, label: copy.branch[choice] }))}
+        onChange={value => { setSheet(false); void update(() => setTheme(value)); }} />
+    </Sheet> : null}
+  </View>;
 }
 
 export function PreferencesControls({ variant }: { variant?: 'branch' } = {}) {
