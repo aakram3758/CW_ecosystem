@@ -7,15 +7,36 @@ Written in English to match the rest of the repo and because Codex reads it.
 
 ## How we work
 
-Claude plans and reviews, Codex implements, Ahmed decides. For each bite below: Claude writes a brief into
-`apps/mobile/briefs/` → Codex implements → Claude reviews the diff → local commit on `feat/mobile-app`.
-**Nothing is pushed** until the whole app has been tried on a real device and Ahmed says go. A local commit is
-not a push; it never leaves the machine.
+**Claude thinks and writes the structure; Codex fills it in; Ahmed decides.** That is the division of
+labour for every bite below, and it is deliberate — each side does the part it is actually better at.
+
+Claude, for each piece of work:
+
+1. **Reads the source** — the approved canvas, the live schema, the code already there — and settles
+   everything that needs judgement: what the screen is, which value comes from where, what the edge cases
+   are, where the new code belongs in the tree.
+2. **Writes the structure** into the repo: the files, the component and function signatures, the types, the
+   props, the state shape, and a comment in each empty body saying what it has to do. Enough that the shape
+   of the change is already decided and visible in a diff, with the bodies left to write.
+3. **Writes the brief** into `apps/mobile/briefs/` — the ticket: what to build, from which lines of which
+   canvas, with the literal values, and what "done" means.
+
+Codex then implements: it fills the bodies in, follows the brief, and runs `tsc --noEmit` and
+`npm run bundle` until both pass.
+
+Claude then reviews the diff against the brief — **re-verifying, never trusting the self-report** — fixes
+what is wrong, and makes the local commit on `feat/mobile-app`.
+
+Why this split: the decisions that are expensive to get wrong are the structural ones, and they are cheap to
+write down. Typing out four hundred lines of styled JSX off a canvas is the opposite — slow to produce, cheap
+to check against the design once it exists. So Claude spends its tokens on the decisions and the review, and
+Codex spends its on the typing.
 
 The brief is the ticket. It is committed so that reviewing a diff means comparing it against something written
 down beforehand, rather than against memory.
 
-`main` deploys the dashboard to Vercel, so the mobile branch stays off `main` for the whole phase.
+`feat/mobile-app` is pushed as a backup branch and nothing more. **It does not merge into `main`** — which is
+what deploys the dashboard to Vercel — until the whole app has been tried on a real device and Ahmed says go.
 
 No over-engineering. The app is small; the plan is three phases, not eight milestones.
 
@@ -271,6 +292,48 @@ approved design, but it means there is no route per screen. A push notification 
 request therefore cannot deep-link to it — it has to land on `/branch` and set state. Notifications are
 deferred, so decide this when they are built, not before: either give the branch nested routes then, or
 accept an app that opens on home and selects the request itself.
+
+### Bite 2.5 — the first design round
+
+Ahmed tried bites 1 and 2 on his phone on 28 October 2026 and sent six comments. Five are work; the sixth he
+withdrew himself. This bite is those five, in two stages so each gets reviewed on its own.
+
+The canvas grew while we were building — from 6 files to 28 — and now holds three things that did not exist
+when bite 1 was written: a redesigned sign-in screen, a splash screen and a three-slide onboarding. It is
+cached at `apps/mobile/design/branch-v2/project/` (gitignored, so read it by path).
+
+**Stage 1 — sign-in and direction**
+
+- [ ] Rebuild the sign-in screen for both roles from `Main.dc.html` lines 171–247: the navy hero with the logo
+      lockup and its two decorative circles, then the card with the **Branch | Driver** switch *inside* it at
+      the top, the chain picker and branch number side by side (3fr / 2fr), the `+966` prefix box joined to the
+      driver's phone field, the eye button inside the password field, 52px fields at radius 14, and the errors
+      inline with an 18px icon on a soft danger background. Ours has the right fields in the wrong frame, so
+      this is a layout rebuild, not a tweak. No copy changes: every string is already lifted and approved.
+- [ ] **Fix the direction once, at the top.** Today `direction: 'rtl'` is set in `src/branch/app.tsx` and
+      `src/driver/shared.tsx` and nowhere else, so everything under `src/app/` — sign-in, the password change,
+      both role homes — falls back to the native `I18nManager.isRTL`, which is `false` in Expo Go because
+      config plugins do not apply there. That is exactly why the branch screens read right-to-left on the phone
+      and sign-in does not. One wrapper high up, and the two per-feature copies deleted.
+
+**Stage 2 — splash, onboarding, camera, location, the lock**
+
+- [ ] The splash: option **ب** «المواد بتتجمع», the one marked «المعتمد» in `SplashOptions.dc.html` — material
+      icons fly in from the edges and merge into the logo, about 1.8s. Needs Reanimated.
+- [ ] Onboarding: the three slides of `Onboarding.dc.html` (اطلب الاستلام · يوم الزيارة · كل طلباتك), shown
+      once per install, skippable.
+- [ ] The five uploaded images come into the repo as real files — React Native cannot fetch the canvas's
+      `/_blob/` paths.
+- [ ] Make the camera real (`expo-image-picker`) and the location real (`expo-location`), with real permission
+      prompts and the designed denied-permission state. **Nothing is uploaded or persisted** — the photo and
+      the pin stay in memory. Persistence is phase B.
+- [ ] The material lock, for a material that already has an open request: simpler and cleaner than what we
+      ship now. The canvas draws only a 16px muted lock beside the material name; ours adds a band reading
+      «لديك طلب مفتوح لهذه المادة / عرضه». Ahmed's call is to improve on the canvas but go simpler and cleaner
+      than our band — the lock and the way in, without a sentence explaining itself.
+
+**Not a bug.** The branch name on the phone does not match the canvas because the screen is still on mock
+data; Ahmed said to ignore it. It goes away in phase B.
 
 ### Bite 3 — branch states
 
