@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Alert, Modal, View } from 'react-native';
+import { Alert, View } from 'react-native';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery } from '@tanstack/react-query';
@@ -10,16 +10,16 @@ import { useAuth } from '@/providers/auth';
 import { usePreferences } from '@/providers/preferences';
 import { useOnline } from '@/providers/query';
 import { AuthGate } from '@/ui/auth-gate';
-import { Button, Card, EmptyState, ErrorState, Field, Icon, Label, Loading, Message,
-  OfflineBar, PreferencesControls, Screen, Title } from '@/ui/components';
+import { AuthCard, AuthField, AuthHero, AuthSelect } from '@/ui/auth-shell';
+import { Button, EmptyState, ErrorBanner, ErrorLine, ErrorState, Icon, Label, Loading,
+  PreferencesControls, Screen, Segmented, TextLink } from '@/ui/components';
 
 function SignInForm() {
-  const { copy, side, language, setSide } = usePreferences();
+  const { copy, colors, side, language, setSide } = usePreferences();
   const auth = useAuth();
   const online = useOnline();
   const [error, setError] = useState<unknown>(null);
   const [showPassword, setShowPassword] = useState(false);
-  const [pickerOpen, setPickerOpen] = useState(false);
   const [switching, setSwitching] = useState(false);
   const [lockedUntil, setLockedUntil] = useState(0);
   const branch = side === 'branch';
@@ -37,10 +37,12 @@ function SignInForm() {
   const form = useForm({ resolver: zodResolver(schema),
     defaultValues: { chain: '', branchNumber: '', mobile: '', password: '' } });
   const chains = useQuery({ queryKey: ['chains'], queryFn: ({ signal }) => fetchChains(signal), enabled: branch });
-  const selectedCode = form.watch('chain');
-  const selectedChain = chains.data?.find(chain => chain.code === selectedCode);
   const busy = form.formState.isSubmitting || switching;
   const locked = lockedUntil > Date.now();
+  // The canvas turns every identity field red together and prints one message under them all,
+  // rather than one message per field — so the chain, the branch number and the phone share this.
+  const errors = form.formState.errors;
+  const identityError = branch ? errors.chain?.message ?? errors.branchNumber?.message : errors.mobile?.message;
 
   useEffect(() => {
     if (!lockedUntil) return;
@@ -54,17 +56,13 @@ function SignInForm() {
     try {
       await setSide(next);
       form.reset(); setError(null); auth.clearNotice(); setShowPassword(false);
-      setPickerOpen(false); setLockedUntil(0);
+      setLockedUntil(0);
     } catch (error) { setError(error); } finally { setSwitching(false); }
   }
 
   const submit = form.handleSubmit(async values => {
     if (!online || locked) return;
     setError(null); auth.clearNotice();
-    if (branch && !selectedChain) {
-      form.setError('chain', { message: copy.branch.errChain });
-      return;
-    }
     const email = branch ? `b-${values.chain}-${values.branchNumber.trim()}@branches.cloudswater.co`
       : `d-${normalizePhone(values.mobile)}@drivers.cloudswater.co`;
     try {
@@ -78,71 +76,76 @@ function SignInForm() {
     }
   });
 
-  return <Screen>
-    <View style={{ flexDirection: 'row', gap: 8 }}>
-      <View style={{ flex: 1 }}><Button label={copy.shared.roleBranch} secondary={!branch} selected={branch}
-        disabled={busy} onPress={() => void switchSide('branch')} /></View>
-      <View style={{ flex: 1 }}><Button label={copy.shared.roleDriver} secondary={branch} selected={!branch}
-        disabled={busy} onPress={() => void switchSide('driver')} /></View>
-    </View>
-    <Icon name={branch ? 'store' : 'truck'} />
-    <View style={{ gap: 8 }}><Title>{branch ? copy.branch.loginTitle : copy.driver.loginHello}</Title>
-      <Label>{branch ? copy.branch.loginSub : copy.driver.loginSub}</Label></View>
-    <OfflineBar />
-    <Card>
-      {branch ? <>
-        {chains.isError ? <ErrorState onRetry={() => void chains.refetch()} />
+  // The hero paints behind the status bar, so the screen insets its bottom edge only and AuthHero
+  // adds the top inset to its own padding. Hence padding 0 here: the hero is full-bleed and the
+  // card sets its own margins.
+  return <Screen edges={['bottom']} contentStyle={{ padding: 0, gap: 0, paddingBottom: 40 }}>
+    <AuthHero title={branch ? copy.branch.loginTitle : copy.driver.loginHello}
+      sub={branch ? copy.branch.loginSub : copy.driver.loginSub} />
+    <AuthCard>
+      <Segmented label={copy.shared.modeLabel} value={side} tone="solid" disabled={busy}
+        onChange={next => void switchSide(next)}
+        options={[{ value: 'branch', label: copy.shared.roleBranch, icon: 'store' },
+          { value: 'driver', label: copy.shared.roleDriver, icon: 'truck' }]} />
+      {branch
+        ? chains.isError ? <ErrorState onRetry={() => void chains.refetch()} />
           : chains.isPending ? <Loading />
-          : !chains.data.length ? <EmptyState title={copy.shared.noChains} /> : <>
-            <Label>{copy.branch.chain}</Label>
-            <Button secondary label={selectedChain ? selectedChain[language === 'ar' ? 'name_ar' : 'name_en'] : copy.branch.chainPh}
-              disabled={busy} onPress={() => setPickerOpen(true)} />
-          </>}
-        {form.formState.errors.chain ? <Message>{form.formState.errors.chain.message}</Message> : null}
-        <Controller control={form.control} name="branchNumber" render={({ field, fieldState }) =>
-          <Field label={copy.branch.branchNo} value={field.value} onChangeText={field.onChange} onBlur={field.onBlur}
-            error={fieldState.error?.message} keyboardType="number-pad" editable={!busy} autoCapitalize="none" />
-        } />
-      </> : <Controller control={form.control} name="mobile" render={({ field, fieldState }) =>
-          <Field label={copy.driver.mobile} prefix={copy.shared.phonePrefix} value={field.value} onChangeText={value => field.onChange(formatPhone(value))}
-            onBlur={field.onBlur} error={fieldState.error?.message} placeholder={copy.shared.phonePlaceholder}
-            keyboardType="phone-pad" autoComplete="tel-national" editable={!busy}
-            style={{ writingDirection: 'ltr', textAlign: 'left' }} />
-      } />}
+          : !chains.data.length ? <EmptyState title={copy.shared.noChains} />
+          // 3fr / 2fr: the chain is a name, the branch number is three digits. Aligned to the top
+          // so the message under one of them never shifts the other.
+          : <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
+            <View style={{ flex: 3, minWidth: 0 }}>
+              <Controller control={form.control} name="chain" render={({ field, fieldState }) =>
+                <AuthSelect label={copy.branch.chain} placeholder={copy.branch.chainPh}
+                  value={field.value || null} invalid={!!fieldState.error} disabled={busy}
+                  options={chains.data.map(chain => ({ value: chain.code,
+                    label: chain[language === 'ar' ? 'name_ar' : 'name_en'] }))}
+                  onChange={value => form.setValue('chain', value, { shouldValidate: true })} />} />
+            </View>
+            <View style={{ flex: 2, minWidth: 0 }}>
+              <Controller control={form.control} name="branchNumber" render={({ field, fieldState }) =>
+                <AuthField label={copy.branch.branchNo} value={field.value} onChangeText={field.onChange}
+                  onBlur={field.onBlur} invalid={!!fieldState.error} editable={!busy} placeholder="106"
+                  keyboardType="number-pad" autoCapitalize="none" style={{ textAlign: 'center' }} />} />
+            </View>
+          </View>
+        : <Controller control={form.control} name="mobile" render={({ field, fieldState }) =>
+          <AuthField label={copy.driver.mobile} prefixBox={copy.shared.phonePrefix} value={field.value}
+            onChangeText={value => field.onChange(formatPhone(value))} onBlur={field.onBlur}
+            invalid={!!fieldState.error} placeholder={copy.shared.phonePlaceholder}
+            keyboardType="phone-pad" autoComplete="tel-national" editable={!busy} />} />}
+      {identityError ? <ErrorLine style={{ marginTop: -8 }}>{identityError}</ErrorLine> : null}
       <Controller control={form.control} name="password" render={({ field, fieldState }) =>
-        <Field label={branch ? copy.branch.pass : copy.driver.password} value={field.value}
+        <AuthField label={branch ? copy.branch.pass : copy.driver.password} value={field.value}
           onChangeText={field.onChange} onBlur={field.onBlur} error={fieldState.error?.message}
-          secureTextEntry={!showPassword} autoCapitalize="none" autoCorrect={false}
-          autoComplete="current-password" editable={!busy} onSubmitEditing={() => void submit()} />
-      } />
-      <Button secondary label={showPassword ? copy.shared.hidePassword : branch ? copy.branch.showPass : copy.driver.showPw}
-        disabled={busy} onPress={() => setShowPassword(value => !value)} />
-      {branch ? <Label>{copy.branch.passHint}</Label> : null}
-      {auth.notice ? <Message>{copy.shared[auth.notice]}</Message> : null}
-      {error ? <View style={{ gap: 8 }}>
-        {!branch && error instanceof SignInError && error.code === 'LOCKED' ? <Label>{copy.driver.lockedTitle}</Label> : null}
-        <Message>{errorMessage(error, copy, side)}</Message>
-      </View> : null}
-      {!online ? <Message>{copy.branch.loginOff}</Message> : null}
-      <Button label={form.formState.isSubmitting ? branch ? copy.branch.loggingIn : copy.driver.signingIn
-        : branch ? copy.branch.login : copy.driver.login}
+          // The canvas shows this hint on both sides: a driver gets a 6-digit temporary password too.
+          hint={copy.branch.passHint} secureTextEntry={!showPassword} autoCapitalize="none"
+          autoCorrect={false} autoComplete="current-password" editable={!busy}
+          onSubmitEditing={() => void submit()}
+          action={{ icon: 'eye', onPress: () => setShowPassword(value => !value),
+            label: showPassword ? copy.shared.hidePassword
+              : branch ? copy.branch.showPass : copy.driver.showPw }} />} />
+      {auth.notice ? <ErrorBanner>{copy.shared[auth.notice]}</ErrorBanner> : null}
+      {!online ? <ErrorBanner icon="wifiOff">{copy.branch.loginOff}</ErrorBanner> : null}
+      {error ? <ErrorBanner icon={locked ? 'lock' : 'warn'}>{errorMessage(error, copy, side)}</ErrorBanner> : null}
+      <Button variant="branch" busy={form.formState.isSubmitting}
+        label={form.formState.isSubmitting ? branch ? copy.branch.loggingIn : copy.driver.signingIn
+          : branch ? copy.branch.login : copy.driver.login}
         disabled={busy || !online || locked || (branch && (!chains.data?.length || chains.isError))}
         onPress={() => void submit()} />
-      <Button secondary label={branch ? copy.branch.forgot : copy.driver.forgot} disabled={busy}
+      <TextLink label={branch ? copy.branch.forgot : copy.driver.forgot} disabled={busy}
         onPress={() => Alert.alert(branch ? copy.branch.forgotT : copy.driver.forgot,
           copy.shared.forgotNoPhone, [{ text: copy.branch.close }])} />
-    </Card>
-    <Label>{branch ? copy.branch.sharedNote : copy.driver.accountsNote}</Label>
-    <PreferencesControls />
-    <Modal visible={pickerOpen} animationType="slide" onRequestClose={() => setPickerOpen(false)}>
-      <Screen><Title>{copy.branch.chainPh}</Title>
-        {chains.data?.map(chain => <Button key={chain.code} secondary selected={chain.code === selectedCode}
-          label={chain[language === 'ar' ? 'name_ar' : 'name_en']} onPress={() => {
-            form.setValue('chain', chain.code, { shouldValidate: true }); setPickerOpen(false);
-          }} />)}
-        <Button secondary label={copy.branch.close} onPress={() => setPickerOpen(false)} />
-      </Screen>
-    </Modal>
+    </AuthCard>
+    {branch ? <View style={{ marginTop: 18, marginHorizontal: 24, flexDirection: 'row', gap: 8,
+      alignItems: 'center', justifyContent: 'center' }}>
+      <Icon name="store" size={18} color={colors.muted} />
+      <Label style={{ fontSize: 13, color: colors.muted }}>{copy.branch.sharedNote}</Label>
+    </View> : null}
+    {/* Not in the canvas: its prototype switches language from the page's own toolbar, which the
+        app does not have. Without this a phone that opens in Arabic has no way to reach English
+        before signing in, so the controls stay — below the note, outside the card. */}
+    <View style={{ marginTop: 24, paddingHorizontal: 16 }}><PreferencesControls variant="branch" /></View>
   </Screen>;
 }
 

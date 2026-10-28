@@ -45,6 +45,7 @@ export const en = {
     // `showPass` with the plural `hidePw` from its two-field screen. This is that pair's missing
     // singular half, worded off `showPass` — confirm it at the design review.
     hidePassword: 'Hide password',
+    modeLabel: 'Account type',
   },
   branch: {
     next: 'Continue', splashA: 'Easier pickups for your branch', splashB: 'Clouds Water for Branches',
@@ -101,7 +102,10 @@ export const en = {
 
   driver: {
     appName: 'Driver app', tagline: 'Your day’s plan in one place', 'continue': 'Continue', back: 'Back', close: 'Close',
-    loginHello: 'Welcome', loginSub: 'Sign in to see your day’s plan', mobile: 'Mobile number',
+    // [changed] sign-in is one screen for both roles now, redrawn in the branch canvas
+    // (Main.dc.html 171–247), and its driver wording replaces what the driver canvas's own
+    // sign-in screen said. Was: 'Welcome' / 'Sign in to see your day’s plan'
+    loginHello: 'Welcome, driver', loginSub: 'Log in with your mobile number and the password Operations sent you.', mobile: 'Mobile number',
     // [changed] PIN -> password, here and in every string below that mentioned it
     password: 'Password', showPw: 'Show password',
     login: 'Sign in', signingIn: 'Signing in…', forgot: 'Forgot password?', loginErr: 'Wrong mobile number or password', accountsNote: 'Accounts are created by the Operations team',
@@ -143,8 +147,9 @@ export const en = {
     approvedAt: 'Next working day · approved {when}',
     contactLabel: 'Requested by', callContact: 'Call requester', noBranchPhoto: 'The branch didn’t attach a scale photo', noBranchPhotoSub: 'Go by the stated weight and photograph the scale at pickup.',
     lockedTitle: 'Sign-in paused', lockedBody: '5 wrong attempts. Try again in 15 minutes, or contact Operations to unlock.',
-    // [changed] was: 'Wrong PIN – {n} left'
-    loginErrN: 'Wrong password – {n} left',
+    // [changed] twice: PIN -> password, then the redrawn sign-in screen's own wording, which
+    // names the field that was wrong and counts out of five. Was: 'Wrong PIN – {n} left'
+    loginErrN: 'Mobile number or password is wrong. {n} of 5 attempts left.',
     left: 'visits left', left1: 'visit left', leftShort: 'left',
     period: 'Period', changePeriod: 'Change period', rangeTitle: 'Choose a period', from: 'From', to: 'To', qToday: 'Today', qYesterday: 'Yesterday', q7: 'Last 7 days', qMonth: 'This month',
     apply: 'Show results', f_all: 'All', rangeEmpty: 'No visits in this period', rangeEmptySub: 'Try another period or filter.',

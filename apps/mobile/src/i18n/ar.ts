@@ -56,6 +56,7 @@ export const ar = {
     // `showPass` with the plural `hidePw` from its two-field screen. This is that pair's missing
     // singular half, worded off `showPass` — confirm it at the design review.
     hidePassword: 'إخفاء كلمة المرور',
+    modeLabel: 'نوع الحساب',
   },
   branch: {
     next: 'متابعة', splashA: 'استلام أسهل لمواد فرعك', splashB: 'ماء الغيوم للفروع',
@@ -112,7 +113,10 @@ export const ar = {
 
   driver: {
     appName: 'تطبيق السائق', tagline: 'خطة يومك في مكان واحد', 'continue': 'متابعة', back: 'رجوع', close: 'إغلاق',
-    loginHello: 'أهلًا بك', loginSub: 'سجّل الدخول لعرض خطة يومك', mobile: 'رقم الجوال',
+    // [changed] sign-in is one screen for both roles now, redrawn in the branch canvas
+    // (Main.dc.html 171–247), and its driver wording replaces what the driver canvas's own
+    // sign-in screen said. loginSub was: 'سجّل الدخول لعرض خطة يومك'
+    loginHello: 'أهلًا بك', loginSub: 'سجّل الدخول برقم جوالك وكلمة المرور التي أرسلها لك فريق التشغيل.', mobile: 'رقم الجوال',
     // [changed] PIN -> password, here and in every string below that mentioned it
     password: 'كلمة المرور', showPw: 'إظهار كلمة المرور',
     login: 'تسجيل الدخول', signingIn: 'جارٍ الدخول…', forgot: 'نسيت كلمة المرور؟', loginErr: 'رقم الجوال أو كلمة المرور غير صحيحة', accountsNote: 'الحسابات يُنشئها فريق العمليات',
@@ -154,8 +158,9 @@ export const ar = {
     approvedAt: 'يوم العمل التالي · اعتُمدت {when}',
     contactLabel: 'صاحب الطلب', callContact: 'اتصال بصاحب الطلب', noBranchPhoto: 'لم يرفق الفرع صورة للميزان', noBranchPhotoSub: 'اعتمد على الوزن المكتوب، وصوّر الميزان عند الاستلام.',
     lockedTitle: 'تم إيقاف الدخول مؤقتًا', lockedBody: '5 محاولات خاطئة. حاول بعد 15 دقيقة، أو تواصل مع العمليات لفتح الحساب.',
-    // [changed] was: 'الرقم السري غير صحيح – تبقّى {n}'
-    loginErrN: 'كلمة المرور غير صحيحة – تبقّى {n}',
+    // [changed] twice: PIN -> password, then the redrawn sign-in screen's own wording, which
+    // names the field that was wrong and counts out of five. Was: 'الرقم السري غير صحيح – تبقّى {n}'
+    loginErrN: 'رقم الجوال أو كلمة المرور غير صحيحة. باقي {n} من 5 محاولات.',
     left: 'زيارات باقية', left1: 'زيارة باقية', leftShort: 'باقية',
     period: 'الفترة', changePeriod: 'تغيير الفترة', rangeTitle: 'اختر الفترة', from: 'من', to: 'إلى', qToday: 'اليوم', qYesterday: 'أمس', q7: 'آخر 7 أيام', qMonth: 'هذا الشهر',
     apply: 'عرض النتائج', f_all: 'الكل', rangeEmpty: 'لا توجد زيارات في هذه الفترة', rangeEmptySub: 'جرّب فترة أخرى أو غيّر الفلتر.',

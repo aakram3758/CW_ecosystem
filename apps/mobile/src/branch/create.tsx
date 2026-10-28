@@ -3,9 +3,9 @@ import { ActivityIndicator, BackHandler, Pressable, TextInput, View } from 'reac
 import type { MaterialRow, SubtypeRow } from '@/data/mock/branch';
 import { interpolate } from '@/i18n/copy';
 import { usePreferences } from '@/providers/preferences';
-import { Button, Card, Field, Icon, Label, Title } from '@/ui/components';
+import { Button, Card, Field, Icon, Label, Sheet, TextLink, Title } from '@/ui/components';
 import { isOpen, useBranch } from './state';
-import { Footer, IconButton, Muted, PageFrame, Photo, Pill, Sheet, styles, TextLink, Tile, useBranchFormat } from './shared';
+import { Footer, IconButton, Muted, PageFrame, Photo, Pill, styles, Tile, useBranchFormat } from './shared';
 
 const materialHints = { card: 'materialHintCard', plas: 'materialHintPlas', paper: 'materialHintPaper',
   metal: 'materialHintMetal', bread: 'materialHintBread' } as const;

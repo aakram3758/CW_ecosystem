@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { BackHandler, View } from 'react-native';
-import { usePreferences } from '@/providers/preferences';
 import { BranchProvider, useBranch } from './state';
 import { LocationScreen } from './location';
 import { CreateScreen } from './create';
@@ -9,7 +8,6 @@ import { AccountScreen, HomeScreen, NotificationsScreen, RequestsScreen, Success
 
 function BranchNavigation() {
   const data = useBranch();
-  const { language } = usePreferences();
   useEffect(() => {
     if (data.page === 'create') return;
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -20,7 +18,8 @@ function BranchNavigation() {
     });
     return () => subscription.remove();
   }, [data]);
-  return <View style={{ flex: 1, direction: language === 'ar' ? 'rtl' : 'ltr' }}>
+  // No direction here: AppProviders sets it for the whole tree.
+  return <View style={{ flex: 1 }}>
     {data.page === 'loc' ? <LocationScreen /> : data.page === 'home' ? <HomeScreen />
       : data.page === 'create' ? <CreateScreen key={data.createKey} /> : data.page === 'success' ? <SuccessScreen />
         : data.page === 'details' ? <DetailsScreen /> : data.page === 'reqs' ? <RequestsScreen />

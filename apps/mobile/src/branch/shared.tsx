@@ -69,13 +69,6 @@ export function IconButton({ icon, label, onPress, style }: { icon: string; labe
     style={[{ width: 48, height: 48, borderRadius: 14, backgroundColor: colors.surface2,
       alignItems: 'center', justifyContent: 'center' }, style]}><Icon name={icon} color={colors.text} /></Pressable>;
 }
-export function TextLink({ label, onPress, disabled = false }: { label: string; onPress: () => void; disabled?: boolean }) {
-  const { colors } = usePreferences();
-  return <Pressable accessibilityRole="button" accessibilityState={{ disabled }} disabled={disabled} onPress={onPress}
-    style={{ minHeight: minTouch, minWidth: minTouch, justifyContent: 'center', paddingHorizontal: 6 }}>
-    <Label style={{ color: colors.link, fontSize: 14, fontFamily: 'Tajawal_700Bold' }}>{label}</Label>
-  </Pressable>;
-}
 export function Pill({ children, color, background, icon }: PropsWithChildren<{ color?: string; background?: string; icon?: string }>) {
   const { colors } = usePreferences();
   return <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 28,
@@ -129,21 +122,6 @@ export function PageFrame({ title, children, onBack, footer, trailing, top }: Pr
 }>) {
   return <Screen header={<><Header title={title} onBack={onBack} trailing={trailing} />{top}</>}
     footer={footer} contentStyle={styles.body}>{children}</Screen>;
-}
-export function Sheet({ children, onClose }: PropsWithChildren<{ onClose: () => void }>) {
-  const { colors, copy, language } = usePreferences();
-  return <Modal transparent animationType="slide" onRequestClose={onClose}>
-    <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: colors.scrim, direction: language === 'ar' ? 'rtl' : 'ltr' }}>
-      <Pressable style={StyleSheet.absoluteFill} accessibilityRole="button" accessibilityLabel={copy.branch.close} onPress={onClose} />
-      <SafeAreaView edges={['bottom']} accessibilityViewIsModal style={{ backgroundColor: colors.surface,
-        borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: '90%' }}>
-        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 20, paddingTop: 12, paddingBottom: 30, gap: 14 }}>
-          <View style={{ width: 42, height: 5, borderRadius: 9, backgroundColor: colors.line, alignSelf: 'center' }} />
-          {children}
-        </ScrollView>
-      </SafeAreaView>
-    </View>
-  </Modal>;
 }
 export function RequestCard({ row }: { row: RequestListRow }) {
   const { openRequest, materials } = useBranch();

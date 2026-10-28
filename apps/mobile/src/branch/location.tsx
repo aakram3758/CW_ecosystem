@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { View, type GestureResponderEvent } from 'react-native';
 import Svg, { Circle, Path, Rect, Text as SvgText } from 'react-native-svg';
 import { usePreferences } from '@/providers/preferences';
-import { Button, Label, Title } from '@/ui/components';
+import { Button, Label, Sheet, Title } from '@/ui/components';
 import { branchArtwork } from '@/ui/tokens';
 import { useBranch } from './state';
-import { Footer, Muted, PageFrame, Pill, Sheet, styles, Tile } from './shared';
+import { Footer, Muted, PageFrame, Pill, styles, Tile } from './shared';
 
 export const pointToCoords = (x: number, y: number) => ({ lat: 21.5812 - (y - 156) * .00004, lng: 39.1689 + (x - 182) * .00004 });
 export function BranchMap({ lat, lng, onMove, small = false }: {

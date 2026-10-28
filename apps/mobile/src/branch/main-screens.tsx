@@ -4,11 +4,11 @@ import { interpolate } from '@/i18n/copy';
 import { useAuth } from '@/providers/auth';
 import { usePreferences } from '@/providers/preferences';
 import { errorMessage } from '@/data/errors';
-import { Button, Card, Icon, Label, PreferencesControls, Screen, Title } from '@/ui/components';
+import { Button, Card, Icon, Label, PreferencesControls, Screen, Sheet, TextLink, Title } from '@/ui/components';
 import { branchArtwork } from '@/ui/tokens';
 import { BranchMap } from './location';
 import { isOpen, useBranch } from './state';
-import { BottomNav, Footer, IconButton, Muted, PageFrame, Pill, RequestCard, Sheet, styles, TextLink, Tile, useBranchFormat } from './shared';
+import { BottomNav, Footer, IconButton, Muted, PageFrame, Pill, RequestCard, styles, Tile, useBranchFormat } from './shared';
 
 export function useContact() {
   const { t } = useBranchFormat();

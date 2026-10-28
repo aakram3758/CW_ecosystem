@@ -7,7 +7,9 @@ export const errorMessages = {
   INVALID_CREDENTIALS: (copy: Copy, role: Role, attempts?: number) => attempts === undefined
     ? copy.driver.loginErr
     : interpolate(role === 'branch' ? copy.branch.badLogin : copy.driver.loginErrN, { n: attempts }),
-  LOCKED: (copy: Copy, role: Role) => role === 'branch' ? copy.branch.lockMsg : copy.driver.lockedBody,
+  // Sign-in is one screen for both roles now and draws one locked banner, so both get the branch
+  // wording. The driver's own 'lockedTitle' / 'lockedBody' stay for its locked artboard in bite 5.
+  LOCKED: (copy: Copy) => copy.branch.lockMsg,
   PASSWORD_NOT_CHANGED: (copy: Copy) => copy.shared.samePassword,
   DUPLICATE_OPEN_REQUEST: (copy: Copy) => copy.branch.subOpen,
   REASON_REQUIRED: (copy: Copy) => copy.driver.needReason,

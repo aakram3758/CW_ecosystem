@@ -1,7 +1,7 @@
 import { useState, type PropsWithChildren, type ReactNode } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text,
-  TextInput, View, type TextInputProps, type TextProps, type StyleProp, type ViewStyle } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet,
+  Text, TextInput, View, type TextInputProps, type TextProps, type StyleProp, type ViewStyle } from 'react-native';
+import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { icons } from '@/ui/icons';
 import { minTouch, type as typography } from '@/ui/tokens';
@@ -32,10 +32,14 @@ export function Icon({ name, color, size = 24, tint }: { name: string; color?: s
 }
 
 export function Button({ label, onPress, disabled = false, secondary = false, selected,
-  variant, tone = 'primary', icon, style }: {
+  variant, tone = 'primary', icon, busy = false, style }: {
   label: string; onPress: () => void; disabled?: boolean; secondary?: boolean; selected?: boolean;
   variant?: 'branch'; tone?: 'primary' | 'gold' | 'muted' | 'outline' | 'danger' | 'text';
-  icon?: string; style?: StyleProp<ViewStyle>;
+  icon?: string;
+  // The canvas's '.spin' inside the button: while this is set, an 18px ActivityIndicator in the
+  // foreground colour sits before the label, in place of 'icon'. Branch variant only.
+  busy?: boolean;
+  style?: StyleProp<ViewStyle>;
 }) {
   const { colors } = usePreferences();
   if (variant === 'branch') {
@@ -64,11 +68,14 @@ export function Button({ label, onPress, disabled = false, secondary = false, se
   </Pressable>;
 }
 
-export function Screen({ children, header, footer, contentStyle, safeColor }: PropsWithChildren<{
+export function Screen({ children, header, footer, contentStyle, safeColor, edges }: PropsWithChildren<{
   header?: ReactNode; footer?: ReactNode; contentStyle?: StyleProp<ViewStyle>; safeColor?: string;
+  // Which edges to inset. Sign-in passes ['bottom'] because its hero has to paint behind the
+  // status bar, and adds the top inset to its own padding instead.
+  edges?: readonly Edge[];
 }>) {
   const { colors } = usePreferences();
-  return <SafeAreaView style={{ flex: 1, backgroundColor: safeColor ?? colors.bg }}>
+  return <SafeAreaView edges={edges} style={{ flex: 1, backgroundColor: safeColor ?? colors.bg }}>
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       {header}
       <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}
@@ -105,10 +112,83 @@ export function Field({ label, error, prefix, variant, ...props }: TextInputProp
   </View>;
 }
 
+export function TextLink({ label, onPress, disabled = false }: { label: string; onPress: () => void; disabled?: boolean }) {
+  const { colors } = usePreferences();
+  return <Pressable accessibilityRole="button" accessibilityState={{ disabled }} disabled={disabled} onPress={onPress}
+    style={{ minHeight: minTouch, minWidth: minTouch, justifyContent: 'center', paddingHorizontal: 6 }}>
+    <Label style={{ color: colors.link, fontSize: 14, fontFamily: 'Tajawal_700Bold' }}>{label}</Label>
+  </Pressable>;
+}
+
+export function Sheet({ children, onClose }: PropsWithChildren<{ onClose: () => void }>) {
+  const { colors, copy, language } = usePreferences();
+  // A Modal renders in its own hierarchy, outside the tree AppProviders wraps, so the direction
+  // it sets does not reach in here. This is the one place that has to repeat it.
+  return <Modal transparent animationType="slide" onRequestClose={onClose}>
+    <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: colors.scrim, direction: language === 'ar' ? 'rtl' : 'ltr' }}>
+      <Pressable style={StyleSheet.absoluteFill} accessibilityRole="button" accessibilityLabel={copy.branch.close} onPress={onClose} />
+      <SafeAreaView edges={['bottom']} accessibilityViewIsModal style={{ backgroundColor: colors.surface,
+        borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: '90%' }}>
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 20, paddingTop: 12, paddingBottom: 30, gap: 14 }}>
+          <View style={{ width: 42, height: 5, borderRadius: 9, backgroundColor: colors.line, alignSelf: 'center' }} />
+          {children}
+        </ScrollView>
+      </SafeAreaView>
+    </View>
+  </Modal>;
+}
+
 export function Message({ children }: PropsWithChildren) {
   const { colors } = usePreferences();
   return <Label accessibilityRole="alert" accessibilityLiveRegion="polite"
     style={{ color: colors.dangerText }}>{children}</Label>;
+}
+
+/**
+ * The segmented track both designs draw as `.seg`: a `colors.surface2` strip of `borderRadius` 14
+ * with `padding: 4` and `gap: 4`, holding equal-width options 44px high at `borderRadius` 11, each
+ * a row with `gap: 8` centred, labelled Tajawal_700Bold 14 and icons at 20.
+ *
+ * Two tones, because the canvas draws the same track two ways:
+ * - `pill` — the chosen option is a `colors.surface` tile with `colors.text` on it, the rest
+ *   `colors.muted` on nothing. This is what Account's language and theme rows already draw inline;
+ *   move them onto this and delete the copy in `PreferencesControls`.
+ * - `solid` — the chosen option is filled `colors.primary` with `colors.onPrimary` on it and the
+ *   canvas's `0 4px 12px rgba(31,78,140,.28)` lift (`shadowColor: '#1F4E8C'`, offset 0/4, opacity
+ *   .28, radius 12, `elevation: 4`). This is sign-in's Branch | Driver switch, `.mode-on`.
+ *
+ * The track is `accessibilityRole="radiogroup"` labelled by `label`; each option is a `radio` with
+ * `accessibilityState={{ selected, disabled }}`.
+ */
+export function Segmented<T extends string>({ label, value, options, tone = 'pill', disabled = false, onChange }: {
+  label: string;
+  value: T;
+  options: { value: T; label: string; icon?: string }[];
+  tone?: 'pill' | 'solid';
+  disabled?: boolean;
+  onChange: (value: T) => void;
+}): ReactNode {
+  throw new Error('bite 2.5 stage 1 — not implemented');
+}
+
+/**
+ * The canvas's `.err`: an 18px icon and a line of Tajawal_700Bold 13 / lineHeight 19.5, both in
+ * `colors.dangerText`, in a row with `gap: 6` and `alignItems: 'flex-start'` so a wrapped sentence
+ * keeps the icon beside its first line. `accessibilityRole="alert"`, announced politely.
+ */
+export function ErrorLine({ icon = 'warn', children, style }: PropsWithChildren<{
+  icon?: string; style?: StyleProp<ViewStyle>;
+}>): ReactNode {
+  throw new Error('bite 2.5 stage 1 — not implemented');
+}
+
+/**
+ * The same line on its own `colors.dangerSoft` block — `paddingVertical: 10`,
+ * `paddingHorizontal: 12`, `borderRadius: 12`. The canvas uses it for the three failures that are
+ * about the attempt rather than a field: offline, wrong credentials, locked out.
+ */
+export function ErrorBanner({ icon = 'warn', children }: PropsWithChildren<{ icon?: string }>): ReactNode {
+  throw new Error('bite 2.5 stage 1 — not implemented');
 }
 
 export function Loading() {
