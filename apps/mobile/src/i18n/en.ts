@@ -46,6 +46,18 @@ export const en = {
     // singular half, worded off `showPass` — confirm it at the design review.
     hidePassword: 'Hide password',
     modeLabel: 'Account type',
+    // The three onboarding slides. Their text is written into the canvas's markup rather than its
+    // `T` dictionary, which is why the phase 0 extraction missed them — lifted verbatim here.
+    onbNext: 'Next', startNow: 'Get started', skip: 'Skip', onbStep: '{n} of 3',
+    onb1T: 'Request a pickup in a minute', onb1B: 'Choose the material and enter the weight. Operations sets the visit day.',
+    onb2T: 'We tell you the visit day', onb2B: 'You get a notification with the visit day, and a reminder that morning.',
+    onb3T: 'All your requests in one place', onb3B: 'Follow each request’s status and every visit outcome.',
+    // Neither canvas drew a refused permission — it had no real camera or GPS to refuse. These are
+    // written to match the voice around them and are flagged for design review.
+    camDenied: 'Camera permission was not granted. Turn it on in your phone settings, or pick a photo from the gallery.',
+    galDenied: 'Photo permission was not granted. Turn it on in your phone settings.',
+    locDenied: 'Location permission was not granted. Turn it on in your phone settings, or drag the pin on the map yourself.',
+    locFailed: 'Couldn’t find your location. Drag the pin on the map yourself.',
   },
   branch: {
     next: 'Continue', splashA: 'Easier pickups for your branch', splashB: 'Clouds Water for Branches',

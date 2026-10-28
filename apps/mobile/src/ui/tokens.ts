@@ -123,6 +123,28 @@ export const palette = {
 } as const;
 
 /**
+ * The splash animation's five materials, in the order they fly in, with the offset each starts
+ * from. Hardcoded rather than read from `materials` for one reason: the splash plays before the
+ * app has signed in, so there is no row to read. The colours are the canvas's own and match the
+ * seeded `materials.color_dark` — dark values because the splash is navy in both themes.
+ */
+export const splashMaterials = [
+  { icon: 'box', color: '#D89A5B', x: -115, y: -250 },
+  { icon: 'bottle', color: '#5C9BE0', x: 125, y: -205 },
+  { icon: 'paper', color: '#4FBF86', x: 140, y: 175 },
+  { icon: 'can', color: '#9AA9BC', x: -135, y: 215 },
+  { icon: 'bread', color: '#3CC2C2', x: -150, y: -15 },
+] as const;
+
+/** The splash's own colours, which no palette holds because it is navy whatever the theme. */
+export const splash = {
+  gradient: ['#17426F', '#0B2340', '#06172B'],
+  tile: '#0E2C50',
+  burst: 'rgba(232,206,132,.7)',
+  tag: 'rgba(255,255,255,.8)',
+} as const;
+
+/**
  * Soft background tint per material, keyed by `materials.code` as seeded
  * (card, plas, paper, metal, bread). The solid colour comes from the database row.
  */

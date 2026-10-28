@@ -17,12 +17,15 @@ type Preferences = {
   colors: (typeof palette)[ThemeName];
   copy: Copy;
   side: Role;
+  /** False until the onboarding slides have been seen or skipped once on this install. */
+  onboarded: boolean;
   ready: boolean;
   error: unknown;
   retry: () => void;
   setLanguage: (value: Language) => Promise<void>;
   setTheme: (value: ThemeChoice) => Promise<void>;
   setSide: (value: Role) => Promise<void>;
+  completeOnboarding: () => Promise<void>;
 };
 
 const PreferencesContext = createContext<Preferences | null>(null);
@@ -45,6 +48,7 @@ export function PreferencesProvider({ children }: PropsWithChildren) {
   const [language, setLanguageState] = useState<Language>('ar');
   const [themeChoice, setThemeState] = useState<ThemeChoice>('system');
   const [side, setSideState] = useState<Role>('branch');
+  const [onboarded, setOnboarded] = useState(false);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const [attempt, setAttempt] = useState(0);
@@ -53,15 +57,18 @@ export function PreferencesProvider({ children }: PropsWithChildren) {
     let live = true;
     setError(null);
     void (async () => {
-      const [savedLanguage, savedTheme, savedSide] = await Promise.all([
+      const [savedLanguage, savedTheme, savedSide, savedOnboarded] = await Promise.all([
         SecureStore.getItemAsync('cw.language'), SecureStore.getItemAsync('cw.theme'),
-        SecureStore.getItemAsync('cw.side'),
+        SecureStore.getItemAsync('cw.side'), SecureStore.getItemAsync('cw.onboarded'),
       ]);
       if (!live) return;
       const nextLanguage = savedLanguage === 'en' ? 'en' : 'ar';
       setLanguageState(nextLanguage);
       setThemeState(savedTheme === 'light' || savedTheme === 'dark' ? savedTheme : 'system');
       setSideState(savedSide === 'driver' ? 'driver' : 'branch');
+      // Defaults to false, so a read that fails shows the slides again rather than hiding them
+      // for good. Nothing below `ready` renders until this has run, so the slides never flash.
+      setOnboarded(savedOnboarded === 'yes');
       // Boot records the direction and renders whatever the app launched with. A first install
       // whose saved language disagrees with the launch direction looks right from the second
       // launch; reloading to fix it here is what caused the loop.
@@ -74,7 +81,7 @@ export function PreferencesProvider({ children }: PropsWithChildren) {
   const theme = themeChoice === 'system' ? (system === 'dark' ? 'dark' : 'light') : themeChoice;
   return <PreferencesContext.Provider value={{
     language, themeChoice, theme, colors: palette[theme], copy: language === 'ar' ? ar : en,
-    side, ready, error, retry: () => setAttempt(value => value + 1),
+    side, onboarded, ready, error, retry: () => setAttempt(value => value + 1),
     setLanguage: async value => {
       // Persist first: the reload below throws the current JS state away.
       await SecureStore.setItemAsync('cw.language', value);
@@ -91,6 +98,12 @@ export function PreferencesProvider({ children }: PropsWithChildren) {
     setSide: async value => {
       await SecureStore.setItemAsync('cw.side', value);
       setSideState(value);
+    },
+    completeOnboarding: async () => {
+      // Shown first, remembered after: if the write fails the user still gets into the app, and
+      // the worst that happens is they see three slides again next launch.
+      setOnboarded(true);
+      await SecureStore.setItemAsync('cw.onboarded', 'yes');
     },
   }}>{children}</PreferencesContext.Provider>;
 }

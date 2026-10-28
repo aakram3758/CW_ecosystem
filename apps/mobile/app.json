@@ -33,6 +33,22 @@
           "supportsRTL": true,
           "forcesRTL": true
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "يستخدم التطبيق الكاميرا لتصوير المادة على الميزان مع طلب الاستلام.",
+          "photosPermission": "يحتاج التطبيق للوصول إلى صورك لإرفاق صورة الميزان بطلب الاستلام.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "يستخدم التطبيق موقعك مرة واحدة لتحديد موقع الفرع على الخريطة.",
+          "isAndroidBackgroundLocationEnabled": false,
+          "isAndroidForegroundServiceEnabled": false
+        }
       ]
     ],
     "experiments": {

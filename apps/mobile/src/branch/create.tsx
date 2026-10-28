@@ -94,22 +94,30 @@ export function CreateScreen() {
             const hintKey = materialHints[m.code as keyof typeof materialHints];
             return <View key={m.id} style={{ width: last ? '100%' : '48%', flexGrow: 1, borderWidth: 1.5,
               borderColor: materialId === m.id ? colors.accent : colors.line, borderRadius: 18,
-              backgroundColor: colors.surface, overflow: 'hidden', opacity: lock ? .78 : 1 }}>
-              <Pressable accessibilityRole="button" accessibilityLabel={f.name(m)} accessibilityState={{ disabled: lock }} disabled={lock}
-                onPress={() => subs.length ? setSheetMaterial(m) : pick(m)}
+              backgroundColor: colors.surface, overflow: 'hidden' }}>
+              {/* A locked material is not a dead card: the whole thing becomes the way to the
+                  request that locked it. The canvas marks the lock with nothing but the 16px icon
+                  beside the name, and ours used to add a two-line band underneath explaining
+                  itself. This is Ahmed's call — go past the canvas, but simpler and cleaner than
+                  the band: the icon, and a pill at the end saying where it leads. The sentence
+                  the band printed is still said, to a screen reader, as the card's own label. */}
+              <Pressable accessibilityRole="button"
+                accessibilityLabel={lock ? `${f.name(m)} — ${subs.length ? t.hasOpenAll : t.hasOpen}` : f.name(m)}
+                accessibilityHint={lock ? (subs.length ? t.viewThem : t.viewIt) : undefined}
+                onPress={() => {
+                  if (!lock) { subs.length ? setSheetMaterial(m) : pick(m); return; }
+                  if (subs.length) { data.setFilter(m.id); data.setPast(false); data.navigate('reqs'); }
+                  else { const row = lockedRequest(m.id, null); if (row?.id) data.openRequest(row.id); }
+                }}
                 style={{ padding: 14, gap: 10, minHeight: last ? 80 : 132, flexDirection: last ? 'row' : 'column', alignItems: last ? 'center' : 'flex-start' }}>
                 <Tile {...f.materialStyle(m)} size={48} iconSize={27} />
                 <View style={{ flex: 1, gap: 2 }}><View style={[styles.row, { gap: 6 }]}>
                   <Label style={[styles.heavy, { fontSize: 17, flexShrink: 1 }]}>{f.name(m)}</Label>{lock ? <Icon name="lock" size={16} color={colors.muted} /> : null}
-                </View><Muted style={{ fontSize: 12.5, lineHeight: 18.125 }}>{hintKey ? copy.shared[hintKey] : ''}</Muted></View>
+                </View>{lock ? <Pill icon={f.language === 'ar' ? 'caretL' : 'caretR'} color={colors.link}
+                  background={colors.primarySoft}>{subs.length ? t.viewThem : t.viewIt}</Pill>
+                  : <Muted style={{ fontSize: 12.5, lineHeight: 18.125 }}>{hintKey ? copy.shared[hintKey] : ''}</Muted>}</View>
               </Pressable>
-              {lock ? <View style={{ backgroundColor: colors.surface2, paddingHorizontal: 12, paddingVertical: 8 }}>
-                <Muted style={{ fontSize: 12, lineHeight: 17.4 }}>{subs.length ? t.hasOpenAll : t.hasOpen}</Muted>
-                <TextLink label={subs.length ? t.viewThem : t.viewIt} onPress={() => {
-                  if (subs.length) { data.setFilter(m.id); data.setPast(false); data.navigate('reqs'); }
-                  else { const row = lockedRequest(m.id, null); if (row?.id) data.openRequest(row.id); }
-                }} />
-              </View> : taken.length ? <View style={{ backgroundColor: colors.surface2, paddingHorizontal: 12, paddingVertical: 8 }}>
+              {!lock && taken.length ? <View style={{ backgroundColor: colors.surface2, paddingHorizontal: 12, paddingVertical: 8 }}>
                 <Muted style={{ fontSize: 12, lineHeight: 17.4 }}>{interpolate(t.partialOpen, { s: taken.map(f.name).join(' · ') })}</Muted>
               </View> : null}
             </View>;

@@ -57,6 +57,18 @@ export const ar = {
     // singular half, worded off `showPass` — confirm it at the design review.
     hidePassword: 'إخفاء كلمة المرور',
     modeLabel: 'نوع الحساب',
+    // The three onboarding slides. Their text is written into the canvas's markup rather than its
+    // `T` dictionary, which is why the phase 0 extraction missed them — lifted verbatim here.
+    onbNext: 'التالي', startNow: 'ابدأ الآن', skip: 'تخطي', onbStep: '{n} من 3',
+    onb1T: 'اطلب الاستلام في دقيقة', onb1B: 'اختر المادة واكتب الوزن، والتشغيل يحدد يوم الزيارة.',
+    onb2T: 'نبلغك بيوم الزيارة', onb2B: 'يوصلك إشعار بيوم الزيارة، وتذكير صباح نفس اليوم.',
+    onb3T: 'كل طلباتك في مكان واحد', onb3B: 'تابع حالة كل طلب ونتيجة كل زيارة.',
+    // Neither canvas drew a refused permission — it had no real camera or GPS to refuse. These are
+    // written to match the voice around them and are flagged for design review.
+    camDenied: 'لم نحصل على إذن الكاميرا. فعّله من إعدادات الهاتف، أو اختر صورة من المعرض.',
+    galDenied: 'لم نحصل على إذن الصور. فعّله من إعدادات الهاتف.',
+    locDenied: 'لم نحصل على إذن الموقع. فعّله من إعدادات الهاتف، أو حرّك الدبوس على الخريطة يدويًا.',
+    locFailed: 'تعذّر تحديد موقعك. حرّك الدبوس على الخريطة يدويًا.',
   },
   branch: {
     next: 'متابعة', splashA: 'استلام أسهل لمواد فرعك', splashB: 'ماء الغيوم للفروع',

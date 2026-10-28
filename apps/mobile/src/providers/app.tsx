@@ -5,6 +5,7 @@ import { PreferencesProvider, usePreferences } from '@/providers/preferences';
 import { QueryProvider } from '@/providers/query';
 import { AuthProvider } from '@/providers/auth';
 import { AppSplash, ErrorState, Screen } from '@/ui/components';
+import { BootGate } from '@/ui/boot-gate';
 
 function ReadyProviders({ children }: PropsWithChildren) {
   const preferences = usePreferences();
@@ -20,7 +21,7 @@ function ReadyProviders({ children }: PropsWithChildren) {
       : !preferences.ready ? <AppSplash />
       : <QueryProvider><AuthProvider>
         <StatusBar style={preferences.theme === 'dark' ? 'light' : 'dark'} />
-        {children}
+        <BootGate>{children}</BootGate>
       </AuthProvider></QueryProvider>}
   </View>;
 }
