@@ -4,7 +4,7 @@ import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, Sc
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { icons } from '@/ui/icons';
-import { minTouch, type as typography } from '@/ui/tokens';
+import { minTouch, softFill, type as typography } from '@/ui/tokens';
 import { usePreferences } from '@/providers/preferences';
 import { useOnline } from '@/providers/query';
 import { errorMessage } from '@/data/errors';
@@ -52,7 +52,8 @@ export function Button({ label, onPress, disabled = false, secondary = false, se
         flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
         backgroundColor: background, opacity: disabled ? .5 : pressed ? .78 : 1,
         borderWidth: tone === 'outline' ? 1.5 : 0, borderColor: colors.line }, style]}>
-      {icon ? <Icon name={icon} color={foreground} tint={foreground} /> : null}
+      {busy ? <ActivityIndicator size={18} color={foreground} />
+        : icon ? <Icon name={icon} color={foreground} tint={foreground} /> : null}
       <Label style={{ color: foreground, fontFamily: 'Tajawal_800ExtraBold', fontSize: 16, textAlign: 'center' }}>{label}</Label>
     </Pressable>;
   }
@@ -151,8 +152,8 @@ export function Message({ children }: PropsWithChildren) {
  *
  * Two tones, because the canvas draws the same track two ways:
  * - `pill` — the chosen option is a `colors.surface` tile with `colors.text` on it, the rest
- *   `colors.muted` on nothing. This is what Account's language and theme rows already draw inline;
- *   move them onto this and delete the copy in `PreferencesControls`.
+ *   `colors.muted` on nothing — Account's language and theme rows, which `PreferencesControls`
+ *   used to hand-roll inline.
  * - `solid` — the chosen option is filled `colors.primary` with `colors.onPrimary` on it and the
  *   canvas's `0 4px 12px rgba(31,78,140,.28)` lift (`shadowColor: '#1F4E8C'`, offset 0/4, opacity
  *   .28, radius 12, `elevation: 4`). This is sign-in's Branch | Driver switch, `.mode-on`.
@@ -168,7 +169,26 @@ export function Segmented<T extends string>({ label, value, options, tone = 'pil
   disabled?: boolean;
   onChange: (value: T) => void;
 }): ReactNode {
-  throw new Error('bite 2.5 stage 1 — not implemented');
+  const { colors } = usePreferences();
+  return <View accessibilityRole="radiogroup" accessibilityLabel={label}
+    style={{ flexDirection: 'row', backgroundColor: colors.surface2, borderRadius: 14, padding: 4, gap: 4 }}>
+    {options.map(option => {
+      const selected = option.value === value;
+      const solid = selected && tone === 'solid';
+      const foreground = solid ? colors.onPrimary : selected ? colors.text : colors.muted;
+      return <Pressable key={option.value} accessibilityRole="radio" accessibilityLabel={option.label}
+        accessibilityState={{ selected, disabled }} disabled={disabled} onPress={() => onChange(option.value)}
+        style={{ flex: 1, minWidth: 0, height: minTouch, borderRadius: 11, flexDirection: 'row',
+          gap: 8, alignItems: 'center', justifyContent: 'center',
+          backgroundColor: solid ? colors.primary : selected ? colors.surface : 'transparent',
+          ...(solid ? { shadowColor: colors.modeShadow, shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: .28, shadowRadius: 12, elevation: 4 } : {}) }}>
+        {option.icon ? <Icon name={option.icon} size={20} color={foreground} tint={softFill(foreground)} /> : null}
+        <Label style={{ fontFamily: 'Tajawal_700Bold', fontSize: 14, color: foreground,
+          textAlign: 'center', flexShrink: 1 }}>{option.label}</Label>
+      </Pressable>;
+    })}
+  </View>;
 }
 
 /**
@@ -179,7 +199,13 @@ export function Segmented<T extends string>({ label, value, options, tone = 'pil
 export function ErrorLine({ icon = 'warn', children, style }: PropsWithChildren<{
   icon?: string; style?: StyleProp<ViewStyle>;
 }>): ReactNode {
-  throw new Error('bite 2.5 stage 1 — not implemented');
+  const { colors } = usePreferences();
+  return <View accessibilityRole="alert" accessibilityLiveRegion="polite"
+    style={[{ flexDirection: 'row', gap: 6, alignItems: 'flex-start' }, style]}>
+    <Icon name={icon} size={18} color={colors.dangerText} tint={softFill(colors.dangerText)} />
+    <Label style={{ flex: 1, fontFamily: 'Tajawal_700Bold', fontSize: 13,
+      lineHeight: 19.5, color: colors.dangerText }}>{children}</Label>
+  </View>;
 }
 
 /**
@@ -188,7 +214,9 @@ export function ErrorLine({ icon = 'warn', children, style }: PropsWithChildren<
  * about the attempt rather than a field: offline, wrong credentials, locked out.
  */
 export function ErrorBanner({ icon = 'warn', children }: PropsWithChildren<{ icon?: string }>): ReactNode {
-  throw new Error('bite 2.5 stage 1 — not implemented');
+  const { colors } = usePreferences();
+  return <ErrorLine icon={icon} style={{ backgroundColor: colors.dangerSoft, paddingVertical: 10,
+    paddingHorizontal: 12, borderRadius: 12 }}>{children}</ErrorLine>;
 }
 
 export function Loading() {
@@ -243,7 +271,7 @@ export function AppSplash() {
 }
 
 export function PreferencesControls({ variant }: { variant?: 'branch' } = {}) {
-  const { copy, colors, side, language, themeChoice, setLanguage, setTheme } = usePreferences();
+  const { copy, side, language, themeChoice, setLanguage, setTheme } = usePreferences();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   async function update(action: () => Promise<void>) {
@@ -253,24 +281,19 @@ export function PreferencesControls({ variant }: { variant?: 'branch' } = {}) {
   if (variant === 'branch') return <View style={{ gap: 16 }}>
     {[
       { label: copy.branch.language, icon: 'globe', options: [
-        { label: copy.shared.arabic, selected: language === 'ar', action: () => setLanguage('ar') },
-        { label: copy.shared.english, selected: language === 'en', action: () => setLanguage('en') },
+        { value: 'ar', label: copy.shared.arabic, selected: language === 'ar', action: () => setLanguage('ar') },
+        { value: 'en', label: copy.shared.english, selected: language === 'en', action: () => setLanguage('en') },
       ] },
       { label: copy.branch.theme, icon: 'moon', options: (['light', 'dark', 'system'] as const).map(choice => ({
-        label: copy.branch[choice], selected: themeChoice === choice, action: () => setTheme(choice),
+        value: choice, label: copy.branch[choice], selected: themeChoice === choice, action: () => setTheme(choice),
       })) },
     ].map(group => <View key={group.icon} style={{ gap: 6 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}><Icon name={group.icon} size={20} />
         <Label style={{ fontFamily: 'Tajawal_800ExtraBold' }}>{group.label}</Label></View>
-      <View style={{ flexDirection: 'row', gap: 4, padding: 4, borderRadius: 14, backgroundColor: colors.surface2 }}>
-        {group.options.map(option => <Pressable key={option.label} accessibilityRole="button"
-          accessibilityState={{ selected: option.selected, disabled: busy }} disabled={busy}
-          onPress={() => void update(option.action)} style={{ flex: 1, minHeight: minTouch, borderRadius: 11,
-            justifyContent: 'center', backgroundColor: option.selected ? colors.surface : 'transparent' }}>
-          <Label style={{ textAlign: 'center', fontFamily: 'Tajawal_700Bold', fontSize: 14,
-            color: option.selected ? colors.text : colors.muted }}>{option.label}</Label>
-        </Pressable>)}
-      </View>
+      <Segmented label={group.label} tone="pill" disabled={busy}
+        value={group.options.find(option => option.selected)?.value ?? ''} options={group.options}
+        onChange={value => { const option = group.options.find(option => option.value === value);
+          if (option) void update(option.action); }} />
     </View>)}
     {error ? <Message>{errorMessage(error, copy, side)}</Message> : null}
   </View>;

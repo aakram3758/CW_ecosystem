@@ -9,10 +9,14 @@
  * Every number below is the canvas's own. Where this file says a value came from a CSS class, the
  * class is in that file's `<style>` block (lines 13–80).
  *
- * The bodies are left for the implementer — see `briefs/03-sign-in-redesign.md`.
+ * Built to `briefs/03-sign-in-redesign.md`.
  */
-import type { PropsWithChildren, ReactNode } from 'react';
-import type { TextInputProps } from 'react-native';
+import { useState, type PropsWithChildren, type ReactNode } from 'react';
+import { Image, Pressable, TextInput, View, type TextInputProps } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { usePreferences } from '@/providers/preferences';
+import { ErrorLine, Icon, Label, Sheet } from '@/ui/components';
+import { branchArtwork, minTouch, softFill } from '@/ui/tokens';
 
 /**
  * The navy block at the top of sign-in: `.hero` with the login screen's own padding override.
@@ -38,7 +42,22 @@ import type { TextInputProps } from 'react-native';
  *   `maxWidth: 300`.
  */
 export function AuthHero({ title, sub }: { title: string; sub: string }): ReactNode {
-  throw new Error('bite 2.5 stage 1 — not implemented');
+  const { colors } = usePreferences();
+  const insets = useSafeAreaInsets();
+  return <View style={{ backgroundColor: colors.navy, borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32, overflow: 'hidden', position: 'relative', gap: 12,
+    paddingTop: insets.top + 25, paddingHorizontal: 24, paddingBottom: 84 }}>
+    <View style={{ position: 'absolute', width: 260, height: 260, borderRadius: 130,
+      borderWidth: 1, borderColor: branchArtwork.heroLine, left: -90, top: -60 }} />
+    <View style={{ position: 'absolute', width: 180, height: 180, borderRadius: 90,
+      borderWidth: 1, borderColor: branchArtwork.heroGoldLine, right: -60, bottom: -40 }} />
+    <Image source={require('../../assets/cw-mark.png')} accessible={false} resizeMode="contain"
+      style={{ width: 84, height: 44, alignSelf: 'flex-start' }} />
+    <Label accessibilityRole="header" style={{ fontFamily: 'Tajawal_800ExtraBold', fontSize: 30,
+      lineHeight: 39, color: colors.onPrimary, marginTop: 10 }}>{title}</Label>
+    <Label style={{ fontSize: 15, lineHeight: 24.75, color: colors.onPrimary, opacity: .82,
+      maxWidth: 300 }}>{sub}</Label>
+  </View>;
 }
 
 /**
@@ -53,7 +72,11 @@ export function AuthHero({ title, sub }: { title: string; sub: string }): ReactN
  * offset or radius of its own.
  */
 export function AuthCard({ children }: PropsWithChildren): ReactNode {
-  throw new Error('bite 2.5 stage 1 — not implemented');
+  const { colors, theme } = usePreferences();
+  return <View style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line,
+    borderRadius: 22, marginTop: -52, marginHorizontal: 16, padding: 20, gap: 16,
+    shadowColor: colors.overlayShadow, shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: theme === 'dark' ? .35 : .16, shadowRadius: 30, elevation: 8 }}>{children}</View>;
 }
 
 /**
@@ -91,7 +114,32 @@ export function AuthField({ label, error, hint, invalid, prefixBox, action, ...p
   prefixBox?: string;
   action?: { icon: string; label: string; onPress: () => void };
 }): ReactNode {
-  throw new Error('bite 2.5 stage 1 — not implemented');
+  const { colors, language } = usePreferences();
+  return <View style={{ gap: 6 }}>
+    <Label style={{ fontFamily: 'Tajawal_700Bold', fontSize: 14 }}>{label}</Label>
+    <View style={{ height: 52, borderWidth: 1, borderRadius: 14, backgroundColor: colors.surface,
+      overflow: 'hidden', borderColor: invalid || error ? colors.danger : colors.line,
+      flexDirection: 'row', alignItems: 'center', direction: prefixBox ? 'ltr' : undefined }}>
+      {prefixBox ? <View style={{ height: '100%', paddingHorizontal: 12,
+        backgroundColor: colors.surface2, borderEndWidth: 1, borderEndColor: colors.line,
+        justifyContent: 'center' }}>
+        <Label style={{ fontFamily: 'Tajawal_700Bold', fontSize: 16, color: colors.muted,
+          writingDirection: 'ltr', textAlign: 'left' }}>{prefixBox}</Label>
+      </View> : null}
+      <TextInput accessibilityLabel={label} placeholderTextColor={colors.muted} {...props}
+        style={[{ flex: 1, minWidth: 0, height: '100%', paddingHorizontal: 14, paddingVertical: 0,
+          fontFamily: 'Tajawal_700Bold', fontSize: prefixBox ? 17 : 16, color: colors.text,
+          letterSpacing: prefixBox ? .04 * 17 : undefined,
+          textAlign: prefixBox || language === 'en' ? 'left' : 'right',
+          writingDirection: prefixBox || language === 'en' ? 'ltr' : 'rtl' }, props.style]} />
+      {action ? <Pressable accessibilityRole="button" accessibilityLabel={action.label}
+        onPress={action.onPress} style={{ width: 48, height: 48, alignItems: 'center', justifyContent: 'center' }}>
+        <Icon name={action.icon} color={colors.muted} tint={softFill(colors.muted)} />
+      </Pressable> : null}
+    </View>
+    {error ? <ErrorLine>{error}</ErrorLine> : hint ? <Label style={{ color: colors.muted,
+      fontSize: 12.5, lineHeight: 18.75 }}>{hint}</Label> : null}
+  </View>;
 }
 
 /**
@@ -116,5 +164,30 @@ export function AuthSelect({ label, value, placeholder, options, invalid, disabl
   disabled?: boolean;
   onChange: (value: string) => void;
 }): ReactNode {
-  throw new Error('bite 2.5 stage 1 — not implemented');
+  const { colors } = usePreferences();
+  const [open, setOpen] = useState(false);
+  const choice = options.find(option => option.value === value);
+  return <View style={{ gap: 6 }}>
+    <Label style={{ fontFamily: 'Tajawal_700Bold', fontSize: 14 }}>{label}</Label>
+    <Pressable accessibilityRole="button" accessibilityLabel={label}
+      accessibilityValue={{ text: choice?.label ?? placeholder }} accessibilityState={{ disabled, expanded: open }}
+      disabled={disabled} onPress={() => setOpen(true)}
+      style={{ height: 52, borderWidth: 1, borderRadius: 14, backgroundColor: colors.surface,
+        overflow: 'hidden', borderColor: invalid ? colors.danger : colors.line,
+        flexDirection: 'row', alignItems: 'center', paddingStart: 14, paddingEnd: 12, gap: 8 }}>
+      <Label numberOfLines={1} style={{ flex: 1, fontFamily: 'Tajawal_700Bold', fontSize: 16,
+        color: choice ? colors.text : colors.muted }}>{choice?.label ?? placeholder}</Label>
+      <Icon name="caretD" color={colors.muted} tint={softFill(colors.muted)} />
+    </Pressable>
+    {open ? <Sheet onClose={() => setOpen(false)}>
+      <Label accessibilityRole="header" style={{ fontFamily: 'Tajawal_800ExtraBold', fontSize: 18 }}>{label}</Label>
+      {options.map(option => <Pressable key={option.value} accessibilityRole="button"
+        accessibilityState={{ selected: option.value === value, disabled }} disabled={disabled}
+        onPress={() => { onChange(option.value); setOpen(false); }}
+        style={{ minHeight: minTouch, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <Label style={{ flex: 1, fontFamily: 'Tajawal_700Bold' }}>{option.label}</Label>
+        {option.value === value ? <Icon name="check" color={colors.primary} /> : null}
+      </Pressable>)}
+    </Sheet> : null}
+  </View>;
 }

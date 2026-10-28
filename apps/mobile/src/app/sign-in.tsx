@@ -12,7 +12,8 @@ import { useOnline } from '@/providers/query';
 import { AuthGate } from '@/ui/auth-gate';
 import { AuthCard, AuthField, AuthHero, AuthSelect } from '@/ui/auth-shell';
 import { Button, EmptyState, ErrorBanner, ErrorLine, ErrorState, Icon, Label, Loading,
-  PreferencesControls, Screen, Segmented, TextLink } from '@/ui/components';
+  Screen, Segmented, TextLink } from '@/ui/components';
+import { softFill } from '@/ui/tokens';
 
 function SignInForm() {
   const { copy, colors, side, language, setSide } = usePreferences();
@@ -106,7 +107,9 @@ function SignInForm() {
               <Controller control={form.control} name="branchNumber" render={({ field, fieldState }) =>
                 <AuthField label={copy.branch.branchNo} value={field.value} onChangeText={field.onChange}
                   onBlur={field.onBlur} invalid={!!fieldState.error} editable={!busy} placeholder="106"
-                  keyboardType="number-pad" autoCapitalize="none" style={{ textAlign: 'center' }} />} />
+                  keyboardType="number-pad" autoCapitalize="none"
+                  // Centred digits reading left-to-right, as the canvas marks this one input.
+                  style={{ textAlign: 'center', writingDirection: 'ltr' }} />} />
             </View>
           </View>
         : <Controller control={form.control} name="mobile" render={({ field, fieldState }) =>
@@ -139,13 +142,11 @@ function SignInForm() {
     </AuthCard>
     {branch ? <View style={{ marginTop: 18, marginHorizontal: 24, flexDirection: 'row', gap: 8,
       alignItems: 'center', justifyContent: 'center' }}>
-      <Icon name="store" size={18} color={colors.muted} />
+      <Icon name="store" size={18} color={colors.muted} tint={softFill(colors.muted)} />
       <Label style={{ fontSize: 13, color: colors.muted }}>{copy.branch.sharedNote}</Label>
     </View> : null}
-    {/* Not in the canvas: its prototype switches language from the page's own toolbar, which the
-        app does not have. Without this a phone that opens in Arabic has no way to reach English
-        before signing in, so the controls stay — below the note, outside the card. */}
-    <View style={{ marginTop: 24, paddingHorizontal: 16 }}><PreferencesControls variant="branch" /></View>
+    {/* No language or theme controls here, as the canvas has none: Ahmed's call. They live on the
+        Account screen. A phone that opens in Arabic therefore signs in in Arabic. */}
   </Screen>;
 }
 

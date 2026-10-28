@@ -64,6 +64,11 @@ export const palette = {
     skeleton: '#E3E9F1',
     skeletonHighlight: '#F1F4F9',
     toast: '#0B1B2E',
+    // The colours inside the canvas's two rgba() shadows: --ov-shadow under the sign-in card, and
+    // .mode-on's lift under the selected half of a segmented switch. The opacity stays with the
+    // shadow, since React Native keeps colour and opacity apart.
+    overlayShadow: '#0B1B2E',
+    modeShadow: '#1F4E8C',
     scrim: 'rgba(11,27,46,.48)',
 
     // The branch location map only
@@ -107,6 +112,8 @@ export const palette = {
     skeleton: '#17304A',
     skeletonHighlight: '#1F3B58',
     toast: '#EAF1F8',
+    overlayShadow: '#000000',
+    modeShadow: '#1F4E8C', // not themed: the canvas keeps the light blue here in dark mode too
     scrim: 'rgba(3,9,17,.72)', // [branch] driver had rgba(0,0,0,.62)
 
     mapBg: '#10253C',
@@ -157,5 +164,12 @@ export const type = {
  * honour it and it is easy to forget, not because an artboard states it.
  */
 export const minTouch = 44;
+
+/**
+ * A duotone icon's fill. The canvas draws it as `.ic .f { fill: currentColor; opacity: .2 }`,
+ * so the fill is always the icon's own colour at a fifth — which in hex is the suffix 33. Pass the
+ * result as an Icon's `tint`; without it the fill comes out solid and the icon reads as a block.
+ */
+export const softFill = (color: string) => color + '33';
 
 export type Palette = (typeof palette)['light'];

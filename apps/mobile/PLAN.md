@@ -304,17 +304,23 @@ cached at `apps/mobile/design/branch-v2/project/` (gitignored, so read it by pat
 
 **Stage 1 — sign-in and direction**
 
-- [ ] Rebuild the sign-in screen for both roles from `Main.dc.html` lines 171–247: the navy hero with the logo
+- [x] Rebuild the sign-in screen for both roles from `Main.dc.html` lines 171–247: the navy hero with the logo
       lockup and its two decorative circles, then the card with the **Branch | Driver** switch *inside* it at
       the top, the chain picker and branch number side by side (3fr / 2fr), the `+966` prefix box joined to the
       driver's phone field, the eye button inside the password field, 52px fields at radius 14, and the errors
       inline with an 18px icon on a soft danger background. Ours has the right fields in the wrong frame, so
       this is a layout rebuild, not a tweak. No copy changes: every string is already lifted and approved.
-- [ ] **Fix the direction once, at the top.** Today `direction: 'rtl'` is set in `src/branch/app.tsx` and
+- [x] **Fix the direction once, at the top.** Today `direction: 'rtl'` is set in `src/branch/app.tsx` and
       `src/driver/shared.tsx` and nowhere else, so everything under `src/app/` — sign-in, the password change,
       both role homes — falls back to the native `I18nManager.isRTL`, which is `false` in Expo Go because
       config plugins do not apply there. That is exactly why the branch screens read right-to-left on the phone
       and sign-in does not. One wrapper high up, and the two per-feature copies deleted.
+
+**Decided while building stage 1.** The canvas draws no language or theme controls on sign-in,
+and ours did. Ahmed said to match the canvas, so they are gone: they live on the Account screen
+now, and a phone that opens in Arabic signs in in Arabic. The forced password-change screen still
+has its own pair — it is a bite 1 screen with no artboard of its own yet, so leave it until it gets
+one.
 
 **Stage 2 — splash, onboarding, camera, location, the lock**
 
