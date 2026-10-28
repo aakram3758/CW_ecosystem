@@ -324,22 +324,31 @@ one.
 
 **Stage 2 — splash, onboarding, camera, location, the lock**
 
-- [ ] The splash: option **ب** «المواد بتتجمع», the one marked «المعتمد» in `SplashOptions.dc.html` — material
+- [x] The splash: option **ب** «المواد بتتجمع», the one marked «المعتمد» in `SplashOptions.dc.html` — material
       icons fly in from the edges and merge into the logo, about 1.8s. Needs Reanimated.
-- [ ] Onboarding: the three slides of `Onboarding.dc.html` (اطلب الاستلام · يوم الزيارة · كل طلباتك), shown
+- [x] Onboarding: the three slides of `Onboarding.dc.html` (اطلب الاستلام · يوم الزيارة · كل طلباتك), shown
       once per install, skippable.
-- [ ] The five uploaded images come into the repo as real files — React Native cannot fetch the canvas's
+- [x] The five uploaded images come into the repo as real files — React Native cannot fetch the canvas's
       `/_blob/` paths.
-- [ ] Make the camera real (`expo-image-picker`) and the location real (`expo-location`), with real permission
+- [x] Make the camera real (`expo-image-picker`) and the location real (`expo-location`), with real permission
       prompts and the designed denied-permission state. **Nothing is uploaded or persisted** — the photo and
       the pin stay in memory. Persistence is phase B.
-- [ ] The material lock, for a material that already has an open request: simpler and cleaner than what we
+- [x] The material lock, for a material that already has an open request: simpler and cleaner than what we
       ship now. The canvas draws only a 16px muted lock beside the material name; ours adds a band reading
       «لديك طلب مفتوح لهذه المادة / عرضه». Ahmed's call is to improve on the canvas but go simpler and cleaner
       than our band — the lock and the way in, without a sentence explaining itself.
 
 **Not a bug.** The branch name on the phone does not match the canvas because the screen is still on mock
 data; Ahmed said to ignore it. It goes away in phase B.
+
+**What stage 2 cost us to learn: `react-native-reanimated` cannot be used in this app.** It is in
+`package.json` — expo-router brought it — and it had simply never been imported, so nobody had
+found out. Importing it fails the export: it resolves its own nested `semver@7`, the root has
+`semver@6`, and `metro.config.js` sets `disableHierarchicalLookup`, which is exactly what refuses
+to look inside a package for its own dependencies — and that setting is the one keeping a single
+React in the bundle. `react-native-gesture-handler` is in the same position. So animation is
+React Native's own `Animated` and gestures are `PanResponder`, and the reason is written into
+`metro.config.js` where the next person will meet it.
 
 ### Bite 3 — branch states
 

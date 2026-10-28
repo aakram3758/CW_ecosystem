@@ -11,11 +11,15 @@
  * two numbers; both live in the screen's state until the user submits, and submitting is still
  * mock. Phase B is what writes either of them anywhere.
  *
- * The bodies are left for the implementer — see `briefs/04-splash-onboarding-device.md`.
+ * Built to `briefs/04-splash-onboarding-device.md`.
  */
+
+import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
 
 /** A photo the user picked, as a local `file://` URI, with the size the picker reported. */
 export type Photo = { uri: string; width: number; height: number };
+
 
 export type PhotoResult =
   | { ok: true; photo: Photo }
@@ -43,12 +47,28 @@ export type LocationResult =
  * `base64` — the file URI is all phase B needs to upload from.
  */
 export async function takePhoto(): Promise<PhotoResult> {
-  throw new Error('bite 2.5 stage 2 — not implemented');
+  try {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) return { ok: false, reason: 'denied' };
+    const result = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], allowsEditing: false, quality: .7, base64: false });
+    if (result.canceled) return { ok: false, reason: 'cancelled' };
+    const asset = result.assets[0];
+    if (!asset?.uri) return { ok: false, reason: 'failed' };
+    return { ok: true, photo: { uri: asset.uri, width: asset.width, height: asset.height } };
+  } catch { return { ok: false, reason: 'failed' }; }
 }
 
 /** The same, from the photo library: `requestMediaLibraryPermissionsAsync` then `launchImageLibraryAsync`, images only. */
 export async function pickPhoto(): Promise<PhotoResult> {
-  throw new Error('bite 2.5 stage 2 — not implemented');
+  try {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) return { ok: false, reason: 'denied' };
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: false, quality: .7, base64: false });
+    if (result.canceled) return { ok: false, reason: 'cancelled' };
+    const asset = result.assets[0];
+    if (!asset?.uri) return { ok: false, reason: 'failed' };
+    return { ok: true, photo: { uri: asset.uri, width: asset.width, height: asset.height } };
+  } catch { return { ok: false, reason: 'failed' }; }
 }
 
 /**
@@ -63,5 +83,17 @@ export async function pickPhoto(): Promise<PhotoResult> {
  * screen's answer to that is to let them drag the pin themselves.
  */
 export async function currentLocation(): Promise<LocationResult> {
-  throw new Error('bite 2.5 stage 2 — not implemented');
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const permission = await Location.requestForegroundPermissionsAsync();
+    if (!permission.granted) return { ok: false, reason: 'denied' };
+    return await Promise.race<LocationResult>([
+      Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }).then(({ coords }) =>
+        Number.isFinite(coords.latitude) && Number.isFinite(coords.longitude)
+          ? { ok: true, lat: coords.latitude, lng: coords.longitude }
+          : { ok: false, reason: 'failed' }),
+      new Promise<LocationResult>(resolve => { timer = setTimeout(() => resolve({ ok: false, reason: 'failed' }), 15000); }),
+    ]);
+  } catch { return { ok: false, reason: 'failed' }; }
+  finally { clearTimeout(timer); }
 }

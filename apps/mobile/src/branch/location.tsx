@@ -1,25 +1,26 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { View, type GestureResponderEvent } from 'react-native';
 import Svg, { Circle, Path, Rect, Text as SvgText } from 'react-native-svg';
+import { currentLocation } from '@/data/device';
 import { usePreferences } from '@/providers/preferences';
-import { Button, Label, Sheet, Title } from '@/ui/components';
+import { Button, ErrorLine, Label, Sheet, Title } from '@/ui/components';
 import { branchArtwork } from '@/ui/tokens';
 import { useBranch } from './state';
 import { Footer, Muted, PageFrame, Pill, styles, Tile } from './shared';
 
 export const pointToCoords = (x: number, y: number) => ({ lat: 21.5812 - (y - 156) * .00004, lng: 39.1689 + (x - 182) * .00004 });
-export function BranchMap({ lat, lng, onMove, small = false }: {
-  lat: number; lng: number; onMove?: (lat: number, lng: number) => void; small?: boolean;
+export function BranchMap({ lat, lng, onMove, small = false, center = { lat: 21.5812, lng: 39.1689 } }: {
+  lat: number; lng: number; onMove?: (lat: number, lng: number) => void; small?: boolean; center?: { lat: number; lng: number };
 }) {
   const { colors, copy } = usePreferences();
   const [width, setWidth] = useState(358);
-  const x = 182 + (lng - 39.1689) / .00004;
-  const y = 156 - (lat - 21.5812) / .00004;
+  const x = 182 + (lng - center.lng) / .00004;
+  const y = 156 - (lat - center.lat) / .00004;
   function move(event: GestureResponderEvent) {
     const px = Math.max(16, Math.min(342, event.nativeEvent.locationX * 358 / width));
     const py = Math.max(52, Math.min(292, event.nativeEvent.locationY));
     const coords = pointToCoords(px, py);
-    onMove?.(coords.lat, coords.lng);
+    onMove?.(coords.lat + center.lat - 21.5812, coords.lng + center.lng - 39.1689);
   }
   const blocks = small ? [[10,10,120,40],[146,10,70,40],[232,10,96,90],[10,62,206,38]]
     : [[14,18,120,84],[150,18,88,84],[254,18,96,120],[14,126,70,150],[100,126,138,64],[100,206,138,72],[254,160,96,118]];
@@ -28,7 +29,7 @@ export function BranchMap({ lat, lng, onMove, small = false }: {
   return <View accessible accessibilityRole={onMove ? 'adjustable' : 'image'}
     accessibilityLabel={onMove ? copy.branch.locHint : copy.branch.savedLoc}
     accessibilityActions={onMove ? [{ name: 'increment', label: copy.branch.useMine }, { name: 'decrement', label: copy.branch.useMine }] : undefined}
-    onAccessibilityAction={() => onMove?.(21.5812, 39.1689)}
+    onAccessibilityAction={() => onMove?.(center.lat, center.lng)}
     onLayout={event => setWidth(event.nativeEvent.layout.width)}
     onStartShouldSetResponder={() => !!onMove} onMoveShouldSetResponder={() => !!onMove}
     onResponderGrant={move} onResponderMove={move} onResponderTerminationRequest={() => false}
@@ -52,10 +53,24 @@ export function LocationScreen() {
   const { colors, copy } = usePreferences();
   const t = copy.branch;
   const [coords, setCoords] = useState({ lat: branch.lat ?? 21.5812, lng: branch.lng ?? 39.1689 });
+  const [center, setCenter] = useState({ lat: 21.5812, lng: 39.1689 });
+  const [locating, setLocating] = useState(false);
+  const [locationError, setLocationError] = useState('');
+  const pending = useRef(false);
+  async function locate() {
+    if (pending.current) return;
+    pending.current = true; setLocating(true); setLocationError('');
+    const result = await currentLocation();
+    pending.current = false; setLocating(false);
+    if (result.ok) {
+      const point = { lat: result.lat, lng: result.lng };
+      setCoords(point); setCenter(point);
+    } else setLocationError(result.reason === 'denied' ? copy.shared.locDenied : copy.shared.locFailed);
+  }
   const [confirming, setConfirming] = useState(false);
   return <>
     <PageFrame title={t.locT} trailing={<Pill>{t.locOnce}</Pill>} footer={<Footer>
-      <Button variant="branch" tone="outline" icon="target" label={t.useMine} onPress={() => setCoords(pointToCoords(182, 156))} />
+      <Button variant="branch" tone="outline" icon="target" label={locating ? t.locating : t.useMine} disabled={locating} onPress={() => void locate()} />
       <Button variant="branch" label={t.confirmLoc} onPress={() => setConfirming(true)} />
     </Footer>}>
       <View style={[styles.row, { alignItems: 'flex-start', backgroundColor: colors.accentSoft, borderRadius: 16, padding: 14 }]}>
@@ -63,7 +78,8 @@ export function LocationScreen() {
         <View style={styles.grow}><Label style={[styles.heavy, { fontSize: 16 }]}>{t.locWarnT}</Label>
           <Label style={{ fontSize: 13.5, lineHeight: 21.6 }}>{t.locWarnB}</Label></View>
       </View>
-      <BranchMap {...coords} onMove={(lat, lng) => setCoords({ lat, lng })} />
+      <BranchMap {...coords} center={center} onMove={(lat, lng) => setCoords({ lat, lng })} />
+      {locationError ? <ErrorLine>{locationError}</ErrorLine> : null}
       <View style={{ gap: 8 }}><Muted style={{ fontSize: 12.5 }}>{t.locHint}</Muted>
         <Muted style={{ fontSize: 12.5, writingDirection: 'ltr' }}>{coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}</Muted></View>
     </PageFrame>

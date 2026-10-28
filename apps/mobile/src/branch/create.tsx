@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, BackHandler, Pressable, TextInput, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, BackHandler, Image, Pressable, TextInput, View } from 'react-native';
+import { takePhoto, pickPhoto, type Photo as DevicePhoto } from '@/data/device';
 import type { MaterialRow, SubtypeRow } from '@/data/mock/branch';
 import { interpolate } from '@/i18n/copy';
 import { usePreferences } from '@/providers/preferences';
-import { Button, Card, Field, Icon, Label, Sheet, TextLink, Title } from '@/ui/components';
+import { Button, Card, ErrorLine, Field, Icon, Label, Sheet, TextLink, Title } from '@/ui/components';
 import { isOpen, useBranch } from './state';
 import { Footer, IconButton, Muted, PageFrame, Photo, Pill, styles, Tile, useBranchFormat } from './shared';
 
@@ -27,6 +28,9 @@ export function CreateScreen() {
   const [contactName, setContactName] = useState(editing?.contact_name ?? '');
   const [contactPhone, setContactPhone] = useState(editing?.contact_phone?.replace(/^0/, '') ?? '');
   const [photo, setPhoto] = useState<'none' | 'uploading' | 'chosen'>(editing?.branch_photo_path ? 'chosen' : 'none');
+  const [chosenPhoto, setChosenPhoto] = useState<DevicePhoto | null>(null);
+  const [photoError, setPhotoError] = useState('');
+  const picking = useRef(false);
   const [sheetMaterial, setSheetMaterial] = useState<MaterialRow | null>(null);
   const material = data.materials.find(m => m.id === materialId);
   const subtype = data.subtypes.find(s => s.id === subtypeId);
@@ -46,12 +50,19 @@ export function CreateScreen() {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => { back(); return true; });
     return () => subscription.remove();
   }, [back]);
-  useEffect(() => {
-    if (photo !== 'uploading') return;
-    // The approved photo control simulates an upload; only this interaction has a timer.
-    const timer = setTimeout(() => setPhoto('chosen'), 900);
-    return () => clearTimeout(timer);
-  }, [photo]);
+  async function choosePhoto(camera: boolean) {
+    if (picking.current) return;
+    picking.current = true;
+    setPhoto('uploading'); setPhotoError(''); setChosenPhoto(null);
+    const result = await (camera ? takePhoto() : pickPhoto());
+    picking.current = false;
+    if (result.ok) { setChosenPhoto(result.photo); setPhoto('chosen'); }
+    else {
+      setPhoto('none');
+      if (result.reason === 'denied') setPhotoError(camera ? copy.shared.camDenied : copy.shared.galDenied);
+      else if (result.reason === 'failed') setPhotoError(t.photoFail);
+    }
+  }
   function pick(m: MaterialRow, s: SubtypeRow | null = null) {
     if (lockedRequest(m.id, s?.id ?? null)) return;
     setMaterialId(m.id); setSubtypeId(s?.id ?? null); setSheetMaterial(null); setStep(2);
@@ -159,20 +170,24 @@ export function CreateScreen() {
           <View style={[styles.row, { alignItems: 'flex-start', gap: 10 }]}><Icon name="scale" /><Label style={{ flex: 1, fontSize: 13.5, lineHeight: 21.6 }}>{t.photoGuide}</Label></View>
           {photo === 'none' ? <View style={{ flexDirection: 'row', gap: 10 }}>
             {[{ icon: 'camera', label: t.takePhoto }, { icon: 'image', label: t.gallery }].map(item => <Pressable key={item.icon}
-              accessibilityRole="button" onPress={() => setPhoto('uploading')} style={{ flex: 1, minHeight: 96, borderWidth: 1.5, borderStyle: 'dashed',
+              accessibilityRole="button" onPress={() => void choosePhoto(item.icon === 'camera')} style={{ flex: 1, minHeight: 96, borderWidth: 1.5, borderStyle: 'dashed',
                 borderColor: colors.line, borderRadius: 16, backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center', gap: 6 }}>
               <Icon name={item.icon} size={28} /><Label style={[styles.bold, { fontSize: 14, textAlign: 'center' }]}>{item.label}</Label>
             </Pressable>)}
           </View> : photo === 'uploading' ? <View accessibilityState={{ busy: true }} style={[styles.row, { minHeight: 96,
             borderRadius: 16, backgroundColor: colors.surface2, justifyContent: 'center' }]}>
             <ActivityIndicator color={colors.primary} /><Muted>{t.uploading}</Muted>
-          </View> : <View style={styles.row}><Photo material={material} kg={weight} />
+          </View> : <View style={styles.row}>{chosenPhoto ? <Image source={{ uri: chosenPhoto.uri }}
+            accessibilityLabel={t.photo} style={{ width: 104, height: 104, borderRadius: 16 }} />
+            : <Photo material={material} kg={weight} />}
             <View style={styles.grow}><Label style={[styles.heavy, { color: colors.success }]}>{t.photoOk}</Label>
               <View style={{ flexDirection: 'row', gap: 4, flexWrap: 'wrap' }}>
-                <TextLink label={t.retake} onPress={() => setPhoto('uploading')} /><TextLink label={t.remove} onPress={() => setPhoto('none')} />
+                <TextLink label={t.retake} onPress={() => void choosePhoto(true)} /><TextLink label={t.remove}
+                  onPress={() => { setPhoto('none'); setChosenPhoto(null); setPhotoError(''); }} />
               </View>
             </View>
           </View>}
+          {photoError ? <ErrorLine>{photoError}</ErrorLine> : null}
         </Card>
         <Card style={styles.card}>
           <View style={[styles.row, { justifyContent: 'space-between' }]}><Label style={[styles.heavy, { fontSize: 16 }]}>{t.note}</Label><Pill>{t.optional}</Pill></View>
