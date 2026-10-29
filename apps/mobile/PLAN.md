@@ -234,7 +234,7 @@ the request and — if it was their only one for that branch — the branch too,
 stays readable. Their history shows a row with no branch, no material and no request number. This follows
 the most ordinary action ops takes after a failed visit, so it is the normal case, not an edge one.
 
-Fix in phase B as migration 20: widen the driver's read to what they have a `visit_attempts` row for,
+Fix in phase B as migration 21: widen the driver's read to what they have a `visit_attempts` row for,
 rather than only what they are assigned right now. Build the history screen so a row still renders without
 its joined request either way — ops can reschedule at any moment.
 
@@ -272,10 +272,13 @@ send that failed, with the photo and the typed values kept · «تُعاد جد�
 
 #### What is left — none of it in the app's code
 
-1. **It has never run against the real backend on a phone.** `tsc` and the Android bundle pass,
-   which says it compiles, not that a request reached Supabase. The first real test is a branch
-   account on a device: **Ahmed sets the password from the dashboard**, since Claude does not create
-   accounts or set credentials.
+1. **The fixes from the first real-backend test are not tried on a phone yet.** Ahmed ran
+   `testserious 201` on 29 October and found four things: the photo was not on the dashboard, a
+   visit day set from the dashboard did not reach the open app, the glass manager's number appeared
+   only after a restart, and no pop-up came. The first three are fixed in `704dcff` (below); the
+   pop-up is the deferred push work. To confirm: upload a new photo and check its size in
+   `storage.objects` is no longer 14 bytes, then change a request from the dashboard with the app
+   open. The dashboard's photo view only appears once it is merged to `main`.
 2. **Three things to fill from the dashboard.** `app_settings.ops_phone` is empty and five of six
    materials have no `contact_phone`, so the contact button correctly hides in most places; all 23
    branches have a null `name_en`, so the English label falls back to the district; and the
@@ -299,6 +302,13 @@ send that failed, with the photo and the typed values kept · «تُعاد جد�
 **The one bug a device found that review could not:** the app reloaded itself forever at launch,
 because boot asked native for a right-to-left direction and then reloaded to apply it, while a JS
 reload cannot change the native constant it was testing. Fixed in `e07afca`.
+
+**The bug only the real backend could show:** every photo the app uploaded was 14 bytes.
+`fetch(uri).arrayBuffer()` — which the wiring brief specified — does not return a local file's
+contents in React Native. The row and the path were right and the object existed, and nothing on
+the phone showed it, because a thumbnail that fails to load falls back to the drawn placeholder,
+which looks like a photo. Found by reading object sizes in `storage.objects`; fixed by reading the
+file with `expo-file-system`'s `File`. The two broken files on `testserious` are still in the bucket.
 
 **The bug review found that no device could have:** the location screen defaulted its pin to the
 middle of Jeddah for a branch with no coordinates, so «تأكيد الموقع» would have saved a position
@@ -492,8 +502,11 @@ Mock data out, Supabase in. Reads go through RLS, every write goes through an RP
 - [x] Everyone: `mark_notifications_read`
 - [x] Photo upload, the branch half — private bucket `request-photos`, `branch/<branch_id>/…`, uploaded
       before the row is written. The driver's `request/<request_id>/…` comes with bite 5.
-- [x] Migrations 17, 18 and 19, applied to the live project and verified in it. 20 is the driver's
-      and comes with bite 4.
+- [x] Migrations 17, 18, 19 and 20, applied to the live project and verified in it. 21 is the
+      driver's and comes with bite 4.
+- [x] Live updates — migration 20 publishes the nine tables the branch app reads to
+      `supabase_realtime`, and `branch/state.tsx` subscribes and refetches the matching query on any
+      change. RLS filters each change per subscriber, so a branch hears only about its own rows.
 - [x] Delete the device-side location memory in `branch/state.tsx` — it exists only so phase A
       stops asking a branch to place its pin on every launch; `branches.location_confirmed_at`
       is the real answer
@@ -520,7 +533,8 @@ continuing after the applied 01–16.
 | 17 | `branch_set_location` refuses once `location_confirmed_at` is set; only the dashboard can change it after | phase B |
 | 18 | Maximum 5,000 kg, enforced in `branch_create_request` **and** `branch_update_request` | phase B |
 | 19 | `branches.name_en` + a field on the dashboard's branches screen + **fix `private.request_label(…, 'en')`**, which today falls back to the Arabic `b.name` so English notifications show Arabic branch names | phase B |
-| 20 | A driver may read the branch and request behind any `visit_attempts` row of their own, not only what they are assigned right now — see *Driver history* above | phase B |
+| 20 | Publish `requests`, `request_events`, `visit_attempts`, `notifications`, `branches`, `materials`, `material_subtypes`, `reasons` and `app_settings` to `supabase_realtime`, so the branch app hears changes while it is open | phase B, applied |
+| 21 | A driver may read the branch and request behind any `visit_attempts` row of their own, not only what they are assigned right now — see *Driver history* above | phase B |
 
 All four premises were checked against the live database on 2026-10-27, not assumed:
 
@@ -529,7 +543,7 @@ All four premises were checked against the live database on 2026-10-27, not assu
 - `branch_create_request` and `branch_update_request` both check only `p_kg is null or p_kg <= 0`. There
   is no upper bound anywhere, so five million kilograms is accepted. Both need the cap, not one. → 18
 - `public.branches` has a single `name` column and no `name_en`. → 19
-- `staff_decide`'s reschedule branch nulls `driver_id`. → 20
+- `staff_decide`'s reschedule branch nulls `driver_id`. → 21
 
 The migration first written here as the fourth was going to add `materials.contact_phone` — see below.
 
