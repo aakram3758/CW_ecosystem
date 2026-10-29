@@ -46,6 +46,7 @@ export type Database = {
           lng: number | null
           location_confirmed_at: string | null
           name: string | null
+          name_en: string | null
           phone: string | null
           user_id: string | null
         }
@@ -62,6 +63,7 @@ export type Database = {
           lng?: number | null
           location_confirmed_at?: string | null
           name?: string | null
+          name_en?: string | null
           phone?: string | null
           user_id?: string | null
         }
@@ -78,6 +80,7 @@ export type Database = {
           lng?: number | null
           location_confirmed_at?: string | null
           name?: string | null
+          name_en?: string | null
           phone?: string | null
           user_id?: string | null
         }

@@ -33,7 +33,10 @@ export const district: Tables['districts']['Row'] = {
 };
 export const branch: BranchRow = {
   id: id(4), chain_id: chain.id, district_id: district.id, branch_number: '106',
-  name: 'بنده #106 – الصفا', address: 'شارع الأمير ماجد، الصفا، جدة', active: true,
+  // `name_en` arrived with migration 19. The column is null for every real row until the dashboard
+  // grows a field for it; the mock fills it so the English screens can be read while it is empty.
+  name: 'بنده #106 – الصفا', name_en: 'Panda #106 – Al Safa',
+  address: 'شارع الأمير ماجد، الصفا، جدة', active: true,
   lat: 21.5812, lng: 39.1689, location_confirmed_at: null, phone: '0552468135',
   user_id: id(5), access_notes: null, created_at,
 };
