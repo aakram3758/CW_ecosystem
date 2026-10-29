@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import clsx from 'clsx';
 import { useApp, useStrings } from '../../lib/app-context';
 import { errorText } from '../../lib/supabase';
-import { useCancelRequest, useDrivers, useHistory, useRequests, useUsers } from '../../data/queries';
+import { useCancelRequest, useDrivers, useHistory, usePhotoUrl, useRequests, useUsers } from '../../data/queries';
 import { CANCEL_REASONS, CHAINS, CITIES, MATERIALS } from '../../data/catalog';
 import type { RequestRow } from '../../data/api';
 import type { StatusChange } from '../../data/types';
@@ -19,6 +19,21 @@ import { Icon } from '../../components/ui/Icon';
 import { OutcomePill, StatusPill } from '../../components/ui/Badges';
 import { PhotoPlaceholder } from '../../components/ui/States';
 import { REQUESTS_STRINGS } from './strings';
+
+/**
+ * The branch's scale photo, once there is one to load; the striped placeholder until then.
+ *
+ * The placeholder stays for three cases that all look the same to staff: no photo, a signed URL
+ * still on its way, and a stored file that will not render. The last is not hypothetical — the
+ * first photos the branch app uploaded were 14 bytes, and they are still in the bucket.
+ */
+function BranchPhoto({ path, label }: { path: string | undefined; label: string }) {
+  const url = usePhotoUrl(path).data;
+  const [failed, setFailed] = useState<string | null>(null);
+  if (!url || failed === url) return <PhotoPlaceholder className="h-40" label={label} />;
+  return <img src={url} alt={label} onError={() => setFailed(url)}
+    className="h-40 w-full rounded-2xl border border-line bg-surface-2 object-contain" />;
+}
 
 /** Side drawer with the full story of one request. Opened via `?open=REQ-…` so any screen can link to it. */
 export function RequestDrawer({ requestId, onClose }: { requestId: string | null; onClose: () => void }) {
@@ -154,7 +169,8 @@ function DrawerBody({ r }: { r: RequestRow }) {
 
       <section className="flex flex-col gap-2.5">
         <h3 className="m-0 text-base font-extrabold">{s.branchPhoto}</h3>
-        <PhotoPlaceholder className="h-40" label={fromDashboard ? s.noPhotoDashboard : r.hasBranchPhoto && r.kg ? s.photoLabel(r.kg, formatDate(r.createdAt, lang)) : s.noPhoto} />
+        <BranchPhoto path={r.branchPhotoPath}
+          label={fromDashboard ? s.noPhotoDashboard : r.hasBranchPhoto && r.kg ? s.photoLabel(r.kg, formatDate(r.createdAt, lang)) : s.noPhoto} />
       </section>
 
       <section className="flex flex-col gap-2.5">
