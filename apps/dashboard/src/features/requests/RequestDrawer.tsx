@@ -31,8 +31,13 @@ function BranchPhoto({ path, label }: { path: string | undefined; label: string 
   const url = usePhotoUrl(path).data;
   const [failed, setFailed] = useState<string | null>(null);
   if (!url || failed === url) return <PhotoPlaceholder className="h-40" label={label} />;
-  return <img src={url} alt={label} onError={() => setFailed(url)}
-    className="h-40 w-full rounded-2xl border border-line bg-surface-2 object-contain" />;
+  // The drawer shows a 160px strip of what is a 3000×4000 phone photo, too small to read a scale
+  // by. A click opens the full photo in a new tab — the signed URL itself, so there is no viewer to
+  // build and nothing to download first.
+  return <a href={url} target="_blank" rel="noopener noreferrer" className="block cursor-zoom-in">
+    <img src={url} alt={label} onError={() => setFailed(url)}
+      className="h-40 w-full rounded-2xl border border-line bg-surface-2 object-contain" />
+  </a>;
 }
 
 /** Side drawer with the full story of one request. Opened via `?open=REQ-…` so any screen can link to it. */
