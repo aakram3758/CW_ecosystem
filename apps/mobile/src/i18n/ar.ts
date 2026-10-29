@@ -44,6 +44,14 @@ export const ar = {
     wrongSideDriver: 'هذا الحساب حساب فرع. بدّل إلى «فرع» وسجّل الدخول من هناك.',
     accountInactive: 'هذا الحساب موقوف. تواصل مع فريق التشغيل.',
     samePassword: 'اختر كلمة مرور مختلفة عن المؤقتة.',
+    // Two sentences the designs never drew, because neither drew the voluntary change — Main has
+    // the screen (`pwdChangeT` with its `curPass` field and the `r0` rule) but no state for either
+    // of the two ways it can be refused. Worded off the pair above them; confirm both at the
+    // design review.
+    wrongPassword: 'كلمة المرور الحالية غير صحيحة.',
+    // `samePassword` names the temporary password, which is right in the forced flow and wrong in
+    // the voluntary one — by then there is no temporary password to be different from.
+    samePasswordNow: 'اختر كلمة مرور مختلفة عن الحالية.',
     loading: 'جارٍ التحميل…',
     arabic: 'العربية',
     english: 'الإنجليزية',

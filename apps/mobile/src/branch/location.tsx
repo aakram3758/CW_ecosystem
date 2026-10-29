@@ -12,7 +12,7 @@ import { Footer, Muted, PageFrame, Pill, styles, Tile } from './shared';
 
 export const pointToCoords = (x: number, y: number) => ({ lat: 21.5812 - (y - 156) * .00004, lng: 39.1689 + (x - 182) * .00004 });
 export function BranchMap({ lat, lng, onMove, small = false, center = { lat: 21.5812, lng: 39.1689 },
-  dot = null, locating = false }: {
+  dot = null, locating = false, hasPin = true }: {
   lat: number; lng: number; onMove?: (lat: number, lng: number) => void; small?: boolean; center?: { lat: number; lng: number };
   /**
    * Where the phone says it is, drawn as the canvas's blue dot — a different thing from the pin,
@@ -23,8 +23,20 @@ export function BranchMap({ lat, lng, onMove, small = false, center = { lat: 21.
   dot?: { lat: number; lng: number } | null;
   /** While the device is being asked: the canvas dims the map and puts a spinner pill on it. */
   locating?: boolean;
+  /**
+   * Whether there is a pin to draw at all — the canvas's `lc.hasPin`, which is `ls.x != null`.
+   *
+   * False is the state of a branch whose row has no coordinates: nothing has ever been saved and
+   * the phone has not been asked, so there is no position to mark. The map then draws **no pin**
+   * and puts «اضغط على الخريطة لوضع الدبوس» in the middle of itself instead. `lat` and `lng` are
+   * ignored while it is false, and callers pass the map's centre for them.
+   *
+   * It defaults to true because every other map in the app — the small one on the account screen,
+   * and this one for a branch that has coordinates — has a pin by definition.
+   */
+  hasPin?: boolean;
 }) {
-  const { colors, copy, language } = usePreferences();
+  const { colors, copy, language, theme } = usePreferences();
   const [width, setWidth] = useState(358);
   const x = 182 + (lng - center.lng) / .00004;
   const y = 156 - (lat - center.lat) / .00004;
@@ -60,11 +72,25 @@ export function BranchMap({ lat, lng, onMove, small = false, center = { lat: 21.
         <Circle cx={182 + (dot.lng - center.lng) / .00004} cy={156 - (dot.lat - center.lat) / .00004} r="8"
           fill={branchArtwork.locationDot} stroke={colors.onPrimary} strokeWidth="3" />
       </> : null}
-      <Svg x={small ? x * 330 / 358 - 15 : x - 20} y={small ? 16 : y - 50} width={small ? 30 : 40} height={small ? 39 : 52} viewBox="0 0 40 52">
+      {hasPin ? <Svg x={small ? x * 330 / 358 - 15 : x - 20} y={small ? 16 : y - 50} width={small ? 30 : 40} height={small ? 39 : 52} viewBox="0 0 40 52">
         <Path d="M20 51s17-15.5 17-30A17 17 0 0 0 3 21c0 14.5 17 30 17 30z" fill={colors.navy} stroke={colors.gold} strokeWidth="2" />
         <Circle cx="20" cy="20" r="6.5" fill={colors.gold} />
-      </Svg>
+      </Svg> : null}
     </Svg>
+    {/* The canvas's `lc.noPin`: with nothing to mark, the map says what to do instead — a
+        `colors.surface` pill centred in it by a `StyleSheet.absoluteFill` with `alignItems` and
+        `justifyContent: 'center'`, `borderRadius: 999`, `paddingVertical: 8`,
+        `paddingHorizontal: 14`, the overlay shadow, and `copy.branch.placePin` as Tajawal_700Bold
+        13. `pointerEvents="none"` on it, because the whole point is that the map underneath it can
+        be tapped. Only on the full map, never the small one, which always has a pin. */}
+    {!small && !hasPin ? <View pointerEvents="none"
+      style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}>
+      <View style={{ backgroundColor: colors.surface, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 14,
+        shadowColor: colors.overlayShadow, shadowOffset: { width: 0, height: 12 }, shadowOpacity: theme === 'dark' ? .35 : .16,
+        shadowRadius: 30, elevation: 8, direction: language === 'ar' ? 'rtl' : 'ltr' }}>
+        <Label style={[styles.bold, { fontSize: 13 }]}>{copy.branch.placePin}</Label>
+      </View>
+    </View> : null}
     {/* The canvas's `lc.locating`: the map goes under `colors.scrim` and a pill sits in the middle
         of it — `StyleSheet.absoluteFill` with `alignItems`/`justifyContent: 'center'`, and inside,
         a `colors.surface` row of `borderRadius: 999`, `paddingVertical: 8`, `paddingHorizontal: 14`,
@@ -86,7 +112,13 @@ export function LocationScreen() {
   const { branch, confirmLocation } = data;
   const { colors, copy } = usePreferences();
   const t = copy.branch;
-  const [coords, setCoords] = useState({ lat: branch.lat ?? 21.5812, lng: branch.lng ?? 39.1689 });
+  // The pin — or null for a branch whose row has no coordinates at all, which two of them have.
+  // This used to default to the middle of Jeddah, so the screen drew a pin nobody had placed and
+  // «تأكيد الموقع» would have saved it as the branch's door. The canvas's answer is to draw no pin,
+  // say «اضغط على الخريطة لوضع الدبوس» on the map, and keep the confirm button disabled until the
+  // branch taps it or the phone answers.
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
+    branch.lat !== null && branch.lng !== null ? { lat: branch.lat, lng: branch.lng } : null);
   const [center, setCenter] = useState({ lat: 21.5812, lng: 39.1689 });
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState('');
@@ -113,7 +145,11 @@ export function LocationScreen() {
   return <>
     <PageFrame title={t.locT} trailing={<Pill>{t.locOnce}</Pill>} footer={<Footer>
       <Button variant="branch" tone="outline" icon="target" label={locating ? t.locating : t.useMine} disabled={locating} onPress={() => void locate()} />
-      <Button variant="branch" busy={data.locating} disabled={data.locating} label={t.confirmLoc} onPress={() => setConfirming(true)} />
+      {/* The canvas's own `disabled="{{ lc.noPin }}"`. The exception to this app's "reveal the
+          error on press" rule, because there is no error to reveal: the instruction is already on
+          the map, in the pill. */}
+      <Button variant="branch" busy={data.locating} disabled={data.locating || coords === null}
+        label={t.confirmLoc} onPress={() => setConfirming(true)} />
     </Footer>}>
       <View style={[styles.row, { alignItems: 'flex-start', backgroundColor: colors.accentSoft, borderRadius: 16, padding: 14 }]}>
         <Tile icon="store" color={colors.accentText} background={colors.accentSoft} />
@@ -134,11 +170,12 @@ export function LocationScreen() {
           <Muted style={{ fontSize: 13, lineHeight: 20.15 }}>{t.deniedB}</Muted>
         </View>
       </View> : null}
-      <BranchMap {...coords} center={center} dot={device} locating={locating}
+      <BranchMap {...(coords ?? center)} hasPin={coords !== null} center={center} dot={device} locating={locating}
         onMove={(lat, lng) => setCoords({ lat, lng })} />
       {locationError ? <ErrorLine>{locationError}</ErrorLine> : null}
       <View style={{ gap: 8 }}><Muted style={{ fontSize: 12.5 }}>{t.locHint}</Muted>
-        <Muted style={{ fontSize: 12.5 }}>{ltr(`${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`)}</Muted></View>
+        {/* The canvas's own em dash while there is nothing to read out. */}
+        <Muted style={{ fontSize: 12.5 }}>{coords ? ltr(`${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`) : '—'}</Muted></View>
     </PageFrame>
     {confirming ? <Sheet onClose={() => setConfirming(false)}>
       <Tile icon="pin" size={56} iconSize={28} color={colors.accentText} background={colors.accentSoft} />
@@ -148,7 +185,7 @@ export function LocationScreen() {
           pages in `app.tsx` rather than inside one. */}
       {data.locationError ? <ErrorLine>{errorMessage(data.locationError, copy, 'branch')}</ErrorLine> : null}
       <Button variant="branch" busy={data.locating} disabled={data.locating} label={t.yesLoc}
-        onPress={() => confirmLocation(coords.lat, coords.lng)} />
+        onPress={() => coords && confirmLocation(coords.lat, coords.lng)} />
       <Button variant="branch" tone="muted" label={t.back} onPress={() => setConfirming(false)} />
     </Sheet> : null}
   </>;

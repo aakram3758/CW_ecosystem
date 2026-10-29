@@ -11,6 +11,12 @@ export const errorMessages = {
   // wording. The driver's own 'lockedTitle' / 'lockedBody' stay for its locked artboard in bite 5.
   LOCKED: (copy: Copy) => copy.branch.lockMsg,
   PASSWORD_NOT_CHANGED: (copy: Copy) => copy.shared.samePassword,
+
+  // The voluntary change's two refusals, raised as `PasswordError` by `changeOwnPassword`. The
+  // second exists because the sentence for Auth's own `same_password` below names the temporary
+  // password, which is not what a branch rotating a working password is being asked about.
+  WRONG_PASSWORD: (copy: Copy) => copy.shared.wrongPassword,
+  SAME_PASSWORD: (copy: Copy) => copy.shared.samePasswordNow,
   DUPLICATE_OPEN_REQUEST: (copy: Copy) => copy.branch.subOpen,
   REASON_REQUIRED: (copy: Copy) => copy.driver.needReason,
 

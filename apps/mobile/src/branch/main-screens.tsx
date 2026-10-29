@@ -253,9 +253,8 @@ export function AccountScreen() {
       </Card>
       <Card style={{ borderRadius: 18, padding: 16 }}><PreferencesControls variant="branch" /></Card>
       <Card style={{ borderRadius: 18, paddingHorizontal: 14, paddingVertical: 0, gap: 0 }}>
-        {/* The existing password route is forced-change only; a voluntary flow needs its own auth contract. */}
-        <Pressable accessibilityRole="button" accessibilityState={{ disabled: true }} disabled
-          style={[styles.row, { minHeight: 56, opacity: .5 }]}>
+        <Pressable accessibilityRole="button" onPress={() => data.openPassword()}
+          style={[styles.row, { minHeight: 56 }]}>
           <Tile icon="key" size={40} /><Label style={[styles.grow, styles.bold]}>{t.changePass}</Label>
           <Icon name={f.language === 'ar' ? 'caretL' : 'caretR'} color={colors.muted} />
         </Pressable>

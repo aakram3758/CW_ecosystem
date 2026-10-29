@@ -46,6 +46,9 @@ export const icons: Record<string, IconPath> = {
   caretL: { s: 'M15 5l-7 7 7 7', f: '' },
   caretD: { s: 'M6 9l6 6 6-6', f: '' },
   check: { s: 'M5 12.5l4.5 4.5L19 7.5', f: '' },
+  // The canvas's unmet password rule — the `check`'s pair, drawn in the same 22px circle: a plain
+  // dash, so a rule that is not satisfied yet reads as waiting rather than as failing.
+  dash: { s: 'M8 12h8', f: '' },
   checks: { s: 'M2.5 12.5l4 4L15 8 M10.5 15.5l1 1L21 7', f: '' },
   x: { s: 'M6 6l12 12 M18 6L6 18', f: '' },
   box: {

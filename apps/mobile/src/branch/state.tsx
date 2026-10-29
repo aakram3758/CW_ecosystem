@@ -9,7 +9,10 @@ import { errorMessage } from '@/data/errors';
 import { usePreferences } from '@/providers/preferences';
 
 export type Tab = 'home' | 'reqs' | 'notifs' | 'acc';
-export type Page = Tab | 'loc' | 'create' | 'success' | 'details';
+// `pwd` is the voluntary password change, which is a page of this app rather than the
+// `/change-password` route: that route is for a change the server is waiting for, and its gate
+// turns away anyone who does not owe one. See `password.tsx`.
+export type Page = Tab | 'loc' | 'create' | 'success' | 'details' | 'pwd';
 export const isOpen = (row: RequestListRow) =>
   row.status === 'waiting' || row.status === 'scheduled' || row.status === 'needs_decision';
 
@@ -194,6 +197,8 @@ function useBranchState() {
 
     page: context.data!.branch.location_confirmed_at === null ? 'loc' as const : page, tab, selected, editId, initialMaterial, initialSubtype,
     filter, setFilter, past, setPast, createKey, navigate, openRequest, startCreate,
+    /** Open «تغيير كلمة المرور» from the account tab. `back()` returns to it. */
+    openPassword: () => setPage('pwd'),
     toast, contact,
     showToast: (text: string) => setToast(text),
     dismissToast: () => setToast(null),

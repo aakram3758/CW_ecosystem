@@ -33,6 +33,8 @@ export const en = {
     wrongSideDriver: 'This is a branch account. Switch to "Branch" and sign in there.',
     accountInactive: 'This account is disabled. Contact the Operations team.',
     samePassword: 'Choose a password different from the temporary one.',
+    wrongPassword: 'The current password isn’t correct.',
+    samePasswordNow: 'Choose a password different from your current one.',
     loading: 'Loading…',
     arabic: 'Arabic',
     english: 'English',

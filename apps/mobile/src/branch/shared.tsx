@@ -60,11 +60,13 @@ export function Muted({ children, style }: PropsWithChildren<{ style?: React.Com
   const { colors } = usePreferences();
   return <Label style={[{ color: colors.muted, fontSize: 14, lineHeight: 23.1 }, style]}>{children}</Label>;
 }
-export function Tile({ icon, color, background, size = 44, iconSize = 24 }: {
+export function Tile({ icon, color, background, size = 44, iconSize = 24, radius }: {
   icon: string; color?: string; background?: string; size?: number; iconSize?: number;
+  /** The canvas rounds a tile by its size, except the password screen's, which is 18 at 56. */
+  radius?: number;
 }) {
   const { colors } = usePreferences();
-  return <View style={{ width: size, height: size, borderRadius: size === 44 ? 13 : 16,
+  return <View style={{ width: size, height: size, borderRadius: radius ?? (size === 44 ? 13 : 16),
     backgroundColor: background ?? colors.surface2, alignItems: 'center', justifyContent: 'center' }}>
     <Icon name={icon} size={iconSize} color={color ?? colors.primary} tint={color ? `${color}33` : undefined} />
   </View>;
