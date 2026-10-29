@@ -262,6 +262,7 @@ function toRow(r: ListRow, attempts: Attempt[]): RequestRow {
     createdBy,
     note: r.note ?? undefined,
     hasBranchPhoto: !!r.branch_photo_path,
+    branchPhotoPath: r.branch_photo_path ?? undefined,
     visitDay: r.visit_day ?? undefined,
     driverId: r.driver_id ?? undefined,
     attempts,
@@ -338,6 +339,21 @@ async function uuidOf(reference: string): Promise<string> {
 }
 
 /** Status history of one request (shown in the drawer). */
+/**
+ * A signed URL for a stored photo, or null when it cannot be made.
+ *
+ * `request-photos` is private, so a stored path is not something an `<img>` can load. Staff may
+ * read every photo (`private.photo_access`) and never write one. An hour is far longer than anyone
+ * keeps a drawer open, and short enough that a copied link stops working.
+ *
+ * Null rather than a throw: a photo that will not load is drawn as the placeholder, not as a
+ * failure of the request it belongs to.
+ */
+export async function signedPhotoUrl(path: string): Promise<string | null> {
+  const { data, error } = await supabase.storage.from('request-photos').createSignedUrl(path, 60 * 60);
+  return error ? null : data.signedUrl;
+}
+
 export async function fetchHistory(reference: string, branchLabelText: string): Promise<StatusChange[]> {
   const id = await uuidOf(reference);
   const events = await run(

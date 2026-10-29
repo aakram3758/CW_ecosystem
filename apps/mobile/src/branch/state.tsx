@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, type PropsWithChildren } from 'react';
+import { createContext, useContext, useEffect, useState, type PropsWithChildren } from 'react';
+import { supabase } from '@/data/supabase';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as api from '@/data/branch-api';
 import type { ContactTarget } from './shared';
@@ -64,6 +65,33 @@ function useBranchState() {
   const requests = useQuery({ queryKey: KEYS.requests, queryFn: api.fetchRequests });
   const timeline = useQuery({ queryKey: KEYS.timeline, queryFn: api.fetchTimeline });
   const notifications = useQuery({ queryKey: KEYS.notifications, queryFn: api.fetchNotifications });
+
+  // ---------------------------------------------------------------- live
+  //
+  // Migration 20 publishes every table above, so a change made anywhere — a visit day set from the
+  // dashboard, a notification written for this branch, a subtype ops just added — refetches the
+  // query that reads it the moment it lands. RLS filters each change per subscriber, so this only
+  // ever hears about this branch's own rows. Invalidate rather than patch the cache: the views
+  // join several tables and refetching one query is cheaper than being wrong about a join.
+  //
+  // On every (re)subscribe everything is refetched once, because changes made while the socket was
+  // down — the phone asleep, the network gone — are not replayed.
+  useEffect(() => {
+    const channel = supabase.channel('branch-live');
+    const on = (table: string, ...keys: (readonly string[])[]) => channel.on('postgres_changes',
+      { event: '*', schema: 'public', table },
+      () => { for (const queryKey of keys) void client.invalidateQueries({ queryKey }); });
+    on('requests', KEYS.requests, KEYS.timeline);
+    on('request_events', KEYS.timeline);
+    on('visit_attempts', KEYS.timeline, KEYS.requests);
+    on('notifications', KEYS.notifications);
+    on('branches', KEYS.context);
+    for (const table of ['materials', 'material_subtypes', 'reasons', 'app_settings']) on(table, KEYS.reference);
+    channel.subscribe(status => {
+      if (status === 'SUBSCRIBED') for (const queryKey of Object.values(KEYS)) void client.invalidateQueries({ queryKey });
+    });
+    return () => { void supabase.removeChannel(channel); };
+  }, [client]);
 
   // ---------------------------------------------------------------- navigation
   //

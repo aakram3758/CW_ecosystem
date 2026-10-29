@@ -107,6 +107,8 @@ export interface PickupRequest {
   createdBy: Actor;
   note?: string;
   hasBranchPhoto: boolean;
+  /** Where the branch's scale photo is in the private `request-photos` bucket — a path, not a URL. */
+  branchPhotoPath?: string;
   visitDay?: DayKey;
   driverId?: string;
   attempts: Attempt[];

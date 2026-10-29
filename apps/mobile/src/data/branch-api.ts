@@ -13,6 +13,7 @@
  * turns into the designed sentences.
  */
 
+import { File } from 'expo-file-system';
 import { supabase } from '@/data/supabase';
 import type { Database } from '@/data/database.types';
 import type {
@@ -197,16 +198,22 @@ export async function markNotificationsRead(): Promise<void> {
  * caller's own branch and refuses any other folder. The unique part is a timestamp and a short
  * random suffix rather than the original filename, which can repeat and can carry anything.
  *
- * React Native has no `File`. The upload body is an `ArrayBuffer` read from the local URI with
- * `fetch(photo.uri)` — `FormData` and `Blob` both have gaps on Android here — with
- * `contentType: 'image/jpeg'` stated explicitly, since storage infers `application/octet-stream`
- * without it and the image then downloads instead of rendering.
+ * The body is the file's bytes as an `ArrayBuffer`, read natively by `expo-file-system`'s `File`,
+ * with `contentType: 'image/jpeg'` stated, since storage infers `application/octet-stream` without
+ * it and the image then downloads instead of rendering.
+ *
+ * **Not `fetch(photo.uri).arrayBuffer()`**, which is what this did first and what the first real
+ * test caught: every photo it uploaded was 14 bytes. React Native's `fetch` is a polyfill over its
+ * own XHR, and reading a local file through it does not hand back the file. The row was written,
+ * the path was right, the object existed — and it was not an image, which nothing on the phone
+ * showed, because a thumbnail that fails to load falls back to the drawn placeholder. `FormData`
+ * and `Blob` have the same kind of gap on Android, which is why none of the three is used.
  *
  * No resizing: `expo-image-picker` is already asked for `quality: 0.7` in `device.ts`, which is why
  * `expo-image-manipulator` is not a dependency of this app despite the plan's stack list.
  */
 export async function uploadScalePhoto(branchId: string, photo: Photo): Promise<string> {
-  const body = await (await fetch(photo.uri)).arrayBuffer();
+  const body = await new File(photo.uri).arrayBuffer();
   const path = `branch/${branchId}/${Date.now()}-${Math.random().toString(36).slice(2, 10)}.jpg`;
   const { error } = await supabase.storage.from(PHOTO_BUCKET).upload(path, body, { contentType: 'image/jpeg' });
   if (error) throw error;
