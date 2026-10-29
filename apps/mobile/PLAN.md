@@ -35,8 +35,13 @@ Codex spends its on the typing.
 The brief is the ticket. It is committed so that reviewing a diff means comparing it against something written
 down beforehand, rather than against memory.
 
-`feat/mobile-app` is pushed as a backup branch and nothing more. **It does not merge into `main`** — which is
-what deploys the dashboard to Vercel — until the whole app has been tried on a real device and Ahmed says go.
+`feat/mobile-app` is pushed as a backup branch. **The app does not merge into `main`** — which is what
+deploys the dashboard to Vercel — until the whole thing has been tried on a real device and Ahmed says go.
+
+One exception already happened, and it is recorded here so nobody reads the line above and assumes the
+branch is untouched: **PR #5 merged phase 0 into `main`** — the generated types, the lifted copy, icons and
+tokens, the Expo skeleton, the `chains` Edge Function and brief 01. None of the app's screens went with it.
+Everything from bite 1 onwards is on this branch only.
 
 No over-engineering. The app is small; the plan is three phases, not eight milestones.
 
@@ -238,15 +243,57 @@ its joined request either way — ops can reschedule at any moment.
 All screens of both roles, both languages, both themes, on mock data in the real shape. Five bites; Claude reviews
 each one before the next starts.
 
-**Where we are — 28 October 2026.** Bites 1 and 2 are done and run on a real phone. The branch side is
-walked end to end there: a real account signs in through the `sign-in` function, is forced through the
-password change, confirms its location and reaches every branch screen. The driver side of bite 1 is
-*not* verified on a device — its home is still the placeholder until bite 4 — so bite 1's "done when"
-below is met for the branch only.
+### Where the branch app stands — 29 October 2026
 
-The one bug a device found that review could not: the app reloaded itself forever at launch, because
-boot asked native for a right-to-left direction and then reloaded to apply it, while a JS reload
-cannot change the native constant it was testing. Fixed in `a995e9e`.
+Bites 1, 2, 2.5 and 3a are done. The branch side has been walked end to end on a real phone across three
+rounds of testing. The driver app has not been started: nothing of bites 4 and 5 exists.
+
+#### Already on the real backend, not mock
+
+- Sign-in, one screen for both roles: the Branch | Driver switch, the chain picker fed by the `chains`
+  Edge Function, branch number, password — through the `sign-in` Edge Function, with
+  `INVALID_CREDENTIALS { attempts_left }` and `LOCKED { retry_after }` rendered as the design's text.
+- The forced change after a temporary password: 8+ characters with a Latin letter and a digit,
+  `auth.updateUser` then `rpc('complete_password_change')`, safe to retry.
+- Role routing from `profiles.role`, and sign-out if the account belongs to the other side.
+- The error-code map covering every UPPER_SNAKE code in `supabase/README.md`.
+- The session in `expo-secure-store`, chunked; TanStack Query; `useOnline`.
+
+#### Built, on mock data
+
+Splash · onboarding · set branch location · home · my requests (active / past, material filter) · create
+request in three steps with the subtype sheet, the open-request lock, a real camera and gallery · request
+sent · request details with its outcomes and full history · notifications · account · the contact sheet ·
+the cancel confirmation · the toast. Arabic and English, light, dark and system, right-to-left throughout.
+
+States done: the material lock · a refused or failed camera · a refused location, and the map's locating
+and my-location states · the create form's input errors · cancel confirmation · the contact sheet · «لم
+يُحدَّد يوم الزيارة بعد» on home · sign-in's wrong credentials, lock-out and offline.
+
+#### What is left in the branch app
+
+1. **Six data states — bite 3b, in phase B.** Home loading · home error with retry · a new branch with no
+   requests at all, and "no requests" in the list · the offline retry bar · send failed while offline, with
+   the photo and the typed values kept on screen · details «تُعاد جدولته بعد تعذّر الاستلام».
+2. **One screen deliberately switched off.** «تغيير كلمة المرور» on the account screen. The existing route
+   is forced-change only and a voluntary change needs its own auth contract. **Ahmed's decision: build it,
+   or drop the row.**
+3. **One state no mock can reach.** A branch with no coordinates at all → «اضغط على الخريطة لوضع الدبوس»
+   with the confirm button disabled. `placePin` is lifted and unused; `mock.branch` has coordinates.
+4. **The wiring itself — phase B below.**
+5. **Copy that does not exist.** Nothing is drawn for the clipboard, the dialer or WhatsApp refusing, so
+   those fail silently. The canvas never dialled, so it never had to say so.
+6. **Three things to fill from the dashboard** before the wired app looks right: `app_settings.ops_phone`
+   is empty, five of six materials have no `contact_phone` — so the contact button will correctly hide in
+   most places — and the `testserious` and `danbue` chains are still active and will show in the picker.
+7. **A deferred decision.** The branch is a single route, so a notification cannot deep-link to one
+   request. Decided when notifications are built.
+
+Also: English branch names show the Arabic name until migration 19 lands and someone types them in.
+
+**The one bug a device found that review could not:** the app reloaded itself forever at launch, because
+boot asked native for a right-to-left direction and then reloaded to apply it, while a JS reload cannot
+change the native constant it was testing. Fixed in `e07afca`.
 
 ### Bite 1 — foundation, sign-in, password change
 
