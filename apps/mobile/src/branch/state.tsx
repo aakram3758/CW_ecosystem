@@ -2,6 +2,7 @@ import { createContext, useContext, useState, type PropsWithChildren } from 'rea
 import * as SecureStore from 'expo-secure-store';
 import * as mock from '@/data/mock/branch';
 import type { Database } from '@/data/database.types';
+import type { ContactTarget } from './shared';
 
 export type Tab = 'home' | 'reqs' | 'notifs' | 'acc';
 export type Page = Tab | 'loc' | 'create' | 'success' | 'details';
@@ -28,6 +29,11 @@ function savedLocation(): SavedLocation | null {
 }
 
 function useBranchState() {
+  // Two pieces of chrome that outlive the page under them, so they live here rather than in a
+  // screen: the toast (a cancel confirmed on the details screen is still being announced while the
+  // list redraws) and the contact sheet (four screens open the same one).
+  const [toast, setToast] = useState<string | null>(null);
+  const [contact, setContact] = useState<ContactTarget | null>(null);
   const [branch, setBranch] = useState(() => {
     const saved = savedLocation();
     return saved ? { ...mock.branch, lat: saved.lat, lng: saved.lng, location_confirmed_at: saved.at } : mock.branch;
@@ -63,6 +69,31 @@ function useBranchState() {
   return {
     branch, requests, events, notifications, page, tab, selected, editId, initialMaterial, initialSubtype,
     filter, setFilter, past, setPast, createKey, navigate, openRequest, startCreate,
+    toast, contact,
+    /**
+     * Announce something that has already happened. The text comes from the caller because this
+     * file has no language — it holds rows, not copy.
+     */
+    showToast: (text: string) => setToast(text),
+    /** The `Toast`'s own 3200ms timer calls this; nothing else should. */
+    dismissToast: () => setToast(null),
+    openContact: (target: ContactTarget) => setContact(target),
+    closeContact: () => setContact(null),
+    /**
+     * Cancel an open request. Phase B is `branch_cancel_request`; here it is the two local effects
+     * that RPC has — the row goes to `cancelled`, which `isOpen` excludes, so it leaves the active
+     * list for the past one by itself, and the history gains a `waiting → cancelled` event. The
+     * caller announces it with `showToast(t.cancelledT)`.
+     *
+     * No fake delay. The canvas spins for 700ms because it is standing in for a network, and the
+     * confirm sheet's spinner is already built (`Button busy`) for phase B to switch on — but
+     * mocking latency now would only teach us how a mock feels.
+     */
+    cancelRequest: (requestId: string) => {
+      setRequests(rows => rows.map(row => row.id === requestId ? { ...row, status: 'cancelled',
+        cancelled_by: branch.user_id, updated_at: mock.mockNow } : row));
+      addEvent(requestId, 'waiting', 'cancelled');
+    },
     materials: mock.materials, subtypes: mock.subtypes, attempts: mock.attempts, reasons: mock.reasons,
     chain: mock.chain, city: mock.city, district: mock.district, opsPhone: mock.opsPhone.value,
     today: mock.mockToday, photoPath: mock.photoPath,

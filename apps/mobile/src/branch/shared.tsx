@@ -1,13 +1,14 @@
-import type { PropsWithChildren, ReactNode } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { useEffect, useRef, useState, type PropsWithChildren, type ReactNode } from 'react';
+import { Linking, Modal, Pressable, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Stop, Rect, Text as SvgText } from 'react-native-svg';
 import type { MaterialRow, RequestListRow } from '@/data/mock/branch';
 import { interpolate, ltr } from '@/i18n/copy';
 import { usePreferences } from '@/providers/preferences';
-import { Card, Icon, Label, Screen, Title } from '@/ui/components';
+import { Button, Card, Icon, Label, Screen, Sheet, Title } from '@/ui/components';
 import { materialIcon } from '@/ui/icons';
-import { branchArtwork, materialSoft, minTouch } from '@/ui/tokens';
+import { branchArtwork, materialSoft, minTouch, softFill } from '@/ui/tokens';
 import { useBranch } from './state';
 
 export const styles = StyleSheet.create({
@@ -82,6 +83,115 @@ export function Pill({ children, color, background, icon }: PropsWithChildren<{ 
       fontFamily: 'Tajawal_700Bold', flexShrink: 1 }}>{children}</Label>
   </View>;
 }
+/**
+ * Who to call, and about what. One of these is what `useBranch().contact` holds while the contact
+ * sheet is open — the material's manager, or the operations team.
+ */
+export type ContactTarget = {
+  title: string;
+  body: string;
+  /** Raw, as the database stores it: `05XXXXXXXX`, or a unified `9200XXXXX`. */
+  phone: string;
+  icon: string;
+  color?: string;
+  background?: string;
+};
+
+/**
+ * The designed contact sheet, which until now was a native `Alert.alert` carrying the number as
+ * text — the prototype could not dial, so it printed `dialToast` instead ("in the app this button
+ * opens the call directly"), and we copied the apology rather than the button. This is the button.
+ *
+ * From the canvas, top to bottom inside `Sheet`:
+ * - a row, `gap: 12`: a `Tile` 52 / icon 28 / `borderRadius: 16` in the target's own colours, then
+ *   the title as `styles.h2` on `styles.grow`;
+ * - the body as a `Label` at 13.5 / lineHeight 21.6 in `colors.text` — the canvas's `.sub` but
+ *   recoloured to text, not muted;
+ * - the number row: `direction: 'ltr'`, `backgroundColor: colors.surface2`, `borderRadius: 14`,
+ *   `paddingStart: 14`, `paddingEnd: 6`, `paddingVertical: 6`, `minHeight: 56`, the number pushed
+ *   apart from the copy button (`justifyContent: 'space-between'`). The number is Tajawal_800ExtraBold
+ *   20 with `letterSpacing: .6` (the canvas's .03em of 20px) and `selectable` so it can be picked up
+ *   by hand too. The copy button is a 44-high `colors.surface` tile, `borderRadius: 10`,
+ *   `paddingHorizontal: 12`, holding an 18px `copy` icon and `t.copy` in `colors.link` — and it says
+ *   `t.copied` for two seconds after a copy, which is the canvas's own `sh.copyLabel` switch.
+ * - the two actions, side by side in a row with `gap: 10`, each `flex: 1`: `t.call` as the primary
+ *   branch button with the `phone` icon, and `t.whatsapp` as a `tone="muted"` one with the `chat`
+ *   icon in `colors.success`.
+ *
+ * Two departures from the canvas, both because this sheet now does the thing instead of describing
+ * it:
+ * - **WhatsApp only for a mobile.** `materials.contact_phone` accepts a unified `9200XXXXX` number,
+ *   which has no WhatsApp account, and the standing rule for this app is that a button that cannot
+ *   work is not drawn. So the row holds both buttons for an `05…` number and only `t.call`, full
+ *   width, for anything else.
+ * - **`dialToast` is not used.** It is a prototype-only string; the buttons open the dialer and
+ *   WhatsApp for real, through `Linking`. Neither places a call or sends a message on its own — the
+ *   dialer opens with the number filled in and waits for the person.
+ *
+ * `tel:` takes the number as stored. `wa.me` takes it international with no punctuation, so an
+ * `05…` number becomes `966` + the nine digits after the leading zero.
+ */
+export function ContactSheet({ target, onClose }: { target: ContactTarget; onClose: () => void }): ReactNode {
+  const f = useBranchFormat();
+  const { t, colors } = f;
+  const [copied, setCopied] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const active = useRef(false);
+  useEffect(() => {
+    active.current = true;
+    return () => { active.current = false; if (timer.current) clearTimeout(timer.current); };
+  }, []);
+  // Nothing here is announced when it fails, and that is a decision rather than an oversight. The
+  // three ways out of this sheet — the clipboard, the dialer, WhatsApp — are the device's to
+  // refuse, and **no designed copy exists for any of them**: the canvas never dialled, so it never
+  // had to say so. The nearest keys we have are about loading data, and «تعذّر تحميل البيانات» over
+  // a dialer that would not open is a worse answer than none. If Ahmed finds a tap that does
+  // nothing on a real phone, that is when the sentence gets written and added here.
+  async function copyNumber() {
+    try {
+      await Clipboard.setStringAsync(target.phone);
+      if (!active.current) return;
+      if (timer.current) clearTimeout(timer.current);
+      setCopied(true);
+      timer.current = setTimeout(() => setCopied(false), 2000);
+    } catch { /* see above */ }
+  }
+  const open = (url: string) => () => void Linking.openURL(url).catch(() => {});
+  const mobile = target.phone.startsWith('05');
+  return <Sheet onClose={onClose}>
+    <View style={styles.row}>
+      <Tile icon={target.icon} color={target.color ?? colors.primary} background={target.background ?? colors.primarySoft} size={52} iconSize={28} />
+      <Title style={[styles.h2, styles.grow]}>{target.title}</Title>
+    </View>
+    <Label style={{ fontSize: 13.5, lineHeight: 21.6 }}>{target.body}</Label>
+    <View style={{ direction: 'ltr', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      gap: 10, backgroundColor: colors.surface2, borderRadius: 14, paddingStart: 14, paddingEnd: 6, paddingVertical: 6, minHeight: 56 }}>
+      <Label selectable style={[styles.heavy, { fontSize: 20, letterSpacing: .6, flexShrink: 1 }]}>
+        {mobile ? f.phone(target.phone) : ltr(target.phone)}
+      </Label>
+      <Pressable accessibilityRole="button" onPress={() => void copyNumber()}
+        style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+          backgroundColor: colors.surface, borderRadius: 10, paddingHorizontal: 12 }}>
+        <Icon name="copy" size={18} color={colors.link} tint={softFill(colors.link)} />
+        <Label accessibilityLiveRegion="polite" style={[styles.bold, { fontSize: 14, color: colors.link }]}>{copied ? t.copied : t.copy}</Label>
+      </Pressable>
+    </View>
+    <View style={{ flexDirection: 'row', gap: 10 }}>
+      <Button variant="branch" icon="phone" label={t.call} style={{ flex: 1 }} onPress={open(`tel:${target.phone}`)} />
+      {/* Not a `Button`: this one is `colors.surface2` carrying `colors.success` on both its icon
+          and its label, and the branch variant's tones each fix their own foreground. One
+          hand-rolled button beside a real one is the smaller cost — every value here is the
+          branch variant's own, so the two stay the same shape. */}
+      {mobile ? <Pressable accessibilityRole="button" onPress={open(`https://wa.me/966${target.phone.slice(1)}`)}
+        style={({ pressed }) => ({ flex: 1, minHeight: 52, borderRadius: 14, paddingHorizontal: 16,
+          flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: colors.surface2, opacity: pressed ? .78 : 1 })}>
+        <Icon name="chat" color={colors.success} tint={softFill(colors.success)} />
+        <Label style={[styles.heavy, { fontSize: 16, textAlign: 'center', color: colors.success }]}>{t.whatsapp}</Label>
+      </Pressable> : null}
+    </View>
+  </Sheet>;
+}
+
 export function Header({ title, onBack, trailing }: { title: string; onBack?: () => void; trailing?: ReactNode }) {
   const { language, copy } = usePreferences();
   return <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8 }}>

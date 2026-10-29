@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { View } from 'react-native';
 import { interpolate } from '@/i18n/copy';
-import { Button, Card, Icon, Label, Title } from '@/ui/components';
+import { Button, Card, Icon, Label, Sheet, Title } from '@/ui/components';
 import { useBranch, isOpen } from './state';
 import { Footer, Muted, PageFrame, Photo, styles, Tile, useBranchFormat } from './shared';
 import { useContact } from './main-screens';
@@ -16,7 +17,10 @@ export function DetailsScreen() {
   const st = f.status(row);
   const editable = row.status === 'waiting';
   const locked = row.status === 'scheduled' || row.status === 'needs_decision';
-  const phone = material?.contact_phone || data.opsPhone;
+  const phone = contact.phoneFor(material);
+  // The confirmation the cancel button has been waiting for since bite 2, when it was drawn
+  // disabled because the state it leads to had not been reviewed yet.
+  const [confirming, setConfirming] = useState(false);
   const attempts = data.attempts.filter(a => a.request_id === row.id).sort((a, b) => a.recorded_at.localeCompare(b.recorded_at));
   const events = data.events.filter(e => e.request_id === row.id).sort((a, b) => a.created_at.localeCompare(b.created_at));
   const reason = (attempt: (typeof attempts)[number]) => {
@@ -58,19 +62,19 @@ export function DetailsScreen() {
       : row.status === 'closed' ? interpolate(t.sub_closed, { r: row.closed_reason ?? '' })
         : row.status === 'cancelled' ? t.sub_cancel : t.sub_await;
   const alreadyOpen = data.requests.some(r => isOpen(r) && r.material_id === row.material_id && r.subtype_id === row.subtype_id);
-  return <PageFrame title={interpolate(t.reqNo, { id: row.number ?? '' })} onBack={data.back}
-    footer={<Footer>
+  return <>
+    <PageFrame title={interpolate(t.reqNo, { id: row.number ?? '' })} onBack={data.back}
+      footer={<Footer>
       {editable ? <>
         <Muted style={{ textAlign: 'center', fontSize: 13 }}>{t.editHint}</Muted>
         <Button variant="branch" tone="outline" icon="pencil" label={t.editT}
           onPress={() => row.id && data.startCreate(row.material_id, row.subtype_id, row.id)} />
-        {/* Cancellation is gated by the separately reviewed confirmation state. */}
-        <Button variant="branch" tone="text" label={t.cancelReq} disabled onPress={() => {}} />
+        <Button variant="branch" tone="text" label={t.cancelReq} onPress={() => setConfirming(true)} />
       </> : locked ? <>
         <View style={[styles.row, { justifyContent: 'center', gap: 8 }]}><Icon name="lock" size={18} color={colors.muted} />
           <Muted style={[styles.bold, { fontSize: 13.5, flexShrink: 1, textAlign: 'center' }]}>{t.lockedT}</Muted></View>
         {phone ? <Button variant="branch" icon="phone" label={t.contactMgr}
-          onPress={() => contact(material ? interpolate(t.mgrT, { m: f.name(material) }) : t.opsT, phone)} /> : null}
+          onPress={() => contact.open(material)} /> : null}
       </> : <Button variant="branch" tone="muted" icon="plus" label={t.againSame} disabled={alreadyOpen}
         onPress={() => data.startCreate(row.material_id, row.subtype_id)} />}
     </Footer>}>
@@ -124,5 +128,36 @@ export function DetailsScreen() {
           <Muted style={{ fontSize: 12.5 }}>{event.time ? f.stamp(event.time) : editable ? t.notSet : ''}</Muted></View>
       </View>)}
     </Card>
-  </PageFrame>;
+    </PageFrame>
+    {/* The canvas's confirm sheet, the same shape the sign-out and location sheets already use: a
+        56 / radius-18 tile holding the `x` icon in `colors.dangerText` on `colors.dangerSoft`, a
+        20px Title, the body as a plain Label, then the two buttons stacked with `gap: 8` — the
+        danger one first (`tone="danger"`, `t.yesCancel`) and `t.keep` under it as `tone="muted"`.
+        Note `t.keep` («تراجع»), not `t.back`: this sheet's second button is a decision to keep the
+        request, not a way back out of a screen.
+
+        The title names the request the way the rest of the app does — `interpolate(t.cancelQ, { m:
+        f.requestName(row) })`, so it reads «إلغاء طلب بلاستيك · ستريتش؟».
+
+        On confirm: close the sheet, `data.cancelRequest(row.id)`, `data.showToast(t.cancelledT)`,
+        and nothing else — the row is still the selected one and the screen stays on it, now showing
+        the cancelled status card and «ألغاه الفرع» at the end of its history, which is the point of
+        staying. */}
+    {confirming && row.id ? <Sheet onClose={() => setConfirming(false)}>
+      {/* `Tile`, which puts the radius at 16 rather than the canvas's 18. The sign-out and location
+          sheets have been on Ahmed's phone at 16 since bite 2 and he approved them there, so the
+          three confirm sheets stay identical to each other; a 2px difference on one of them is
+          worse than the same 2px on all three. */}
+      <Tile icon="x" size={56} iconSize={28} color={colors.dangerText} background={colors.dangerSoft} />
+      <Title style={{ fontSize: 20 }}>{interpolate(t.cancelQ, { m: f.requestName(row) })}</Title>
+      <Label>{t.cancelB}</Label>
+      <View style={{ gap: 8, marginTop: 4 }}>
+        <Button variant="branch" tone="danger" label={t.yesCancel} onPress={() => {
+          if (!row.id) return;
+          setConfirming(false); data.cancelRequest(row.id); data.showToast(t.cancelledT);
+        }} />
+        <Button variant="branch" tone="muted" label={t.keep} onPress={() => setConfirming(false)} />
+      </View>
+    </Sheet> : null}
+  </>;
 }

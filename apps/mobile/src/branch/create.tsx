@@ -5,6 +5,7 @@ import type { MaterialRow, SubtypeRow } from '@/data/mock/branch';
 import { interpolate, ltr } from '@/i18n/copy';
 import { usePreferences } from '@/providers/preferences';
 import { Button, Card, ErrorLine, Field, Icon, Label, Sheet, TextLink, Title } from '@/ui/components';
+import { softFill } from '@/ui/tokens';
 import { isOpen, useBranch } from './state';
 import { Footer, IconButton, Muted, PageFrame, Photo, Pill, styles, Tile, useBranchFormat } from './shared';
 
@@ -36,8 +37,20 @@ export function CreateScreen() {
   const subtype = data.subtypes.find(s => s.id === subtypeId);
   const materialName = material ? [f.name(material), subtype ? f.name(subtype) : null].filter(Boolean).join(' · ') : '';
   const weight = Number(kg) || 0;
-  const valid = Number.isInteger(weight) && weight >= 1 && weight <= 5000 && contactName.trim().length >= 2
-    && /^5[0-9]{8}$/.test(contactPhone) && photo !== 'uploading';
+  // The canvas does not disable the button and then leave you to work out why. It lets you press
+  // it, and the press is what reveals the errors — `showErr` — so the form answers the question it
+  // provoked. Until then nothing is red, however empty the fields are, because a form that scolds
+  // you for not yet having typed is worse than one that waits.
+  const [showErr, setShowErr] = useState(false);
+  const weightError = kg === '' ? t.errW0 : weight < 1 ? t.errWmin : weight > 5000 ? t.errWmax : '';
+  const contactError = { name: contactName.trim().length < 2, phone: !/^5[0-9]{8}$/.test(contactPhone) };
+  const valid = !weightError && !contactError.name && !contactError.phone && photo !== 'uploading';
+  // What is actually red right now: the weight and contact errors only after a press, the photo
+  // error as soon as it happens — a device refusing the camera is not the form's complaint about
+  // what you typed, so it does not wait for permission to be shown.
+  const badWeight = showErr && !!weightError;
+  const badName = showErr && contactError.name;
+  const badPhone = showErr && contactError.phone;
   const open = data.requests.filter(r => isOpen(r) && r.id !== data.editId);
   const lockedRequest = (mid: string, sid: string | null) => open.find(r => r.material_id === mid && r.subtype_id === sid);
   const back = useCallback(() => {
@@ -65,7 +78,12 @@ export function CreateScreen() {
   }
   function pick(m: MaterialRow, s: SubtypeRow | null = null) {
     if (lockedRequest(m.id, s?.id ?? null)) return;
-    setMaterialId(m.id); setSubtypeId(s?.id ?? null); setSheetMaterial(null); setStep(2);
+    setMaterialId(m.id); setSubtypeId(s?.id ?? null); setSheetMaterial(null); setStep(2); setShowErr(false);
+  }
+  /** The one footer button, whatever it says at this step. An invalid form reveals itself here. */
+  function advance() {
+    if (!valid) { setShowErr(true); return; }
+    if (editing || step === 3) submit(); else setStep(3);
   }
   function submit() {
     if (!valid || !material || lockedRequest(material.id, subtypeId)) return;
@@ -91,9 +109,15 @@ export function CreateScreen() {
           <Label style={{ fontSize: 12, fontFamily: 'Tajawal_700Bold', color: i + 1 === step ? colors.text : colors.muted }}>{label}</Label>
         </View>)}
       </View>}
-      footer={step > 1 ? <Footer><Button variant="branch" label={editing ? t.saveEdit : step === 2 ? t.toReview : t.send}
-        icon={step === 3 ? 'send' : undefined} disabled={!valid}
-        onPress={() => editing || step === 3 ? submit() : setStep(3)} /></Footer> : undefined}>
+      footer={step > 1 ? <Footer>
+        {/* The canvas's `cr.showFix`: `fixErrs` above the button. `icon={null}` is `ErrorLine`'s
+            summary variant — no icon, centred — because the fields it points at are the ones
+            carrying the icons. Shown only once the press has happened and the form is still not
+            valid. */}
+        {showErr && !valid ? <ErrorLine icon={null}>{t.fixErrs}</ErrorLine> : null}
+        <Button variant="branch" label={editing ? t.saveEdit : step === 2 ? t.toReview : t.send}
+          icon={step === 3 ? 'send' : undefined} onPress={advance} />
+      </Footer> : undefined}>
       {step === 1 ? <>
         <View style={{ gap: 4, paddingHorizontal: 4 }}><Title style={styles.h1}>{t.matQ}</Title><Muted>{t.matSub}</Muted></View>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
@@ -142,12 +166,15 @@ export function CreateScreen() {
           {!editing ? <TextLink label={t.change} onPress={() => setStep(1)} /> : null}
         </Card>
         {editing ? <Muted style={{ fontSize: 12.5 }}>{t.editLock}</Muted> : null}
-        <Card style={styles.card}>
+        {/* The whole card's border turns `colors.danger`, not just the box inside it — the canvas
+            marks the card so the error is findable while scrolling, and the box so it is obvious
+            which control is wrong. Both come from `badWeight`. */}
+        <Card style={[styles.card, badWeight ? { borderColor: colors.danger } : null]}>
           <View style={[styles.row, { justifyContent: 'space-between' }]}><Label style={[styles.heavy, { fontSize: 16 }]}>{t.weight}</Label><Pill>{t.required}</Pill></View>
           <View style={[styles.row, { gap: 10 }]}>
             <IconButton icon="plus" label={`+1 ${t.kgUnit}`} onPress={() => changeWeight(weight + 1)} style={{ width: 56, height: 56 }} />
             <View style={{ flex: 1, height: 64, flexDirection: 'row', direction: 'ltr', alignItems: 'center', justifyContent: 'center',
-              gap: 6, paddingHorizontal: 10, borderWidth: 1.5, borderColor: colors.line, borderRadius: 16 }}>
+              gap: 6, paddingHorizontal: 10, borderWidth: 1.5, borderColor: badWeight ? colors.danger : colors.line, borderRadius: 16 }}>
               <TextInput accessibilityLabel={t.weight} keyboardType="number-pad" value={kg} placeholder={String(0)}
                 placeholderTextColor={colors.muted} onChangeText={value => setKg(digits(value).replace(/^0+(?=\d)/, '').slice(0, 5))}
                 style={{ flex: 1, height: 64, minWidth: 0, textAlign: 'center', color: colors.text, fontSize: 32, fontFamily: 'Tajawal_800ExtraBold' }} />
@@ -161,17 +188,30 @@ export function CreateScreen() {
               <Label style={styles.bold}>{`+${n}`}</Label>
             </Pressable>)}
           </View>
-          {weight > 1000 && weight <= 5000 ? <View style={{ paddingVertical: 8, paddingHorizontal: 10, borderRadius: 10, backgroundColor: colors.warningSoft }}>
-            <Label style={{ fontSize: 13, color: colors.warning }}>{t.warnW}</Label></View>
+          {/* Three lines that take the same slot, in the canvas's order of precedence:
+              - the error, when `badWeight` — an `ErrorLine` carrying `weightError`;
+              - otherwise the large-weight warning, whenever the number is over 1,000 and is not
+                itself an error (so 6,000 kg is a mistake to fix, not a quantity to double-check);
+              - otherwise the hint. The canvas's own condition for the hint is
+                `!badWeight && !(weight > 1000 && !weightError)`, which is what is written here:
+                it stays visible while an over-5,000 number has not yet been pressed at. */}
+          {badWeight ? <ErrorLine>{weightError}</ErrorLine>
+            : !weightError && weight > 1000 ? <View style={{ flexDirection: 'row', gap: 6, alignItems: 'flex-start',
+              paddingVertical: 8, paddingHorizontal: 10, borderRadius: 10, backgroundColor: colors.warningSoft }}>
+              <Icon name="info" size={18} color={colors.warning} tint={softFill(colors.warning)} />
+              <Label style={[styles.bold, { flex: 1, fontSize: 13, lineHeight: 19.5, color: colors.warning }]}>{t.warnW}</Label></View>
             : <Muted style={{ fontSize: 13, textAlign: 'center' }}>{t.weightHint}</Muted>}
         </Card>
-        <Card style={styles.card}>
+        {/* The photo card marks itself the moment the device refuses — `photoError` is not gated on
+            `showErr`, because it is not a complaint about what was typed. The two dashed buttons
+            take the same colour on their dashed border. */}
+        <Card style={[styles.card, photoError ? { borderColor: colors.danger } : null]}>
           <View style={[styles.row, { justifyContent: 'space-between' }]}><Label style={[styles.heavy, { fontSize: 16 }]}>{t.photo}</Label><Pill>{t.optional}</Pill></View>
           <View style={[styles.row, { alignItems: 'flex-start', gap: 10 }]}><Icon name="scale" /><Label style={{ flex: 1, fontSize: 13.5, lineHeight: 21.6 }}>{t.photoGuide}</Label></View>
           {photo === 'none' ? <View style={{ flexDirection: 'row', gap: 10 }}>
             {[{ icon: 'camera', label: t.takePhoto }, { icon: 'image', label: t.gallery }].map(item => <Pressable key={item.icon}
               accessibilityRole="button" onPress={() => void choosePhoto(item.icon === 'camera')} style={{ flex: 1, minHeight: 96, borderWidth: 1.5, borderStyle: 'dashed',
-                borderColor: colors.line, borderRadius: 16, backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                borderColor: photoError ? colors.danger : colors.line, borderRadius: 16, backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center', gap: 6 }}>
               <Icon name={item.icon} size={28} /><Label style={[styles.bold, { fontSize: 14, textAlign: 'center' }]}>{item.label}</Label>
             </Pressable>)}
           </View> : photo === 'uploading' ? <View accessibilityState={{ busy: true }} style={[styles.row, { minHeight: 96,
@@ -201,13 +241,17 @@ export function CreateScreen() {
               lineHeight: 24, textAlign: f.language === 'ar' ? 'right' : 'left', textAlignVertical: 'top' }} />
           <Muted style={{ fontSize: 12, alignSelf: 'flex-end' }}>{ltr(`${note.length} / 200`)}</Muted>
         </Card>
-        <Card style={styles.card}>
+        {/* One card border for either field being wrong, and `Field`'s own `error` prop for the red
+            box and the line under it — which is the whole reason `Field` already takes one. */}
+        <Card style={[styles.card, badName || badPhone ? { borderColor: colors.danger } : null]}>
           <View style={[styles.row, { justifyContent: 'space-between' }]}><Label style={[styles.heavy, { fontSize: 16 }]}>{t.contactT}</Label><Pill>{t.required}</Pill></View>
           <Muted style={{ fontSize: 13, lineHeight: 19.5 }}>{t.contactHint}</Muted>
-          <Field variant="branch" label={t.cName} value={contactName} onChangeText={setContactName} maxLength={60} placeholder={t.cNamePh} autoComplete="name" />
+          <Field variant="branch" label={t.cName} value={contactName} onChangeText={setContactName} maxLength={60}
+            placeholder={t.cNamePh} autoComplete="name" error={badName ? t.errCName : undefined} />
           <Field variant="branch" label={t.cPhone} prefix={copy.shared.phonePrefix} placeholder={copy.shared.phonePlaceholder}
             value={contactPhone} onChangeText={value => setContactPhone(digits(value).replace(/^0/, '').slice(0, 9))}
-            keyboardType="phone-pad" autoComplete="tel" style={{ textAlign: 'left', writingDirection: 'ltr' }} />
+            keyboardType="phone-pad" autoComplete="tel" error={badPhone ? t.errPhone : undefined}
+            style={{ textAlign: 'left', writingDirection: 'ltr' }} />
         </Card>
       </> : null}
       {step === 3 && material ? <>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, View } from 'react-native';
+import type { MaterialRow } from '@/data/mock/branch';
 import { interpolate, ltr } from '@/i18n/copy';
 import { useAuth } from '@/providers/auth';
 import { usePreferences } from '@/providers/preferences';
@@ -10,11 +11,37 @@ import { BranchMap } from './location';
 import { isOpen, useBranch } from './state';
 import { BottomNav, Footer, IconButton, Muted, PageFrame, Pill, RequestCard, styles, Tile, useBranchFormat } from './shared';
 
-export function useContact() {
-  const { t } = useBranchFormat();
-  // The prototype never dials its demo numbers. Keep that boundary for mock contacts as well.
-  return (title: string, phone: string | null) => {
-    if (phone) Alert.alert(title, `${phone}\n${t.dialToast}`, [{ text: t.close }]);
+/**
+ * Who to call about a material, and how to open the sheet that calls them.
+ *
+ * The rule the whole app follows, in one place now instead of repeated at each of the four screens
+ * that offer this: the material's own manager if ops has given that material a number, otherwise
+ * the unified operations number, and **if neither exists the button is not drawn** — never a button
+ * that cannot work. `phoneFor` is what the screens check to decide that; `open` is what they call.
+ *
+ * Pass null for the material to reach operations directly, which is what the home hero's headset
+ * button and the account screen's row mean.
+ */
+export function useContact(): {
+  phoneFor: (material?: MaterialRow | null) => string | null;
+  open: (material?: MaterialRow | null) => void;
+} {
+  const f = useBranchFormat();
+  const { opsPhone, openContact } = useBranch();
+  const phoneFor = (material?: MaterialRow | null) => material?.contact_phone || opsPhone || null;
+  return {
+    phoneFor,
+    open: (material?: MaterialRow | null) => {
+      const phone = phoneFor(material);
+      if (!phone) return;
+      // Tinted like the material it is about, the way every other material row in the app is —
+      // but only when it is the material's own manager being called. Falling back to operations
+      // is not about the material, so it keeps the sheet's own primary colours.
+      openContact(material?.contact_phone
+        ? { title: interpolate(f.t.mgrT, { m: f.name(material) }), body: interpolate(f.t.mgrB, { m: f.name(material) }),
+          phone, ...f.materialStyle(material) }
+        : { title: f.t.opsT, body: f.t.opsB, phone, icon: 'headset' });
+    },
   };
 }
 export function HomeScreen() {
@@ -38,7 +65,7 @@ export function HomeScreen() {
       <View style={[styles.row, { justifyContent: 'space-between', paddingHorizontal: 20 }]}>
         <Label style={[styles.heavy, { fontSize: 16, color: colors.onPrimary, flexShrink: 1 }]}>{t.splashB}</Label>
         <View style={{ flexDirection: 'row', gap: 8 }}>
-          {data.opsPhone ? <Pressable accessibilityRole="button" accessibilityLabel={t.support} onPress={() => contact(t.opsT, data.opsPhone)}
+          {contact.phoneFor() ? <Pressable accessibilityRole="button" accessibilityLabel={t.support} onPress={() => contact.open()}
             style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: branchArtwork.heroTile, alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="headset" color={colors.onPrimary} />
           </Pressable> : null}
@@ -129,8 +156,7 @@ export function NotificationsScreen() {
     {data.notifications.map(n => {
       const material = data.materials.find(m => m.id === n.material_id);
       const request = data.requests.find(r => r.id === n.request_id);
-      const phone = material?.contact_phone || data.opsPhone;
-      const action = request?.status === 'needs_decision' && phone;
+      const action = request?.status === 'needs_decision' && contact.phoneFor(material);
       const icons: Record<string, string> = { sched: 'cal', mis: 'headset', fail: 'warn', done: 'seal', morning: 'truck', closed: 'lock' };
       const warning = n.kind === 'mis' || n.kind === 'fail';
       return <Card key={n.id} style={{ borderRadius: 18, padding: 14, gap: 10, backgroundColor: n.read_at ? colors.surface : colors.primarySoft }}>
@@ -147,7 +173,7 @@ export function NotificationsScreen() {
           </View>
         </Pressable>
         {action ? <Button variant="branch" tone="muted" icon="phone" label={t.contactMgr}
-          style={{ minHeight: 44 }} onPress={() => contact(material ? interpolate(t.mgrT, { m: f.name(material) }) : t.opsT, phone)} /> : null}
+          style={{ minHeight: 44 }} onPress={() => contact.open(material)} /> : null}
       </Card>;
     })}
   </PageFrame>;
@@ -197,7 +223,7 @@ export function AccountScreen() {
           <Tile icon="key" size={40} /><Label style={[styles.grow, styles.bold]}>{t.changePass}</Label>
           <Icon name={f.language === 'ar' ? 'caretL' : 'caretR'} color={colors.muted} />
         </Pressable>
-        {data.opsPhone ? <Pressable accessibilityRole="button" onPress={() => contact(t.opsT, data.opsPhone)}
+        {contact.phoneFor() ? <Pressable accessibilityRole="button" onPress={() => contact.open()}
           style={[styles.row, { minHeight: 56, borderTopWidth: 1, borderTopColor: colors.line }]}>
           <Tile icon="headset" size={40} /><Label style={[styles.grow, styles.bold]}>{t.contactOps}</Label>
           <Icon name={f.language === 'ar' ? 'caretL' : 'caretR'} color={colors.muted} />

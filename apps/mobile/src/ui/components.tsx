@@ -1,5 +1,5 @@
-import { useState, type PropsWithChildren, type ReactNode } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet,
+import { useEffect, useRef, useState, type PropsWithChildren, type ReactNode } from 'react';
+import { ActivityIndicator, Animated, Easing, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet,
   Text, TextInput, View, type TextInputProps, type TextProps, type StyleProp, type ViewStyle } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -115,7 +115,10 @@ export function Field({ label, error, prefix, variant, ...props }: TextInputProp
         fontFamily: 'Tajawal_400Regular', fontSize: typography.baseSize,
         textAlign: language === 'ar' ? 'right' : 'left' }, props.style]} />
     </View>
-    {error ? <Message>{error}</Message> : null}
+    {/* `ErrorLine`, not `Message`: the canvas draws every field error as `.err` — the 18px warn
+        icon beside Tajawal_700Bold 13. `Message` was a plain 15px line with no icon, which is
+        also why the sign-in screen's field errors have been missing their icon since bite 1. */}
+    {error ? <ErrorLine>{error}</ErrorLine> : null}
   </View>;
 }
 
@@ -203,14 +206,19 @@ export function Segmented<T extends string>({ label, value, options, tone = 'pil
  * keeps the icon beside its first line. `accessibilityRole="alert"`, announced politely.
  */
 export function ErrorLine({ icon = 'warn', children, style }: PropsWithChildren<{
-  icon?: string; style?: StyleProp<ViewStyle>;
+  // `null` is the summary variant, and it does two things at once: no icon, and the text centred.
+  // The create form's «أكمل الحقول المحددة بالأحمر» is drawn that way — no icon, because the
+  // fields it points at are the ones carrying them, and centred under the button it belongs to.
+  // Centring has to happen on the Label rather than the row, because the Label is `flex: 1` and
+  // fills the row whatever the row's `justifyContent` says.
+  icon?: string | null; style?: StyleProp<ViewStyle>;
 }>): ReactNode {
   const { colors } = usePreferences();
   return <View accessibilityRole="alert" accessibilityLiveRegion="polite"
     style={[{ flexDirection: 'row', gap: 6, alignItems: 'flex-start' }, style]}>
-    <Icon name={icon} size={18} color={colors.dangerText} tint={softFill(colors.dangerText)} />
+    {icon ? <Icon name={icon} size={18} color={colors.dangerText} tint={softFill(colors.dangerText)} /> : null}
     <Label style={{ flex: 1, fontFamily: 'Tajawal_700Bold', fontSize: 13,
-      lineHeight: 19.5, color: colors.dangerText }}>{children}</Label>
+      lineHeight: 19.5, color: colors.dangerText, textAlign: icon === null ? 'center' : 'auto' }}>{children}</Label>
   </View>;
 }
 
@@ -223,6 +231,52 @@ export function ErrorBanner({ icon = 'warn', children }: PropsWithChildren<{ ico
   const { colors } = usePreferences();
   return <ErrorLine icon={icon} style={{ backgroundColor: colors.dangerSoft, paddingVertical: 10,
     paddingHorizontal: 12, borderRadius: 12 }}>{children}</ErrorLine>;
+}
+
+/**
+ * The canvas's toast — the line that says a thing happened, after it has happened.
+ *
+ * Shape, from the canvas: `position: absolute`, `start: 16`, `end: 16`, `top: 52`, `zIndex: 60`,
+ * a `colors.surface` card with a 1px `colors.line` border, `borderRadius: 16`,
+ * `paddingVertical: 12`, `paddingHorizontal: 14`, a row with `gap: 10` and `alignItems: 'center'`,
+ * the overlay shadow (`colors.overlayShadow`, offset 0/12, opacity .16 light / .35 dark, radius 30,
+ * `elevation: 8` — the same block `AuthCard` uses), a `seal` icon at 24 in `colors.success`, then
+ * the text as Tajawal_700Bold 14 / lineHeight 20.3 in `colors.text`, `flexShrink: 1` so a long
+ * sentence wraps inside the card instead of pushing the icon out.
+ *
+ * `text` is the whole of its state: null renders nothing. It fades in over 200ms — the canvas's
+ * `cwfade .2s ease-out` — and calls `onDone` 3200ms after it appeared, which is the canvas's own
+ * timeout. Opacity is safe on the native driver; `backgroundColor` would not be, see the note in
+ * `onboarding.tsx`. A new `text` restarts both the fade and the timer, so two toasts in a row read
+ * as two rather than one that overstays.
+ *
+ * Announced with `accessibilityLiveRegion="polite"` and `accessibilityRole="alert"`: React Native
+ * has no 'status' role, and polite is what the canvas's `role="status"` means — say it when the
+ * screen reader next pauses, do not interrupt.
+ */
+export function Toast({ text, onDone }: { text: string | null; onDone: () => void }): ReactNode {
+  const { colors, theme } = usePreferences();
+  const opacity = useRef(new Animated.Value(0)).current;
+  const done = useRef(onDone);
+  useEffect(() => { done.current = onDone; }, [onDone]);
+  useEffect(() => {
+    opacity.setValue(0);
+    if (text === null) return;
+    const fade = Animated.timing(opacity, { toValue: 1, duration: 200, easing: Easing.out(Easing.ease), useNativeDriver: true });
+    fade.start();
+    const timer = setTimeout(() => done.current(), 3200);
+    return () => { clearTimeout(timer); fade.stop(); };
+  }, [text, opacity]);
+  if (text === null) return null;
+  return <Animated.View pointerEvents="none" accessibilityLiveRegion="polite" accessibilityRole="alert"
+    style={{ position: 'absolute', start: 16, end: 16, top: 52, zIndex: 60, opacity,
+      backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 16,
+      paddingVertical: 12, paddingHorizontal: 14, flexDirection: 'row', gap: 10, alignItems: 'center',
+      shadowColor: colors.overlayShadow, shadowOffset: { width: 0, height: 12 },
+      shadowOpacity: theme === 'dark' ? .35 : .16, shadowRadius: 30, elevation: 8 }}>
+    <Icon name="seal" size={24} color={colors.success} tint={softFill(colors.success)} />
+    <Label style={{ fontFamily: 'Tajawal_700Bold', fontSize: 14, lineHeight: 20.3, flexShrink: 1 }}>{text}</Label>
+  </Animated.View>;
 }
 
 export function Loading() {

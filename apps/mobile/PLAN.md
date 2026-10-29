@@ -359,9 +359,52 @@ React Native's own `Animated` and gestures are `PanResponder`, and the reason is
 
 ### Bite 3 — branch states
 
-Home loading / error / new branch with no requests · offline retry bar · location permission denied ·
-create-request input errors · send failed while offline · details being rescheduled after a failed pickup ·
-details with the manager · cancel confirmation · contact-manager sheet · no requests.
+Split in two after the second device test, and the line between the halves is what the state is
+*about*. Four of these are design — they exist whether or not there is a network — and Ahmed sees
+them before the wiring. The rest are states of data, and building them on mock data would mean
+inventing a delay and a failure to look at, then writing them again against a real one. So they
+move to phase B, where they come out of the wiring rather than being staged for it.
+
+**3a — design, before the wiring** (brief `briefs/05-branch-states-design.md`)
+
+- [ ] Cancel confirmation — the sheet the details screen's cancel button has been waiting for since
+      bite 2, when it was drawn `disabled` because this state had not been reviewed
+- [ ] The contact-the-manager sheet — until now a native `Alert.alert` printing the number as text,
+      because the prototype could not dial and we copied its apology instead of its button
+- [ ] Create-request input errors — the canvas does not disable its own button and leave you to work
+      out why; the press is what reveals the errors
+- [ ] Location permission denied — one grey line where the canvas has a card
+
+Three things came with them, each because the four above need it:
+
+- `Toast` (`src/ui/components.tsx`) — the canvas announces a cancelled request and a saved location
+  this way, and the app had nowhere to say so. Mounted in `branch/app.tsx` above the pages, so it
+  survives the page changing under it.
+- `expo-clipboard` — the contact sheet's copy-the-number button. The one dependency added in this
+  bite; the two React copies were checked afterwards and are unchanged (19.3.0 nested, 19.3.1
+  hoisted).
+- `ErrorLine` takes `icon={null}`, for the create form's summary line, which the canvas draws
+  without one because the fields it points at carry the icons.
+
+**3b — data, with the wiring** (moved into phase B)
+
+Home loading / error / new branch with no requests · offline retry bar · send failed while offline ·
+details being rescheduled after a failed pickup · no requests. «قيد المتابعة مع المسؤول» already
+works — it is the `needs_decision` branch of the details screen, built in bite 2.
+
+### Two more places where the app goes past the canvas
+
+Both in bite 3a, both for the same reason: the sheet now does the thing the prototype could only
+describe.
+
+- **WhatsApp shows only for a mobile.** `materials.contact_phone` accepts a unified `9200XXXXX`
+  number, which has no WhatsApp account. The canvas draws both buttons unconditionally because
+  neither of its buttons did anything. The standing rule wins: no button that cannot work.
+- **`dialToast` is now unused** — «في التطبيق يفتح هذا الزر الاتصال مباشرة» was the prototype
+  apologising for not being an app. The buttons open the dialer and WhatsApp through `Linking`.
+
+`placePin` is also still unused: it belongs to a branch with no coordinates at all, which the mock
+branch is not. It stays for whoever builds that state.
 
 ### Bite 4 — driver screens
 
@@ -396,6 +439,9 @@ Mock data out, Supabase in. Reads go through RLS, every write goes through an RP
       stops asking a branch to place its pin on every launch; `branches.location_confirmed_at`
       is the real answer
 - [ ] Every error code from the README mapped to its designed message
+- [ ] Bite **3b** — the branch's data states, which are states of this wiring and not of a mock:
+      home loading / error / no requests, the offline retry bar, send failed while offline, and a
+      request being rescheduled after a failed pickup
 
 ## Phase C — device testing, then one push
 
