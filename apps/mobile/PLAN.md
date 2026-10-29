@@ -245,55 +245,65 @@ each one before the next starts.
 
 ### Where the branch app stands — 29 October 2026
 
-Bites 1, 2, 2.5 and 3a are done. The branch side has been walked end to end on a real phone across three
-rounds of testing. The driver app has not been started: nothing of bites 4 and 5 exists.
+**Development on the branch app is closed.** Bites 1, 2, 2.5, 3a and 3b are done and the app runs
+entirely on the live project — `src/data/mock/` is deleted. It has been walked end to end on a real
+phone across three rounds, but every one of those rounds was on mock data: **nothing below has been
+tried against the real backend from a device yet.** The driver app has not been started; nothing of
+bites 4 and 5 exists.
 
-#### Already on the real backend, not mock
+#### What the app does, all of it on the real backend
 
-- Sign-in, one screen for both roles: the Branch | Driver switch, the chain picker fed by the `chains`
-  Edge Function, branch number, password — through the `sign-in` Edge Function, with
-  `INVALID_CREDENTIALS { attempts_left }` and `LOCKED { retry_after }` rendered as the design's text.
-- The forced change after a temporary password: 8+ characters with a Latin letter and a digit,
-  `auth.updateUser` then `rpc('complete_password_change')`, safe to retry.
-- Role routing from `profiles.role`, and sign-out if the account belongs to the other side.
-- The error-code map covering every UPPER_SNAKE code in `supabase/README.md`.
-- The session in `expo-secure-store`, chunked; TanStack Query; `useOnline`.
+Sign-in for both roles through the `sign-in` Edge Function, with the attempt count and the lock-out
+rendered as the design's text · the forced change after a temporary password · role routing from
+`profiles.role` · the session in `expo-secure-store` · splash · onboarding · set branch location,
+including a branch that has no coordinates at all · home · my requests, active and past, with the
+material filter · create a request in three steps, with the subtype sheet, the open-request lock, a
+real camera and gallery, and the photo uploaded before the row is written · request sent · request
+details with its outcomes and full history and its stored photo through a signed URL ·
+notifications · account · the contact sheet · «تغيير كلمة المرور» · the cancel confirmation · the
+toast. Arabic and English, light, dark and system, right-to-left throughout.
 
-#### Built, on mock data
+States done: the material lock · a refused or failed camera · a refused location, and the map's
+locating, my-location and no-pin states · the create form's input errors · the cancel
+confirmation · the contact sheet · «لم يُحدَّد يوم الزيارة بعد» and «لا توجد طلبات حالية» on home ·
+sign-in's wrong credentials, lock-out and offline · home loading and home error with retry · the
+requests list empty, with the action that matches why · the offline bar at its three heights · a
+send that failed, with the photo and the typed values kept · «تُعاد جدولته بعد تعذّر الاستلام».
 
-Splash · onboarding · set branch location · home · my requests (active / past, material filter) · create
-request in three steps with the subtype sheet, the open-request lock, a real camera and gallery · request
-sent · request details with its outcomes and full history · notifications · account · the contact sheet ·
-the cancel confirmation · the toast. Arabic and English, light, dark and system, right-to-left throughout.
+#### What is left — none of it in the app's code
 
-States done: the material lock · a refused or failed camera · a refused location, and the map's locating
-and my-location states · the create form's input errors · cancel confirmation · the contact sheet · «لم
-يُحدَّد يوم الزيارة بعد» on home · sign-in's wrong credentials, lock-out and offline.
-
-#### What is left in the branch app
-
-1. **Six data states — bite 3b, in phase B.** Home loading · home error with retry · a new branch with no
-   requests at all, and "no requests" in the list · the offline retry bar · send failed while offline, with
-   the photo and the typed values kept on screen · details «تُعاد جدولته بعد تعذّر الاستلام».
-2. **One screen deliberately switched off.** «تغيير كلمة المرور» on the account screen. The existing route
-   is forced-change only and a voluntary change needs its own auth contract. **Ahmed's decision: build it,
-   or drop the row.**
-3. **One state no mock can reach.** A branch with no coordinates at all → «اضغط على الخريطة لوضع الدبوس»
-   with the confirm button disabled. `placePin` is lifted and unused; `mock.branch` has coordinates.
-4. **The wiring itself — phase B below.**
-5. **Copy that does not exist.** Nothing is drawn for the clipboard, the dialer or WhatsApp refusing, so
-   those fail silently. The canvas never dialled, so it never had to say so.
-6. **Three things to fill from the dashboard** before the wired app looks right: `app_settings.ops_phone`
-   is empty, five of six materials have no `contact_phone` — so the contact button will correctly hide in
-   most places — and the `testserious` and `danbue` chains are still active and will show in the picker.
-7. **A deferred decision.** The branch is a single route, so a notification cannot deep-link to one
+1. **It has never run against the real backend on a phone.** `tsc` and the Android bundle pass,
+   which says it compiles, not that a request reached Supabase. The first real test is a branch
+   account on a device: **Ahmed sets the password from the dashboard**, since Claude does not create
+   accounts or set credentials.
+2. **Three things to fill from the dashboard.** `app_settings.ops_phone` is empty and five of six
+   materials have no `contact_phone`, so the contact button correctly hides in most places; all 23
+   branches have a null `name_en`, so the English label falls back to the district; and the
+   `testserious` and `danbue` chains are still active and show in the picker. The two branches with
+   no confirmed pin are both on `testserious`, and migration 17 allows one confirmation ever — so
+   those two are the only way left to reach the location screen at all. **Do not deactivate that
+   chain until the location screen has been tested.**
+3. **Copy that does not exist.** Nothing is drawn for the clipboard, the dialer or WhatsApp
+   refusing to open, so those fail silently. The canvas never dialled, so it never had to say so.
+   It gets written if Ahmed meets it on a real phone.
+4. **Two sentences written outside the design**, both kept as drafted after Ahmed read them:
+   `shared.wrongPassword` and `shared.samePasswordNow`. The second exists because the approved
+   `samePassword` names the temporary password, which is wrong once there is none.
+5. **The forced password screen is still phase 0's shared shell**, not this canvas's drawing — no
+   lock tile, no rule circles, a plain card for both roles. The voluntary screen built in bite 3b
+   *is* the canvas's. Redrawing the forced one touches the driver's flow too, so it is a decision of
+   its own and not a bug.
+6. **A deferred decision.** The branch is a single route, so a notification cannot deep-link to one
    request. Decided when notifications are built.
 
-Also: English branch names show the Arabic name until migration 19 lands and someone types them in.
+**The one bug a device found that review could not:** the app reloaded itself forever at launch,
+because boot asked native for a right-to-left direction and then reloaded to apply it, while a JS
+reload cannot change the native constant it was testing. Fixed in `e07afca`.
 
-**The one bug a device found that review could not:** the app reloaded itself forever at launch, because
-boot asked native for a right-to-left direction and then reloaded to apply it, while a JS reload cannot
-change the native constant it was testing. Fixed in `e07afca`.
+**The bug review found that no device could have:** the location screen defaulted its pin to the
+middle of Jeddah for a branch with no coordinates, so «تأكيد الموقع» would have saved a position
+nobody chose — and migration 17 would then have made it permanent. No mock branch had a null `lat`,
+so only reading the real rows showed it.
 
 ### Bite 1 — foundation, sign-in, password change
 
@@ -414,13 +424,13 @@ move to phase B, where they come out of the wiring rather than being staged for 
 
 **3a — design, before the wiring** (brief `briefs/05-branch-states-design.md`)
 
-- [ ] Cancel confirmation — the sheet the details screen's cancel button has been waiting for since
+- [x] Cancel confirmation — the sheet the details screen's cancel button has been waiting for since
       bite 2, when it was drawn `disabled` because this state had not been reviewed
-- [ ] The contact-the-manager sheet — until now a native `Alert.alert` printing the number as text,
+- [x] The contact-the-manager sheet — until now a native `Alert.alert` printing the number as text,
       because the prototype could not dial and we copied its apology instead of its button
-- [ ] Create-request input errors — the canvas does not disable its own button and leave you to work
+- [x] Create-request input errors — the canvas does not disable its own button and leave you to work
       out why; the press is what reveals the errors
-- [ ] Location permission denied — one grey line where the canvas has a card
+- [x] Location permission denied — one grey line where the canvas has a card
 
 Three things came with them, each because the four above need it:
 
@@ -475,18 +485,20 @@ Ahmed says the design is right.**
 
 Mock data out, Supabase in. Reads go through RLS, every write goes through an RPC.
 
-- [ ] Branch reads: `request_list`, `branches`, `notifications`, reference tables
-- [ ] Branch writes: `branch_set_location`, `branch_create_request`, `branch_update_request`, `branch_cancel_request`
+- [x] Branch reads: `request_list`, `branches`, `notifications`, reference tables
+- [x] Branch writes: `branch_set_location`, `branch_create_request`, `branch_update_request`, `branch_cancel_request`
 - [ ] Driver reads: assigned requests, `visit_attempts`, `notifications`
 - [ ] Driver writes: `driver_record_outcome`
-- [ ] Everyone: `mark_notifications_read`
-- [ ] Photo upload — private bucket `request-photos`: branch → `branch/<branch_id>/…`, driver → `request/<request_id>/…`
-- [ ] The four migrations below (17-20)
-- [ ] Delete the device-side location memory in `branch/state.tsx` — it exists only so phase A
+- [x] Everyone: `mark_notifications_read`
+- [x] Photo upload, the branch half — private bucket `request-photos`, `branch/<branch_id>/…`, uploaded
+      before the row is written. The driver's `request/<request_id>/…` comes with bite 5.
+- [x] Migrations 17, 18 and 19, applied to the live project and verified in it. 20 is the driver's
+      and comes with bite 4.
+- [x] Delete the device-side location memory in `branch/state.tsx` — it exists only so phase A
       stops asking a branch to place its pin on every launch; `branches.location_confirmed_at`
       is the real answer
-- [ ] Every error code from the README mapped to its designed message
-- [ ] Bite **3b** — the branch's data states, which are states of this wiring and not of a mock:
+- [x] Every error code from the README mapped to its designed message
+- [x] Bite **3b** — the branch's data states, which are states of this wiring and not of a mock:
       home loading / error / no requests, the offline retry bar, send failed while offline, and a
       request being rescheduled after a failed pickup
 
