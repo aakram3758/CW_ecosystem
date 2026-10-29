@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, View } from 'react-native';
-import type { MaterialRow } from '@/data/mock/branch';
+import type { MaterialRow } from '@/data/rows';
 import { interpolate, ltr } from '@/i18n/copy';
 import { useAuth } from '@/providers/auth';
 import { usePreferences } from '@/providers/preferences';
 import { errorMessage } from '@/data/errors';
-import { Button, Card, Icon, Label, PreferencesControls, Screen, Sheet, TextLink, Title } from '@/ui/components';
+import { Button, Card, EmptyState, ErrorState, Icon, Label, PreferencesControls, Screen, Sheet, Skeleton, TextLink, Title } from '@/ui/components';
 import { branchArtwork } from '@/ui/tokens';
 import { BranchMap } from './location';
 import { isOpen, useBranch } from './state';
@@ -44,6 +44,28 @@ export function useContact(): {
     },
   };
 }
+/**
+ * The note that takes the next-visit card's place when there is no visit to show: «لا توجد زيارة
+ * محددة بعد» while requests are waiting for a day, and «لا توجد طلبات حالية» when the branch has
+ * none at all.
+ *
+ * The canvas draws the two identically — a tile, a heavy line, a smaller sub, inside the same
+ * overlapping card — and they take turns in the same slot, so they are one component here. Not
+ * `EmptyState`: that is the requests list's state, a 72px circle with 48 of padding under it, and
+ * it is far too tall to sit in a card that overlaps the hero by 52.
+ */
+function HomeNote({ icon, color, background, title, body }: {
+  icon: string; color: string; background: string; title: string; body: string;
+}) {
+  return <Card style={[styles.row, { marginTop: -52, marginHorizontal: 16, borderRadius: 22, alignItems: 'flex-start' }]}>
+    <Tile icon={icon} color={color} background={background} />
+    <View style={[styles.grow, { gap: 2 }]}>
+      <Label style={[styles.heavy, { fontSize: 16 }]}>{title}</Label>
+      <Muted style={{ fontSize: 13.5 }}>{body}</Muted>
+    </View>
+  </Card>;
+}
+
 export function HomeScreen() {
   const data = useBranch();
   const f = useBranchFormat();
@@ -86,7 +108,12 @@ export function HomeScreen() {
         <Button variant="branch" tone="gold" icon="plus" label={t.newReq} onPress={() => data.startCreate()} style={{ alignSelf: 'flex-start', paddingHorizontal: 22 }} />
       </View>
     </View>
-    {next && material ? <Pressable accessibilityRole="button" onPress={() => next.id && data.openRequest(next.id)} style={{ marginTop: -52, marginHorizontal: 16 }}>
+    {data.loading ? <Card style={{ marginTop: -52, marginHorizontal: 16,
+      borderRadius: 22, padding: 16, gap: 12 }}>
+      <Skeleton width={110} height={14} /><Skeleton width={220} height={26} /><Skeleton height={40} />
+    </Card> : data.error ? <Card style={{ marginTop: -52, marginHorizontal: 16, borderRadius: 22, padding: 0 }}>
+      <ErrorState onRetry={data.retry} />
+    </Card> : next && material ? <Pressable accessibilityRole="button" onPress={() => next.id && data.openRequest(next.id)} style={{ marginTop: -52, marginHorizontal: 16 }}>
       <Card style={{ borderRadius: 22, padding: 16, gap: 10 }}>
         <View style={[styles.row, { justifyContent: 'space-between' }]}><Muted style={[styles.bold, { fontSize: 13 }]}>{t.nextVisit}</Muted>
           <Pill color={colors.link} background={colors.primarySoft}>{days <= 0 ? t.today : days === 1 ? t.tomorrow : days === 2 ? t.in2 : interpolate(t.inDays, { n: days })}</Pill>
@@ -97,15 +124,17 @@ export function HomeScreen() {
           <Icon name={f.language === 'ar' ? 'caretL' : 'caretR'} color={colors.muted} />
         </View>
       </Card>
-    </Pressable> : open.length ? <Card style={{ marginTop: -52, marginHorizontal: 16, borderRadius: 22 }}>
-      <Label style={styles.heavy}>{t.noVisitT}</Label><Muted>{t.noVisitB}</Muted>
-    </Card> : null}
-    <View style={{ paddingTop: 26, paddingHorizontal: 16, gap: 10 }}>
+    </Pressable> : open.length
+      ? <HomeNote icon="cal" color={colors.muted} background={colors.surface2} title={t.noVisitT} body={t.noVisitB} />
+      : <HomeNote icon="box" color={colors.accentText} background={colors.accentSoft} title={t.emptyT} body={t.emptyB} />}
+    {data.loading ? <View accessibilityState={{ busy: true }} style={{ paddingTop: 26, paddingHorizontal: 20, gap: 12 }}>
+      <Skeleton width={140} height={20} /><Skeleton height={78} radius={18} /><Skeleton height={78} radius={18} />
+    </View> : !data.error && open.length > 0 ? <View style={{ paddingTop: 26, paddingHorizontal: 16, gap: 10 }}>
       <View style={[styles.row, { justifyContent: 'space-between', paddingHorizontal: 4 }]}>
         <Title style={[styles.h2, styles.grow]}>{t.activeReqs} ({open.length})</Title><TextLink label={t.seeAll} onPress={() => data.navigate('reqs')} />
       </View>
       {open.slice(0, 3).map(r => <RequestCard key={r.id} row={r} />)}
-    </View>
+    </View> : null}
     <View style={{ paddingTop: 26, paddingHorizontal: 16, gap: 10 }}>
       <Title style={styles.h2}>{t.tipsT}</Title>
       <Card style={{ borderRadius: 18, paddingHorizontal: 14, paddingVertical: 0, gap: 0 }}>
@@ -122,7 +151,10 @@ export function RequestsScreen() {
   const { colors, t, name, materialStyle } = useBranchFormat();
   const active = data.requests.filter(isOpen);
   const past = data.requests.filter(r => !isOpen(r));
-  const rows = (data.past ? past : active).filter(r => !data.filter || r.material_id === data.filter);
+  const tabRows = data.past ? past : active;
+  const hiddenByFilter = !!data.filter && tabRows.length > 0;
+  const filterMaterial = data.materials.find(m => m.id === data.filter);
+  const rows = tabRows.filter(r => !data.filter || r.material_id === data.filter);
   return <PageFrame title={t.reqsT} footer={<BottomNav />} top={<View style={{ paddingHorizontal: 16, paddingBottom: 10, gap: 10 }}>
     <View style={{ flexDirection: 'row', gap: 4, padding: 4, borderRadius: 14, backgroundColor: colors.surface2 }}>
       {[{ label: t.tabActive, past: false, count: active.length }, { label: t.tabPast, past: true, count: past.length }].map(item =>
@@ -143,7 +175,11 @@ export function RequestsScreen() {
         </Pressable>)}
     </ScrollView>
   </View>}>
-    {rows.map(row => <RequestCard key={row.id} row={row} />)}
+    {rows.length ? rows.map(row => <RequestCard key={row.id} row={row} />) : <EmptyState
+      title={hiddenByFilter ? interpolate(t.noFilterT, { m: filterMaterial ? name(filterMaterial) : '' }) : data.past ? t.noPastT : t.noActiveT}
+      body={hiddenByFilter ? t.noFilterB : data.past ? t.noPastB : t.noActiveB}
+      action={hiddenByFilter ? { label: t.showAll, onPress: () => data.setFilter(null) }
+        : data.past ? undefined : { label: t.newReq, icon: 'plus', primary: true, onPress: () => data.startCreate() }} />}
   </PageFrame>;
 }
 export function NotificationsScreen() {

@@ -2,9 +2,20 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import { interpolate } from '@/i18n/copy';
 import { Button, Card, Icon, Label, Sheet, Title } from '@/ui/components';
-import { useBranch, isOpen } from './state';
-import { Footer, Muted, PageFrame, Photo, styles, Tile, useBranchFormat } from './shared';
+import { useBranch, isOpen, isRescheduled } from './state';
+import { Footer, Muted, PageFrame, Photo, styles, Tile, useSignedPhoto, useBranchFormat } from './shared';
 import { useContact } from './main-screens';
+
+/**
+ * The four fields that word a visit attempt, which is all `reason()` and `outcome()` read.
+ *
+ * Narrower than `AttemptRow` on purpose: the status subtitle has to word the *last* attempt, and
+ * `request_list` already carries it as `last_outcome` and the `last_reason_*` pair. The attempts
+ * query is separate from the requests query, so the list can be on screen a moment before the
+ * timeline arrives — this is what lets the subtitle be built from the row itself then, instead of
+ * waiting or reading `attempts[attempts.length - 1]` off an array that is still empty.
+ */
+type AttemptLike = { outcome: string | null; reason_id: string | null; reason_text: string | null; note: string | null };
 
 export function DetailsScreen() {
   const data = useBranch();
@@ -12,22 +23,24 @@ export function DetailsScreen() {
   const { colors, t } = f;
   const contact = useContact();
   const row = data.selected;
+  // Both hooks sit above the `!row` return, because hooks cannot be called conditionally — hence
+  // `row?.` here rather than after the guard. `confirming` is the cancel sheet's; `signedPhoto`
+  // turns the stored path into an hour-long URL, and is disabled when there is no path.
+  const [confirming, setConfirming] = useState(false);
+  const signedPhoto = useSignedPhoto(row?.branch_photo_path ?? null);
   if (!row) return null;
   const material = data.materials.find(m => m.id === row.material_id);
   const st = f.status(row);
   const editable = row.status === 'waiting';
   const locked = row.status === 'scheduled' || row.status === 'needs_decision';
   const phone = contact.phoneFor(material);
-  // The confirmation the cancel button has been waiting for since bite 2, when it was drawn
-  // disabled because the state it leads to had not been reviewed yet.
-  const [confirming, setConfirming] = useState(false);
   const attempts = data.attempts.filter(a => a.request_id === row.id).sort((a, b) => a.recorded_at.localeCompare(b.recorded_at));
   const events = data.events.filter(e => e.request_id === row.id).sort((a, b) => a.created_at.localeCompare(b.created_at));
-  const reason = (attempt: (typeof attempts)[number]) => {
+  const reason = (attempt: AttemptLike) => {
     const reasonRow = data.reasons.find(r => r.id === attempt.reason_id);
     return reasonRow ? f.language === 'ar' ? reasonRow.label_ar : reasonRow.label_en : attempt.reason_text ?? attempt.note ?? '';
   };
-  const outcome = (attempt: (typeof attempts)[number]) => attempt.outcome === 'full' ? t.o_done
+  const outcome = (attempt: AttemptLike) => attempt.outcome === 'full' ? t.o_done
     : attempt.outcome === 'partial' ? t.o_mis : attempt.outcome === 'failed'
       ? interpolate(t.o_fail, { r: reason(attempt) }) : attempt.note ?? t.outcomes;
   const timeline = events.map(event => {
@@ -57,7 +70,12 @@ export function DetailsScreen() {
   if (editable || locked) timeline.push({ key: 'pending', label: editable ? t.pend_sched : row.status === 'scheduled'
     ? interpolate(t.pend_visit, { d: f.date(row.visit_day, true) }) : t.pend_dec,
     time: '', color: editable ? colors.line : locked ? st.color : colors.primary, pending: true });
-  const subtitle = row.status === 'scheduled' ? t.sub_sched : row.status === 'needs_decision' ? t.sub_dec
+  const rescheduled = isRescheduled(row);
+  const lastAttempt = attempts[attempts.length - 1];
+  const subtitle = rescheduled ? interpolate(t.sub_resched, { o: outcome(lastAttempt ?? {
+    outcome: row.last_outcome, reason_id: null,
+    reason_text: f.language === 'ar' ? row.last_reason_ar : row.last_reason_en, note: row.last_attempt_note,
+  }) }) : row.status === 'scheduled' ? t.sub_sched : row.status === 'needs_decision' ? t.sub_dec
     : row.status === 'completed' ? interpolate(t.sub_done, { d: f.date(row.visit_day) })
       : row.status === 'closed' ? interpolate(t.sub_closed, { r: row.closed_reason ?? '' })
         : row.status === 'cancelled' ? t.sub_cancel : t.sub_await;
@@ -80,7 +98,7 @@ export function DetailsScreen() {
     </Footer>}>
     <Card style={[styles.card, { padding: 18, backgroundColor: st.background, borderWidth: 0 }]}>
       <View style={[styles.row, { alignItems: 'flex-start' }]}><Tile icon={st.icon} color={st.color} background={colors.surface} size={52} iconSize={28} />
-        <View style={[styles.grow, { gap: 4 }]}><Title style={{ fontSize: 20, lineHeight: 27 }}>{st.label}</Title>
+        <View style={[styles.grow, { gap: 4 }]}><Title style={{ fontSize: 20, lineHeight: 27 }}>{rescheduled ? t.st_resched : st.label}</Title>
           <Label style={{ fontSize: 14, lineHeight: 21.7, opacity: .85 }}>{subtitle}</Label></View>
       </View>
     </Card>
@@ -106,7 +124,12 @@ export function DetailsScreen() {
           <Muted style={{ fontSize: 13 }}>{f.phone(row.contact_phone)}</Muted></View>
       </View>
       <View style={[styles.row, { paddingVertical: 12, alignItems: 'flex-start', borderTopWidth: 1, borderTopColor: colors.line }]}>
-        {row.branch_photo_path && material ? <Photo kg={row.kg ?? 0} material={material} size={72} /> : <Tile icon="camera" size={72} color={colors.muted} />}
+        {/* A stored path draws the photo, and falls back to the drawn placeholder while the signed
+            URL is still coming or if it could not be made. No path at all is a different thing and
+            keeps the camera tile — the label beside it reads «لا توجد صورة», and a placeholder that
+            looks like a photo of a scale under that sentence would contradict it. */}
+        {row.branch_photo_path && material ? <Photo kg={row.kg ?? 0} material={material} size={72} uri={signedPhoto.data} />
+          : <Tile icon="camera" size={72} color={colors.muted} />}
         <View style={[styles.grow, { gap: 4 }]}><Muted style={{ fontSize: 13 }}>{row.branch_photo_path ? t.branchPhoto : t.noPhoto}</Muted>
           <Label style={{ fontSize: 14.5, lineHeight: 22.475 }}>{t.note}: {row.note || t.noNote}</Label></View>
       </View>
@@ -154,7 +177,7 @@ export function DetailsScreen() {
       <View style={{ gap: 8, marginTop: 4 }}>
         <Button variant="branch" tone="danger" label={t.yesCancel} onPress={() => {
           if (!row.id) return;
-          setConfirming(false); data.cancelRequest(row.id); data.showToast(t.cancelledT);
+          setConfirming(false); data.cancelRequest(row.id);
         }} />
         <Button variant="branch" tone="muted" label={t.keep} onPress={() => setConfirming(false)} />
       </View>

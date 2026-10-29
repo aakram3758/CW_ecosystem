@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, BackHandler, Image, Pressable, TextInput, View } from 'react-native';
+import { errorCode, errorMessage } from '@/data/errors';
 import { takePhoto, pickPhoto, type Photo as DevicePhoto } from '@/data/device';
-import type { MaterialRow, SubtypeRow } from '@/data/mock/branch';
+import type { MaterialRow, SubtypeRow } from '@/data/rows';
 import { interpolate, ltr } from '@/i18n/copy';
 import { usePreferences } from '@/providers/preferences';
 import { Button, Card, ErrorLine, Field, Icon, Label, Sheet, TextLink, Title } from '@/ui/components';
 import { softFill } from '@/ui/tokens';
 import { isOpen, useBranch } from './state';
-import { Footer, IconButton, Muted, PageFrame, Photo, Pill, styles, Tile, useBranchFormat } from './shared';
+import { Footer, IconButton, Muted, PageFrame, Photo, Pill, styles, Tile, useSignedPhoto, useBranchFormat } from './shared';
 
 const materialHints = { card: 'materialHintCard', plas: 'materialHintPlas', paper: 'materialHintPaper',
   metal: 'materialHintMetal', bread: 'materialHintBread' } as const;
@@ -21,6 +22,7 @@ export function CreateScreen() {
   const { copy } = usePreferences();
   const { t, colors } = f;
   const editing = data.editId ? data.requests.find(r => r.id === data.editId) : undefined;
+  const storedPhoto = useSignedPhoto(editing?.branch_photo_path ?? null);
   const [step, setStep] = useState(editing || data.initialMaterial ? 2 : 1);
   const [materialId, setMaterialId] = useState(editing?.material_id ?? data.initialMaterial);
   const [subtypeId, setSubtypeId] = useState(editing?.subtype_id ?? data.initialSubtype);
@@ -82,15 +84,17 @@ export function CreateScreen() {
   }
   /** The one footer button, whatever it says at this step. An invalid form reveals itself here. */
   function advance() {
+    if (data.sending) return;
+    data.clearSendError();
     if (!valid) { setShowErr(true); return; }
     if (editing || step === 3) submit(); else setStep(3);
   }
   function submit() {
     if (!valid || !material || lockedRequest(material.id, subtypeId)) return;
     const args = { p_kg: weight, p_note: note.trim() || null, p_contact_name: contactName.trim(),
-      p_contact_phone: `0${contactPhone}`, p_photo_path: photo === 'chosen' ? editing?.branch_photo_path ?? data.photoPath : undefined };
-    if (editing?.id) data.edit({ ...args, p_request_id: editing.id });
-    else data.create({ ...args, p_material_id: material.id, p_subtype_id: subtypeId });
+      p_contact_phone: `0${contactPhone}` };
+    if (editing?.id) data.edit({ ...args, p_request_id: editing.id }, chosenPhoto);
+    else data.create({ ...args, p_material_id: material.id, p_subtype_id: subtypeId }, chosenPhoto);
   }
   const changeWeight = (value: number) => setKg(String(Math.max(1, Math.min(99999, value))));
   const summaryRows = [
@@ -115,7 +119,23 @@ export function CreateScreen() {
             carrying the icons. Shown only once the press has happened and the form is still not
             valid. */}
         {showErr && !valid ? <ErrorLine icon={null}>{t.fixErrs}</ErrorLine> : null}
-        <Button variant="branch" label={editing ? t.saveEdit : step === 2 ? t.toReview : t.send}
+        {/* The canvas's `cr.sendErr`: the wifiOff icon in `dangerText` beside bold 13.5 body text,
+            on `dangerSoft`. The form behind it keeps everything — the weight, the note, the
+            contact, the photo — which is the whole point of the state and what `t.sendFail`
+            promises in words.
+            Which sentence, though, depends on what failed. `t.sendFail` names a lost connection
+            specifically, so it is only honest when the error carries no code of its own: a refusal
+            the server spelled out — the 5,000 kg ceiling, a material that already has an open
+            request, a request a visit day was just set for — gets its own sentence, because
+            "check your connection and try again" would send the branch retrying something that
+            will never succeed. */}
+        {data.sendError ? <View accessibilityRole="alert" style={{ backgroundColor: colors.dangerSoft,
+          borderRadius: 14, padding: 12, flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
+          <Icon name="wifiOff" color={colors.dangerText} tint={softFill(colors.dangerText)} />
+          <Label style={{ flex: 1, fontFamily: 'Tajawal_700Bold', fontSize: 13.5, lineHeight: 21.6 }}>
+            {errorCode(data.sendError) ? errorMessage(data.sendError, copy, 'branch') : t.sendFail}</Label>
+        </View> : null}
+        <Button variant="branch" busy={data.sending} disabled={data.sending} label={editing ? t.saveEdit : step === 2 ? t.toReview : t.send}
           icon={step === 3 ? 'send' : undefined} onPress={advance} />
       </Footer> : undefined}>
       {step === 1 ? <>
@@ -219,7 +239,7 @@ export function CreateScreen() {
             <ActivityIndicator color={colors.primary} /><Muted>{t.uploading}</Muted>
           </View> : <View style={styles.row}>{chosenPhoto ? <Image source={{ uri: chosenPhoto.uri }}
             accessibilityLabel={t.photo} style={{ width: 104, height: 104, borderRadius: 16 }} />
-            : <Photo material={material} kg={weight} />}
+            : <Photo material={material} kg={weight} uri={storedPhoto.data} />}
             <View style={styles.grow}><Label style={[styles.heavy, { color: colors.success }]}>{t.photoOk}</Label>
               {/* Icons rather than the canvas's two text links — Ahmed's call. The thumbnail
                   already says what this row is about, so the words were doing little, and two
@@ -259,7 +279,7 @@ export function CreateScreen() {
         <Card style={[styles.card, { paddingVertical: 4, gap: 0 }]}>
           {summaryRows.map((row, i) => <View key={row.label} style={[styles.row, { minHeight: 64, paddingVertical: 12,
             borderTopWidth: i ? 1 : 0, borderTopColor: colors.line }]}>
-            {i === 2 && photo === 'chosen' ? <Photo kg={weight} material={material} size={44} /> : i === 0
+            {i === 2 && photo === 'chosen' ? <Photo kg={weight} material={material} size={44} uri={chosenPhoto?.uri ?? storedPhoto.data} /> : i === 0
               ? <Tile {...f.materialStyle(material)} /> : <Tile icon={row.icon} />}
             <View style={styles.grow}><Muted style={{ fontSize: 13 }}>{row.label}</Muted>
               <Label style={styles.heavy}>{row.value}</Label>

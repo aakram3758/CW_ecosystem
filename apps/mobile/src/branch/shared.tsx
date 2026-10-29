@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState, type PropsWithChildren, type ReactNode } from 'react';
-import { Linking, Modal, Pressable, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Image, Linking, Modal, Pressable, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { useQuery } from '@tanstack/react-query';
+import * as api from '@/data/branch-api';
 import * as Clipboard from 'expo-clipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Stop, Rect, Text as SvgText } from 'react-native-svg';
-import type { MaterialRow, RequestListRow } from '@/data/mock/branch';
+import type { MaterialRow, RequestListRow } from '@/data/rows';
 import { interpolate, ltr } from '@/i18n/copy';
 import { usePreferences } from '@/providers/preferences';
 import { Button, Card, Icon, Label, Screen, Sheet, Title } from '@/ui/components';
@@ -259,9 +261,16 @@ export function RequestCard({ row }: { row: RequestListRow }) {
     </Card>
   </Pressable>;
 }
-export function Photo({ kg, material, size = 104 }: { kg: number; material: MaterialRow; size?: number }) {
+export function useSignedPhoto(path: string | null) {
+  return useQuery({ queryKey: ['photo', path], queryFn: () => api.signedPhotoUrl(path!),
+    staleTime: 50 * 60_000, enabled: path !== null });
+}
+export function Photo({ kg, material, size = 104, uri }: { kg: number; material: MaterialRow; size?: number; uri?: string | null }) {
   const { t, materialStyle } = useBranchFormat();
   const color = materialStyle(material).color;
+  const [failedUri, setFailedUri] = useState<string | null>(null);
+  if (uri && uri !== failedUri) return <Image source={{ uri }} accessibilityLabel={t.branchPhoto}
+    onError={() => setFailedUri(uri)} style={{ width: size, height: size, borderRadius: 16 }} />;
   return <View accessible accessibilityRole="image" accessibilityLabel={t.branchPhoto} style={{ width: size, height: size, borderRadius: 16, overflow: 'hidden' }}>
     <Svg width={size} height={size} viewBox="0 0 104 104">
       <Defs><LinearGradient id="photo" x1="0" y1="0" x2="1" y2="1"><Stop offset="0" stopColor={branchArtwork.photoTop} /><Stop offset="1" stopColor={branchArtwork.photoBottom} /></LinearGradient></Defs>

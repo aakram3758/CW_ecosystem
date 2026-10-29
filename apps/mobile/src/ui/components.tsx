@@ -287,37 +287,151 @@ export function Loading() {
   </View>;
 }
 
-export function ErrorState({ title, body, onRetry }: { title?: string; body?: string; onRetry: () => void }) {
-  const { copy, side } = usePreferences();
-  // The two designs were approved separately and word this state differently, so a shared component
-  // still has to ask which side it is rendering for.
-  const fallback = side === 'branch'
-    ? { title: copy.branch.loadErrT, body: copy.branch.loadErrB, retry: copy.branch.retry }
-    : { title: copy.driver.errTitle, body: copy.driver.errBody, retry: copy.driver.retry };
-  return <Card><Icon name="cloudX" /><Title>{title ?? fallback.title}</Title>
-    <Message>{body ?? fallback.body}</Message>
-    <Button label={fallback.retry} onPress={onRetry} />
-  </Card>;
+/**
+ * The canvas's `.sk` — a block that stands in for a line or a card that has not arrived.
+ *
+ * The canvas animates a gradient sweeping across it (`cwsk`, 1.3s, infinite). React Native cannot
+ * animate a gradient's position without Reanimated, which this app cannot import, so this pulses
+ * its opacity between 1 and .45 on the same 1.3s clock instead: the same "this is not content yet,
+ * and the app has not frozen" with the one property that is safe on the native driver.
+ *
+ * `width` defaults to `'100%'`, `height` and `radius` are the canvas's 10 unless given. Pure
+ * decoration, so `accessible={false}` — the screen announces that it is busy, not each block.
+ */
+export function Skeleton({ width = '100%', height = 14, radius = 10, style }: {
+  width?: number | string; height?: number; radius?: number; style?: StyleProp<ViewStyle>;
+}): ReactNode {
+  const { colors } = usePreferences();
+  const opacity = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    const pulse = Animated.loop(Animated.sequence([
+      Animated.timing(opacity, { toValue: .45, duration: 650, useNativeDriver: true }),
+      Animated.timing(opacity, { toValue: 1, duration: 650, useNativeDriver: true }),
+    ]));
+    pulse.start();
+    return () => pulse.stop();
+  }, [opacity]);
+  return <Animated.View accessible={false} style={[{ width: width as ViewStyle['width'], height,
+    borderRadius: radius, backgroundColor: colors.surface2, opacity }, style]} />;
 }
 
-export function EmptyState({ title, body }: { title: string; body?: string }) {
-  return <Card><Icon name="info" /><Label>{title}</Label>{body ? <Label>{body}</Label> : null}</Card>;
-}
-
-export function OfflineBar() {
-  const online = useOnline();
+/**
+ * The canvas's load-failure state: a centred 56px circle in `colors.dangerSoft` holding `cloudX` at
+ * 28 in `colors.dangerText`, then `loadErrT` as Tajawal_800ExtraBold 17, `loadErrB` as a muted
+ * sub, and the retry as a `tone="muted"` button that is only as wide as its label
+ * (`alignSelf: 'center'`, `marginTop: 6`). The whole block is centred with `gap: 8` and
+ * `padding: 24/18`.
+ *
+ * Both designs were approved separately and word this differently, so it still asks `side` which
+ * wording to use when the caller gives none.
+ */
+export function ErrorState({ title, body, onRetry }: { title?: string; body?: string; onRetry: () => void }): ReactNode {
   const { colors, copy, side } = usePreferences();
-  if (online) return null;
-  // The branch promises what it typed is kept on screen; the driver's wording promises the loaded
-  // data is. Same component, two approved sentences.
-  const text = side === 'branch'
-    ? { head: copy.branch.offT, body: copy.branch.offB }
-    : { head: copy.driver.offline, body: copy.driver.offlineSub };
-  return <View accessibilityRole="alert" style={{ padding: 14, borderRadius: 12,
-    backgroundColor: colors.warningSoft, gap: 8 }}>
-    <Icon name="wifiOff" color={colors.warning} /><Label style={{ color: colors.warning }}>{text.head}</Label>
-    <Label>{text.body}</Label>
+  return <View accessibilityRole="alert" style={{ alignItems: 'center', gap: 8, paddingVertical: 24, paddingHorizontal: 18 }}>
+    <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: colors.dangerSoft,
+      alignItems: 'center', justifyContent: 'center' }}>
+      <Icon name="cloudX" size={28} color={colors.dangerText} tint={softFill(colors.dangerText)} />
+    </View>
+    <Title style={{ fontSize: 17, textAlign: 'center' }}>{title ?? (side === 'branch' ? copy.branch.loadErrT : copy.driver.errTitle)}</Title>
+    <Label style={{ color: colors.muted, textAlign: 'center' }}>{body ?? (side === 'branch' ? copy.branch.loadErrB : copy.driver.errBody)}</Label>
+    <Button variant="branch" tone="muted" icon="retry" label={copy[side].retry} onPress={onRetry}
+      style={{ alignSelf: 'center', marginTop: 6, minHeight: 48 }} />
   </View>;
+}
+
+/**
+ * The canvas's empty state: a centred 72px circle in `colors.surface2` holding its icon at 34 in
+ * `colors.muted`, `title` as Tajawal_800ExtraBold 17, `body` as a muted sub capped at 280 wide, and
+ * an optional action button under it (`marginTop: 6`, as wide as its label). Centred, `gap: 8`,
+ * `padding: 48/20` — far more air than the error state, because an empty list is not a problem.
+ *
+ * `icon` defaults to `clip`, which is what the requests list uses. The action is how the canvas
+ * offers «عرض الكل» when a filter is hiding everything and «طلب استلام جديد» when the branch simply
+ * has none.
+ */
+export function EmptyState({ icon = 'clip', title, body, action }: {
+  icon?: string; title: string; body?: string;
+  action?: { label: string; icon?: string; onPress: () => void; primary?: boolean };
+}): ReactNode {
+  const { colors } = usePreferences();
+  return <View style={{ alignItems: 'center', gap: 8, paddingVertical: 48, paddingHorizontal: 20 }}>
+    <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: colors.surface2,
+      alignItems: 'center', justifyContent: 'center' }}>
+      <Icon name={icon} size={34} color={colors.muted} tint={softFill(colors.muted)} />
+    </View>
+    <Title style={{ fontSize: 17, textAlign: 'center' }}>{title}</Title>
+    {body ? <Label style={{ color: colors.muted, textAlign: 'center', maxWidth: 280 }}>{body}</Label> : null}
+    {action ? <Button variant="branch" tone={action.primary ? 'primary' : 'muted'} icon={action.icon}
+      label={action.label} onPress={action.onPress}
+      style={{ alignSelf: 'center', marginTop: 6, minHeight: 48 }} /> : null}
+  </View>;
+}
+
+/**
+ * The canvas's offline banner, which is not a block in the page but a bar floating over it:
+ * `position: absolute`, `start: 12`, `end: 12`, `zIndex: 40`, `colors.navy`, `borderRadius: 16`,
+ * `padding` 10 with 14 at the start, a row with `gap: 10`, and the canvas's
+ * `0 10px 30px rgba(0,0,0,.25)` lift. Inside: `wifiOff` in `colors.dangerText`, then `offT` at 14
+ * bold over `offB` at 12.5 with `opacity: .75` — both in `colors.onPrimary`, because the bar is
+ * navy in both themes — and a gold retry button, 44 high, `borderRadius: 12`,
+ * `colors.gold` under `colors.navy` text, showing a spinner while `busy`.
+ *
+ * That button is hand-rolled rather than a `Button`, which is unusual enough to say why: `Button`
+ * with `tone="gold"` draws these exact colours and the same 18px spinner, but its label is fixed at
+ * 16 and the canvas's is 14. In a bar this narrow, sharing one row with an icon and two lines of
+ * text, those two points are what keeps «لا يوجد اتصال بالإنترنت» on one line.
+ *
+ * It slides up on appearing (the canvas's `cwup`: 40px and opacity, 250ms). Native driver, both
+ * properties are safe.
+ *
+ * `bottom` is the caller's, because the bar sits above whatever the screen has at its foot: 100 over
+ * the bottom nav, 178 over a footer with buttons in it, 24 over neither. The canvas computes
+ * exactly that.
+ *
+ * Renders nothing while online. The branch's wording promises that what was typed stays on screen;
+ * the driver's promises the loaded data does — same bar, two approved sentences, chosen by `side`.
+ *
+ * `onRetry` is optional and the gold button appears only with it. The canvas always draws the
+ * button because it only ever drew this bar over a list, but the bar is also shown on sign-in, on
+ * the password screen and on the splash, where there is nothing loaded to refetch — and a retry
+ * button that cannot do anything is exactly what this app does not ship.
+ */
+export function OfflineBar({ bottom = 24, busy = false, onRetry }: {
+  bottom?: number; busy?: boolean; onRetry?: () => void;
+}): ReactNode {
+  const { colors, copy, side } = usePreferences();
+  const online = useOnline();
+  const progress = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    progress.setValue(0);
+    if (online) return;
+    const slide = Animated.timing(progress, { toValue: 1, duration: 250,
+      easing: Easing.out(Easing.ease), useNativeDriver: true });
+    slide.start();
+    return () => slide.stop();
+  }, [online, progress]);
+  if (online) return null;
+  return <Animated.View accessibilityRole="alert" accessibilityLiveRegion="polite"
+    style={{ position: 'absolute', start: 12, end: 12, bottom, zIndex: 40,
+      backgroundColor: colors.navy, borderRadius: 16, padding: 10, paddingStart: 14,
+      flexDirection: 'row', alignItems: 'center', gap: 10, opacity: progress,
+      transform: [{ translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [40, 0] }) }],
+      shadowColor: colors.overlayShadow, shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: .25, shadowRadius: 30, elevation: 8 }}>
+    <Icon name="wifiOff" color={colors.dangerText} tint={softFill(colors.dangerText)} />
+    <View style={{ flex: 1 }}>
+      <Label style={{ color: colors.onPrimary, fontFamily: 'Tajawal_700Bold', fontSize: 14, lineHeight: 18.9 }}>
+        {side === 'branch' ? copy.branch.offT : copy.driver.offline}</Label>
+      <Label style={{ color: colors.onPrimary, opacity: .75, fontSize: 12.5, lineHeight: 16.875 }}>
+        {side === 'branch' ? copy.branch.offB : copy.driver.offlineSub}</Label>
+    </View>
+    {onRetry ? <Pressable accessibilityRole="button" accessibilityState={{ disabled: busy, busy }}
+      disabled={busy} onPress={onRetry} style={{ minHeight: 44, borderRadius: 12, paddingHorizontal: 14,
+        backgroundColor: colors.gold, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+      {busy ? <ActivityIndicator size={18} color={colors.navy} /> : null}
+      <Label style={{ color: colors.navy, fontFamily: 'Tajawal_800ExtraBold', fontSize: 14 }}>{copy[side].retry}</Label>
+    </Pressable> : null}
+  </Animated.View>;
 }
 
 export function AppSplash() {

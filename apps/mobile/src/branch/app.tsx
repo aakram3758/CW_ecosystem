@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { BackHandler, View } from 'react-native';
-import { Toast } from '@/ui/components';
+import { OfflineBar, Toast } from '@/ui/components';
 import { BranchProvider, useBranch } from './state';
 import { ContactSheet } from './shared';
 import { LocationScreen } from './location';
@@ -31,6 +31,8 @@ function BranchNavigation() {
         details, notifications and account. The toast is last so it draws over the page; the sheet
         is a Modal and draws over everything regardless. */}
     {data.contact ? <ContactSheet target={data.contact} onClose={data.closeContact} /> : null}
+    <OfflineBar bottom={data.page === 'success' ? 24 : ['create', 'details', 'loc'].includes(data.page) ? 178 : 100}
+      busy={data.refreshing} onRetry={data.retry} />
     <Toast text={data.toast} onDone={data.dismissToast} />
   </View>;
 }

@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View, type GestureResponderEvent } from 'react-native';
 import Svg, { Circle, Path, Rect, Text as SvgText } from 'react-native-svg';
+import { errorMessage } from '@/data/errors';
 import { currentLocation } from '@/data/device';
 import { ltr } from '@/i18n/copy';
 import { usePreferences } from '@/providers/preferences';
@@ -81,7 +82,8 @@ export function BranchMap({ lat, lng, onMove, small = false, center = { lat: 21.
   </View>;
 }
 export function LocationScreen() {
-  const { branch, confirmLocation, showToast } = useBranch();
+  const data = useBranch();
+  const { branch, confirmLocation } = data;
   const { colors, copy } = usePreferences();
   const t = copy.branch;
   const [coords, setCoords] = useState({ lat: branch.lat ?? 21.5812, lng: branch.lng ?? 39.1689 });
@@ -111,7 +113,7 @@ export function LocationScreen() {
   return <>
     <PageFrame title={t.locT} trailing={<Pill>{t.locOnce}</Pill>} footer={<Footer>
       <Button variant="branch" tone="outline" icon="target" label={locating ? t.locating : t.useMine} disabled={locating} onPress={() => void locate()} />
-      <Button variant="branch" label={t.confirmLoc} onPress={() => setConfirming(true)} />
+      <Button variant="branch" busy={data.locating} disabled={data.locating} label={t.confirmLoc} onPress={() => setConfirming(true)} />
     </Footer>}>
       <View style={[styles.row, { alignItems: 'flex-start', backgroundColor: colors.accentSoft, borderRadius: 16, padding: 14 }]}>
         <Tile icon="store" color={colors.accentText} background={colors.accentSoft} />
@@ -144,7 +146,9 @@ export function LocationScreen() {
       {/* `confirmLocation` leaves for the home screen, and the toast lands there — which is the
           canvas's own `enterHome(t.locSaved)`. It can, because the Toast is mounted above the
           pages in `app.tsx` rather than inside one. */}
-      <Button variant="branch" label={t.yesLoc} onPress={() => { confirmLocation(coords.lat, coords.lng); showToast(t.locSaved); }} />
+      {data.locationError ? <ErrorLine>{errorMessage(data.locationError, copy, 'branch')}</ErrorLine> : null}
+      <Button variant="branch" busy={data.locating} disabled={data.locating} label={t.yesLoc}
+        onPress={() => confirmLocation(coords.lat, coords.lng)} />
       <Button variant="branch" tone="muted" label={t.back} onPress={() => setConfirming(false)} />
     </Sheet> : null}
   </>;
