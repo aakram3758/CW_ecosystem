@@ -117,12 +117,16 @@ export function DetailsScreen() {
         <View style={[styles.grow, { gap: 2 }]}><Muted style={{ fontSize: 13 }}>{t.visitDay}</Muted>
           <Label style={[styles.heavy, { color: row.visit_day ? colors.text : colors.muted }]}>{f.date(row.visit_day, true)}</Label></View>
       </View>
-      <View style={[styles.row, { minHeight: 64, paddingVertical: 12, borderTopWidth: 1, borderTopColor: colors.line }]}>
+      {/* Only when there is one. A request made from the dashboard has no contact at all —
+          `staff_create_request` takes neither a name nor a phone — and drawing the row anyway left a
+          «جهة التواصل» label over two empty lines. Ahmed's call: hide it rather than ask the
+          dashboard for one. */}
+      {row.contact_name ? <View style={[styles.row, { minHeight: 64, paddingVertical: 12, borderTopWidth: 1, borderTopColor: colors.line }]}>
         <Tile icon="user" />
         <View style={[styles.grow, { gap: 2 }]}><Muted style={{ fontSize: 13 }}>{t.contactT}</Muted>
           <Label style={styles.heavy}>{row.contact_name}</Label>
-          <Muted style={{ fontSize: 13 }}>{f.phone(row.contact_phone)}</Muted></View>
-      </View>
+          {row.contact_phone ? <Muted style={{ fontSize: 13 }}>{f.phone(row.contact_phone)}</Muted> : null}</View>
+      </View> : null}
       <View style={[styles.row, { paddingVertical: 12, alignItems: 'flex-start', borderTopWidth: 1, borderTopColor: colors.line }]}>
         {/* A stored path draws the photo, and falls back to the drawn placeholder while the signed
             URL is still coming or if it could not be made. No path at all is a different thing and
