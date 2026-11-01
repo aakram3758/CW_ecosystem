@@ -84,6 +84,7 @@ const ar = {
   updating: 'جارٍ التحديث',
   retry: 'إعادة المحاولة',
   loadError: 'تعذّر تحميل البيانات',
+  pageErrorBody: 'حدث خطأ في هذه الصفحة. أعد تحميلها، أو اختر صفحة أخرى من القائمة.',
   saveError: 'تعذّر الحفظ. تحقق من الاتصال وأعد المحاولة.',
   signOut: 'تسجيل الخروج',
   errors: {
@@ -96,6 +97,7 @@ const ar = {
     SUBTYPE_REQUIRED: 'اختر النوع.',
     BRANCH_INACTIVE: 'هذا الفرع غير مفعّل.',
     MATERIAL_INACTIVE: 'هذه المادة أو النوع غير مفعّل. حدّث الصفحة.',
+    KG_TOO_LARGE: 'أكبر وزن مسموح 5,000 كجم.',
     ACCOUNT_INACTIVE: 'تم إيقاف هذا الحساب. تواصل مع المدير العام.',
     REASON_REQUIRED: 'السبب مطلوب.',
     INVALID_REASON: 'السبب المختار لم يعد متاحًا. حدّث الصفحة.',
@@ -188,6 +190,7 @@ const en: CommonDict = {
   updating: 'Updating',
   retry: 'Try again',
   loadError: "Couldn't load the data",
+  pageErrorBody: 'Something went wrong on this page. Reload it, or pick another page from the menu.',
   saveError: "Couldn't save. Check your connection and try again.",
   signOut: 'Sign out',
   errors: {
@@ -200,6 +203,7 @@ const en: CommonDict = {
     SUBTYPE_REQUIRED: 'Choose the type.',
     BRANCH_INACTIVE: 'This branch is inactive.',
     MATERIAL_INACTIVE: 'This material or type is inactive. Refresh the page.',
+    KG_TOO_LARGE: 'The maximum weight is 5,000 kg.',
     ACCOUNT_INACTIVE: 'This account was deactivated. Contact a general manager.',
     REASON_REQUIRED: 'A reason is required.',
     INVALID_REASON: 'That reason is no longer available. Refresh the page.',

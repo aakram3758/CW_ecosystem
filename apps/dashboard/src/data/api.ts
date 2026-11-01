@@ -96,8 +96,9 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
 /** First sign-in with a temporary password: set a new one and clear the flag. */
 export async function changePassword(password: string) {
   const { error } = await supabase.auth.updateUser({ password });
-  if (error) {
-    if (/same|different from the old/i.test(error.message)) throw new ApiError('SAME_PASSWORD');
+  // SAME_PASSWORD on a retry means Auth already saved this password and only the RPC failed last
+  // time, so the RPC still runs. It refuses with PASSWORD_NOT_CHANGED if it is the temporary one.
+  if (error && !/same|different from the old/i.test(error.message)) {
     if (/weak|at least|characters/i.test(error.message)) throw new ApiError('WEAK_PASSWORD');
     throw toApiError(error);
   }
@@ -377,12 +378,15 @@ export async function fetchHistory(reference: string, branchLabelText: string): 
 }
 
 export async function fetchDrivers(): Promise<Driver[]> {
-  const planDay = nextWorkingDay(opsToday());
+  const today = opsToday();
+  const planDay = nextWorkingDay(today);
   const [rows, off] = await Promise.all([
     run(supabase.from('drivers').select('id, user_id, full_name, full_name_en, phone, city_id, material_id, active').order('full_name')),
-    run(supabase.from('driver_days_off').select('driver_id').eq('day', planDay)),
+    run(supabase.from('driver_days_off').select('driver_id, day').in('day', [today, planDay])),
   ]);
-  const offNext = new Set((off as { driver_id: string }[]).map((o) => o.driver_id));
+  const offRows = off as { driver_id: string; day: string }[];
+  const offNext = new Set(offRows.filter((o) => o.day === planDay).map((o) => o.driver_id));
+  const offToday = new Set(offRows.filter((o) => o.day === today).map((o) => o.driver_id));
   return (rows as { id: string; user_id: string | null; full_name: string; full_name_en: string | null; phone: string; city_id: string; material_id: string; active: boolean }[]).map((d) => ({
     id: d.id,
     userId: d.user_id,
@@ -392,6 +396,7 @@ export async function fetchDrivers(): Promise<Driver[]> {
     material: CODES.material[d.material_id] ?? '',
     active: d.active,
     availableNextDay: !offNext.has(d.id),
+    availableToday: !offToday.has(d.id),
     unavailableNote: offNext.has(d.id) ? { ar: 'إجازة', en: 'Day off' } : undefined,
   }));
 }
@@ -400,12 +405,12 @@ export async function fetchBranches(): Promise<Branch[]> {
   const rows = await all((a, b) =>
     supabase
       .from('branches')
-      .select('id, branch_number, name, address, access_notes, lat, lng, active, phone, user_id, chain_id, district_id')
+      .select('id, branch_number, name, name_en, address, access_notes, lat, lng, active, phone, user_id, chain_id, district_id')
       .order('id')
       .range(a, b),
   );
   return (rows as {
-    id: string; branch_number: string; name: string | null; address: string | null; access_notes: string | null; lat: number | null; lng: number | null;
+    id: string; branch_number: string; name: string | null; name_en: string | null; address: string | null; access_notes: string | null; lat: number | null; lng: number | null;
     active: boolean; phone: string | null; user_id: string | null; chain_id: string; district_id: string;
   }[]).map((b) => ({
     id: b.id,
@@ -418,6 +423,7 @@ export async function fetchBranches(): Promise<Branch[]> {
     hasLogin: !!b.user_id,
     userId: b.user_id,
     name: b.name,
+    nameEn: b.name_en,
     address: b.address,
     accessNotes: b.access_notes,
     lat: b.lat,

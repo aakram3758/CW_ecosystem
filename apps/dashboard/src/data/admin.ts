@@ -111,6 +111,7 @@ export interface BranchInput {
   chain: string; // chain code
   number: string;
   name: string;
+  nameEn: string;
   districtId: string;
   address: string;
   phone: string;
@@ -121,6 +122,7 @@ const branchRow = (v: BranchInput) => ({
   chain_id: IDS.chain[v.chain],
   branch_number: v.number.trim(),
   name: v.name.trim(),
+  name_en: v.nameEn.trim() || null,
   district_id: v.districtId,
   address: v.address.trim() || null,
   phone: v.phone.trim() || null,

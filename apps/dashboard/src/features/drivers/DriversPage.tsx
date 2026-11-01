@@ -306,7 +306,7 @@ function DriverDialog({
     }
     let id = '';
     if (!(await run(async () => (id = await createDriver(input))))) return;
-    const created: Driver = { id, name: { ar: v.name.trim(), en: v.nameEn.trim() || v.name.trim() }, phone, city: v.city, material: v.material, active: true, availableNextDay: true };
+    const created: Driver = { id, name: { ar: v.name.trim(), en: v.nameEn.trim() || v.name.trim() }, phone, city: v.city, material: v.material, active: true, availableNextDay: true, availableToday: true };
     let issued: { user_id?: string; temp_password: string } | null = null;
     if (!(await run(async () => (issued = await createDriverLogin(id))))) toast.error(s.createdNoLogin, { duration: 8000 });
     onCreated(created, issued);

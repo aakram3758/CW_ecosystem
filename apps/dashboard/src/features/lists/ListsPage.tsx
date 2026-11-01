@@ -123,7 +123,7 @@ export function ListsPage() {
                                 <Input aria-label={s.newText} value={edit.ar} aria-invalid={!!edit.err} onChange={(e) => setEdit({ ...edit, ar: e.target.value, err: '' })} autoFocus />
                                 <Input aria-label={s.newTextEn} dir="ltr" placeholder={s.newTextEn} value={edit.en} onChange={(e) => setEdit({ ...edit, en: e.target.value, err: '' })} />
                               </span>
-                              {edit.err ? <span className="text-[13px] font-bold text-danger-ink">{edit.err}</span> : <span className="text-xs text-muted">{s.keepOld}</span>}
+                              {edit.err ? <span className="text-[13px] font-bold text-danger-ink">{edit.err}</span> : null}
                             </span>
                             <Button size="sm" variant="primary" onClick={saveEdit} disabled={busy}>
                               {a.save}

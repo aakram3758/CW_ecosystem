@@ -34,8 +34,9 @@ export function buildModel(rows: RequestRow[], drivers: Driver[], city: CityCode
   const cancelled = queue.filter((r) => r.status === 'cancelled');
 
   const keyDrivers = drivers.filter((d) => d.city === city && d.material === material);
-  const available = keyDrivers.filter((d) => d.availableNextDay);
-  const unavailable = keyDrivers.filter((d) => !d.availableNextDay);
+  // A deactivated driver is never a drop target: staff_approve_plan would reject the whole plan.
+  const available = keyDrivers.filter((d) => d.active && d.availableNextDay);
+  const unavailable = keyDrivers.filter((d) => d.active && !d.availableNextDay);
 
   // Draft assignments only count for live requests and available drivers.
   const assign: Record<string, string> = {};

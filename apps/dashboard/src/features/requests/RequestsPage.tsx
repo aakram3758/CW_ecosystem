@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import clsx from 'clsx';
 import { useApp, usePageTitle, useStrings } from '../../lib/app-context';
 import { useDrivers, useRequests } from '../../data/queries';
-import { CHAINS, CHAIN_ORDER, CITIES, CITY_ORDER, MATERIALS, MATERIAL_ORDER, districtsOf } from '../../data/catalog';
+import { CHAINS, CHAIN_ORDER, CITIES, CITY_ORDER, MATERIALS, MATERIAL_ORDER, districtsOf, materialInfo } from '../../data/catalog';
 import type { ChainCode, CityCode, Filter, MaterialCode, RequestStatus } from '../../data/types';
 import { addDays, ageInDays, dayOf, daysBetween, formatDay, opsToday } from '../../lib/dates';
 import { branchLabel, cityName, districtName } from '../../lib/format';
@@ -82,7 +82,7 @@ export function RequestsPage() {
         <div className="flex flex-wrap items-end justify-between gap-4">
           <HeroTitle
             title={t.nav.requests}
-            line={requests.data ? s.heroLine(base.length, daysBetween(f.from, f.to), f.material === 'all' ? null : l(MATERIALS[f.material].name)) : ' '}
+            line={requests.data ? s.heroLine(base.length, daysBetween(f.from, f.to), f.material === 'all' ? null : l(materialInfo(f.material).name)) : ' '}
           />
           <Button variant="gold" size="lg" onClick={() => setAddOpen(true)}>
             {s.add}

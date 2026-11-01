@@ -7,7 +7,7 @@ import clsx from 'clsx';
 import { useApp, useStrings } from '../../lib/app-context';
 import { errorText } from '../../lib/supabase';
 import { useCancelRequest, useDrivers, useHistory, usePhotoUrl, useRequests, useUsers } from '../../data/queries';
-import { CANCEL_REASONS, CHAINS, CITIES, MATERIALS } from '../../data/catalog';
+import { CANCEL_REASONS, CHAINS, CITIES, materialInfo } from '../../data/catalog';
 import type { RequestRow } from '../../data/api';
 import type { StatusChange } from '../../data/types';
 import { ageInDays, formatDate, formatDay, formatRelative } from '../../lib/dates';
@@ -90,7 +90,7 @@ function DrawerBody({ r }: { r: RequestRow }) {
   const facts = [
     { k: s.facts.chain, v: l(CHAINS[r.branch.chain]) },
     { k: s.facts.cityDistrict, v: `${l(CITIES[r.branch.city])} · ${districtName(r.branch.district, lang)}` },
-    { k: s.facts.material, v: l(MATERIALS[r.material].name) },
+    { k: s.facts.material, v: l(materialInfo(r.material).name) },
     { k: s.facts.subtype, v: r.subtype ? typeLabel(r.material, r.subtype, lang) : '—' },
     { k: s.facts.created, v: formatDate(r.createdAt, lang) },
     { k: s.facts.age, v: rs.age(ageInDays(r.createdAt)) },

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { Component, type ReactNode } from 'react';
 import clsx from 'clsx';
 import { useApp } from '../../lib/app-context';
 import { Button } from './Button';
@@ -67,6 +67,30 @@ export function PhotoPlaceholder({ label, className }: { label: string; classNam
   return (
     <div role="img" aria-label={label} className={clsx('photo-placeholder flex items-end rounded-2xl border border-dashed border-line p-3', className)}>
       <span className="rounded-[10px] border border-line bg-surface px-2.5 py-1.5 text-[13px] font-bold">{label}</span>
+    </div>
+  );
+}
+
+/**
+ * Catches a page that throws while rendering (or a lazy chunk that fails to load), so the sidebar
+ * stays and the page shows the error state instead of the whole app going blank. Retry reloads:
+ * a failed chunk needs a fresh load, and a render error has nothing to retry in place.
+ */
+export class PageErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  render() {
+    return this.state.failed ? <PageError /> : this.props.children;
+  }
+}
+
+function PageError() {
+  const { t } = useApp();
+  return (
+    <div className="p-6">
+      <ErrorState body={t.pageErrorBody} onRetry={() => window.location.reload()} />
     </div>
   );
 }

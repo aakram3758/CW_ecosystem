@@ -25,6 +25,7 @@ import type { DashboardUser, DayKey, Reason } from './types';
 import { fetchBranchActivity, fetchDriverActivity, fetchReasonUsage, fetchReport, type ReportFilters } from './admin';
 import { REF } from './catalog';
 import { ApiError } from '../lib/supabase';
+import { opsToday } from '../lib/dates';
 
 /** TanStack Query setup: cached reads, background refresh every minute and on tab focus. */
 export const queryClient = new QueryClient({
@@ -55,7 +56,9 @@ export const qk = {
 };
 
 export const useRequests = () => useQuery({ queryKey: qk.requests, queryFn: fetchRequests });
-export const useDrivers = () => useQuery({ queryKey: qk.drivers, queryFn: fetchDrivers, staleTime: 5 * 60_000, refetchInterval: false });
+// Keyed by the Riyadh day: days off are loaded for today and the next working day, so a tab left
+// open past midnight must not keep yesterday's answer.
+export const useDrivers = () => useQuery({ queryKey: [...qk.drivers, opsToday()], queryFn: fetchDrivers, staleTime: 5 * 60_000, refetchInterval: false });
 export const useBranches = () => useQuery({ queryKey: qk.branches, queryFn: fetchBranches, staleTime: 5 * 60_000, refetchInterval: false });
 export const useUsers = () => useQuery({ queryKey: qk.users, queryFn: fetchUsers, staleTime: 5 * 60_000, refetchInterval: false });
 export const useApprovals = () => useQuery({ queryKey: qk.approvals, queryFn: fetchApprovals });

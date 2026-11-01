@@ -33,6 +33,8 @@ export interface Branch {
   hasLogin: boolean;
   /** Display name, e.g. "الصفا" (falls back to the district). */
   name?: string | null;
+  /** English display name (migration 19); the branch app shows it in English. */
+  nameEn?: string | null;
   address?: string | null;
   accessNotes?: string | null;
   lat?: number | null;
@@ -50,6 +52,8 @@ export interface Driver {
   active: boolean;
   /** Available on the next working day (the day being planned). */
   availableNextDay: boolean;
+  /** Available today, for swapping drivers on a plan already running. */
+  availableToday: boolean;
   unavailableNote?: LocalizedText;
 }
 

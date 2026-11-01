@@ -39,6 +39,7 @@ const ar = {
     errMatch: 'كلمتا المرور غير متطابقتين',
     errors: {
       SAME_PASSWORD: 'اختر كلمة مرور مختلفة عن المؤقتة.',
+      PASSWORD_NOT_CHANGED: 'اختر كلمة مرور مختلفة عن المؤقتة.',
       WEAK_PASSWORD: 'كلمة المرور ضعيفة. اختر كلمة أطول.',
     } as Record<string, string>,
     done: 'تم حفظ كلمة المرور.',
@@ -88,6 +89,7 @@ const en: Dict = {
     errMatch: "The passwords don't match",
     errors: {
       SAME_PASSWORD: 'Choose a password different from the temporary one.',
+      PASSWORD_NOT_CHANGED: 'Choose a password different from the temporary one.',
       WEAK_PASSWORD: 'The password is too weak. Choose a longer one.',
     },
     done: 'Password saved.',

@@ -92,7 +92,8 @@ export function MaterialsPage() {
 
   const pwTarget = (u: Staff): PasswordTarget => ({
     name: l(u.name),
-    login: loginName(u.email ?? ''),
+    // The new account's login comes back from create-account; the phone is what a staff member signs in with anyway.
+    login: loginName(u.email ?? '') || (u.phone ?? ''),
     phone: u.phone,
     app: s.app,
     userId: u.id,
@@ -557,12 +558,12 @@ function StaffDrawer({
       if (await run(() => updateStaff(user.id, { name: v.name.trim(), nameEn: v.nameEn.trim(), materials: v.mats }), s.saved(v.name.trim()))) onClose();
       return;
     }
-    let r: { user_id?: string; temp_password: string } = { temp_password: '' };
+    let r: { user_id?: string; login?: string; temp_password: string } = { temp_password: '' };
     const ok = await run(async () => {
       r = await createStaffLogin({ name: v.name.trim(), nameEn: v.nameEn.trim(), phone, materials: v.mats });
     });
     if (ok) {
-      onCreated({ id: r.user_id ?? '', name: { ar: v.name.trim(), en: v.nameEn.trim() || v.name.trim() }, firstName: { ar: '', en: '' }, initials: { ar: '', en: '' }, role: 'supervisor', phone, email: '', lastSignInAt: null, mustChangePassword: true }, r.temp_password);
+      onCreated({ id: r.user_id ?? '', name: { ar: v.name.trim(), en: v.nameEn.trim() || v.name.trim() }, firstName: { ar: '', en: '' }, initials: { ar: '', en: '' }, role: 'supervisor', phone, email: r.login ?? '', lastSignInAt: null, mustChangePassword: true }, r.temp_password);
     }
   };
 
