@@ -45,6 +45,15 @@ export function useContact(): {
   };
 }
 /**
+ * The branch's name in the current language, falling back to its district (PLAN.md:284) so a
+ * branch with no name never reads « · جدة».
+ */
+function useBranchName() {
+  const { branch, district } = useBranch();
+  const f = useBranchFormat();
+  return (f.language === 'en' ? branch.name_en : branch.name) ?? f.name(district);
+}
+/**
  * The note that takes the next-visit card's place when there is no visit to show: «لا توجد زيارة
  * محددة بعد» while requests are waiting for a day, and «لا توجد طلبات حالية» when the branch has
  * none at all.
@@ -77,6 +86,7 @@ export function HomeScreen() {
   const material = data.materials.find(m => m.id === next?.material_id);
   const days = next?.visit_day ? Math.round((Date.parse(next.visit_day) - Date.parse(data.today)) / 86400000) : 0;
   const unread = data.notifications.some(n => !n.read_at);
+  const branchName = useBranchName();
   return <Screen safeColor={colors.navy} contentStyle={{ padding: 0, paddingBottom: 28, gap: 0 }} footer={<BottomNav />}>
     <View style={{ backgroundColor: colors.navy, borderBottomLeftRadius: 32, borderBottomRightRadius: 32,
       paddingTop: 8, paddingBottom: 76, overflow: 'hidden' }}>
@@ -101,7 +111,7 @@ export function HomeScreen() {
       </View>
       <View style={{ paddingTop: 22, paddingHorizontal: 20, gap: 14 }}>
         <View style={[styles.row, { gap: 6 }]}><Icon name="pin" size={18} color={colors.gold} />
-          <Label style={[styles.bold, { color: colors.gold, fontSize: 14, flexShrink: 1 }]}>{data.branch.name} · {f.name(data.city)}</Label></View>
+          <Label style={[styles.bold, { color: colors.gold, fontSize: 14, flexShrink: 1 }]}>{branchName} · {f.name(data.city)}</Label></View>
         <Title style={{ fontSize: 30, lineHeight: 39, color: colors.onPrimary }}>{t.heroQ}{'\n'}
           <Label style={{ fontSize: 30, lineHeight: 39, color: colors.gold, fontFamily: 'Tajawal_800ExtraBold' }}>{t.heroA}</Label>
         </Title>
@@ -175,7 +185,10 @@ export function RequestsScreen() {
         </Pressable>)}
     </ScrollView>
   </View>}>
-    {rows.length ? rows.map(row => <RequestCard key={row.id} row={row} />) : <EmptyState
+    {data.loading ? <View accessibilityState={{ busy: true }} style={{ gap: 10 }}>
+      <Skeleton height={78} radius={18} /><Skeleton height={78} radius={18} /><Skeleton height={78} radius={18} />
+    </View> : data.requestsError ? <Card style={{ borderRadius: 22, padding: 0 }}><ErrorState onRetry={data.retry} /></Card>
+    : rows.length ? rows.map(row => <RequestCard key={row.id} row={row} />) : <EmptyState
       title={hiddenByFilter ? interpolate(t.noFilterT, { m: filterMaterial ? name(filterMaterial) : '' }) : data.past ? t.noPastT : t.noActiveT}
       body={hiddenByFilter ? t.noFilterB : data.past ? t.noPastB : t.noActiveB}
       action={hiddenByFilter ? { label: t.showAll, onPress: () => data.setFilter(null) }
@@ -187,18 +200,26 @@ export function NotificationsScreen() {
   const f = useBranchFormat();
   const { t, colors } = f;
   const contact = useContact();
+  // Keyed by the kinds the database writes to a branch (migrations 04, 05, 13); the prototype's own
+  // `sched` / `mis` / `done`… never arrive. Partial and failed visits are both `request_follow_up`.
+  const icons: Record<string, string> = { visit_scheduled: 'cal', visit_today: 'truck', request_follow_up: 'headset',
+    request_completed: 'seal', request_closed: 'lock', request_cancelled: 'x' };
   return <PageFrame title={t.notifsT} footer={<BottomNav />}>
+    {data.notificationsLoading ? <View accessibilityState={{ busy: true }} style={{ gap: 10 }}>
+      <Skeleton height={86} radius={18} /><Skeleton height={86} radius={18} /><Skeleton height={86} radius={18} />
+    </View> : data.notificationsError ? <Card style={{ borderRadius: 22, padding: 0 }}><ErrorState onRetry={data.retry} /></Card>
+    : !data.notifications.length ? <EmptyState icon="bell" title={t.noNotifT} body={t.noNotifB} /> : null}
     {data.notifications.some(n => !n.read_at) ? <View style={{ alignSelf: 'flex-end' }}><TextLink label={t.markAll} onPress={data.markAllRead} /></View> : null}
     {data.notifications.map(n => {
       const material = data.materials.find(m => m.id === n.material_id);
       const request = data.requests.find(r => r.id === n.request_id);
       const action = request?.status === 'needs_decision' && contact.phoneFor(material);
-      const icons: Record<string, string> = { sched: 'cal', mis: 'headset', fail: 'warn', done: 'seal', morning: 'truck', closed: 'lock' };
-      const warning = n.kind === 'mis' || n.kind === 'fail';
+      const warning = n.kind === 'request_follow_up';
+      const done = n.kind === 'request_completed';
       return <Card key={n.id} style={{ borderRadius: 18, padding: 14, gap: 10, backgroundColor: n.read_at ? colors.surface : colors.primarySoft }}>
         <Pressable accessibilityRole="button" onPress={() => n.request_id && data.openRequest(n.request_id)} style={[styles.row, { alignItems: 'flex-start', minHeight: 44 }]}>
-          <Tile icon={icons[n.kind] ?? 'bell'} color={warning ? colors.warning : n.kind === 'done' ? colors.success : colors.link}
-            background={warning ? colors.warningSoft : n.kind === 'done' ? colors.successSoft : colors.primarySoft} />
+          <Tile icon={icons[n.kind] ?? 'bell'} color={warning ? colors.warning : done ? colors.success : colors.link}
+            background={warning ? colors.warningSoft : done ? colors.successSoft : colors.primarySoft} />
           <View style={[styles.grow, { gap: 3 }]}>
             <View style={[styles.row, { alignItems: 'flex-start', gap: 8 }]}>
               <Label style={[styles.heavy, styles.grow, { lineHeight: 21.75 }]}>{f.language === 'ar' ? n.title_ar : n.title_en}</Label>
@@ -223,6 +244,7 @@ export function AccountScreen() {
   const contact = useContact();
   const [logout, setLogout] = useState(false);
   const [busy, setBusy] = useState(false);
+  const branchName = useBranchName();
   const accountRows = [{ label: t.chain, value: f.name(data.chain) }, { label: t.branchNo, value: data.branch.branch_number },
     { label: t.city, value: f.name(data.city) }, { label: t.district, value: f.name(data.district) }];
   return <>
@@ -231,7 +253,7 @@ export function AccountScreen() {
         <View style={{ position: 'absolute', width: 160, height: 160, borderRadius: 80, borderWidth: 1,
           borderColor: branchArtwork.heroGoldLine, start: -50, bottom: -70 }} />
         <View style={styles.row}><Tile icon="store" size={52} iconSize={28} color={colors.gold} background={branchArtwork.heroTile} />
-          <View style={styles.grow}><Label style={[styles.heavy, { fontSize: 19, color: colors.onPrimary }]}>{data.branch.name}</Label>
+          <View style={styles.grow}><Label style={[styles.heavy, { fontSize: 19, color: colors.onPrimary }]}>{branchName}</Label>
             <Label style={{ fontSize: 13, color: colors.onPrimary, opacity: .75 }}>{t.sharedAcc}</Label></View>
         </View>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: 12, columnGap: 16 }}>
@@ -247,7 +269,9 @@ export function AccountScreen() {
       </View>
       <Card style={{ borderRadius: 18, padding: 14, gap: 10 }}>
         <View style={[styles.row, { justifyContent: 'space-between' }]}><Title style={{ fontSize: 16 }}>{t.savedLoc}</Title><Pill icon="lock">{t.viewOnly}</Pill></View>
-        <BranchMap lat={data.branch.lat!} lng={data.branch.lng!} small />
+        {/* Centred on the saved pin: the map's default centre is Jeddah, which put a Riyadh or
+            Makkah branch's pin off this small map. */}
+        <BranchMap lat={data.branch.lat!} lng={data.branch.lng!} small center={{ lat: data.branch.lat!, lng: data.branch.lng! }} />
         <Muted style={{ fontSize: 13 }}>{t.locLocked}</Muted>
         <Muted style={{ fontSize: 13 }}>{ltr(`${data.branch.lat?.toFixed(5)}, ${data.branch.lng?.toFixed(5)}`)}</Muted>
       </Card>

@@ -383,11 +383,11 @@ cached at `apps/mobile/design/branch-v2/project/` (gitignored, so read it by pat
       config plugins do not apply there. That is exactly why the branch screens read right-to-left on the phone
       and sign-in does not. One wrapper high up, and the two per-feature copies deleted.
 
-**Decided while building stage 1.** The canvas draws no language or theme controls on sign-in,
-and ours did. Ahmed said to match the canvas, so they are gone: they live on the Account screen
-now, and a phone that opens in Arabic signs in in Arabic. The forced password-change screen still
-has its own pair — it is a bite 1 screen with no artboard of its own yet, so leave it until it gets
-one.
+**Decided while building stage 1, revised in the audit (Nov 2026).** The canvas draws no language or
+theme controls on sign-in. Ahmed's final call is to **keep** the two icons in the sign-in hero (and on
+the forced password-change screen), because a phone that opens in Arabic needs a way to English before
+it has an account. The globe flips the language; the moon flips dark ↔ light from the theme showing
+now, with no sheet. «حسب النظام» is chosen on the Account screen only.
 
 **Stage 2 — splash, onboarding, camera, location, the lock**
 

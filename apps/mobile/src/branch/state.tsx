@@ -219,6 +219,10 @@ function useBranchState() {
     loading: requests.isPending || reference.isPending,
     /** Any of the three reads the home screen needs has failed. */
     error: requests.isError || reference.isError || timeline.isError,
+    /** My requests needs the list and the materials, not the timeline. */
+    requestsError: requests.isError || reference.isError,
+    notificationsLoading: notifications.isPending,
+    notificationsError: notifications.isError,
     /** Refetch everything the home screen needs. The retry button and the offline bar share it. */
     retry: () => Promise.all(Object.values(KEYS).map(queryKey => client.invalidateQueries({ queryKey }))),
     refreshing: context.isFetching || reference.isFetching || requests.isFetching || timeline.isFetching || notifications.isFetching,

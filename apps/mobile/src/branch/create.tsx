@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, BackHandler, Image, Pressable, TextInput, View } from 'react-native';
+import { digits } from '@/data/auth-api';
 import { errorCode, errorMessage } from '@/data/errors';
 import { takePhoto, pickPhoto, type Photo as DevicePhoto } from '@/data/device';
 import type { MaterialRow, SubtypeRow } from '@/data/rows';
@@ -14,7 +15,6 @@ const materialHints = { card: 'materialHintCard', plas: 'materialHintPlas', pape
   metal: 'materialHintMetal', bread: 'materialHintBread' } as const;
 const subtypeHints = { mix: 'subtypeHintMix', stretch: 'subtypeHintStretch', iron: 'subtypeHintIron',
   copper: 'subtypeHintCopper', aluminium: 'subtypeHintAluminium' } as const;
-const digits = (value: string) => value.replace(/[٠-٩]/g, digit => String(digit.charCodeAt(0) - 1632)).replace(/\D/g, '');
 
 export function CreateScreen() {
   const data = useBranch();
@@ -68,12 +68,14 @@ export function CreateScreen() {
   async function choosePhoto(camera: boolean) {
     if (picking.current) return;
     picking.current = true;
-    setPhoto('uploading'); setPhotoError(''); setChosenPhoto(null);
+    // A retake that is cancelled or refused keeps the photo already on screen.
+    const before = photo;
+    setPhoto('uploading'); setPhotoError('');
     const result = await (camera ? takePhoto() : pickPhoto());
     picking.current = false;
     if (result.ok) { setChosenPhoto(result.photo); setPhoto('chosen'); }
     else {
-      setPhoto('none');
+      setPhoto(before);
       if (result.reason === 'denied') setPhotoError(camera ? copy.shared.camDenied : copy.shared.galDenied);
       else if (result.reason === 'failed') setPhotoError(t.photoFail);
     }
@@ -246,8 +248,10 @@ export function CreateScreen() {
                   48px targets beside a photo read faster than two short links. */}
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 <IconButton icon="retry" label={t.retake} onPress={() => void choosePhoto(true)} />
-                <IconButton icon="x" label={t.remove}
-                  onPress={() => { setPhoto('none'); setChosenPhoto(null); setPhotoError(''); }} />
+                {/* Not on a request that already has a stored photo: `branch_update_request` keeps
+                    the stored path when it is sent none, so removing it here would only look done. */}
+                {editing?.branch_photo_path ? null : <IconButton icon="x" label={t.remove}
+                  onPress={() => { setPhoto('none'); setChosenPhoto(null); setPhotoError(''); }} />}
               </View>
             </View>
           </View>}

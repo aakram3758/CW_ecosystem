@@ -5,6 +5,9 @@ export type Role = 'branch' | 'driver';
 
 const chainsResponse = z.object({
   chains: z.array(z.object({ code: z.string(), name_ar: z.string(), name_en: z.string() })),
+  // `app_settings.ops_phone`, for «نسيت كلمة المرور؟» before there is a session (migration 21's
+  // companion change to the function). Optional, so a `chains` deployed before it still parses.
+  ops_phone: z.string().nullable().optional(),
 });
 const sessionResponse = z.object({
   session: z.object({ access_token: z.string(), refresh_token: z.string() }),
@@ -22,11 +25,16 @@ export async function fetchChains(signal?: AbortSignal) {
     headers: { 'Content-Type': 'application/json' }, signal,
   });
   if (!response.ok) throw new Error('chains');
-  return chainsResponse.parse(await response.json()).chains;
+  const body = chainsResponse.parse(await response.json());
+  return { chains: body.chains, opsPhone: body.ops_phone || null };
 }
 
+/** Latin digits only: Arabic-Indic ٠-٩ become 0-9 (a phone keyboard may type either), the rest is dropped. */
+export const digits = (value: string) =>
+  value.replace(/[٠-٩]/g, digit => String(digit.charCodeAt(0) - 1632)).replace(/\D/g, '');
+
 export function phoneDigits(value: string): string {
-  return value.replace(/\D/g, '').replace(/^966/, '').replace(/^0/, '');
+  return digits(value).replace(/^966/, '').replace(/^0/, '');
 }
 
 export function normalizePhone(value: string): string | null {

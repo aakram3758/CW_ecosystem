@@ -453,12 +453,11 @@ export function AppSplash() {
  * this is the same two icons the Account screen uses, shrunk to the canvas's `.hb` hero button:
  * 44×44, radius 14, on a tenth-white tile over navy, or on `surface2` anywhere else.
  *
- * The globe is a straight toggle because there are exactly two languages. The moon opens a sheet,
- * because there are three themes and one of them is «حسب النظام».
+ * Both are straight toggles: the globe flips the language, the moon flips the theme it is showing
+ * now (dark ↔ light). «حسب النظام» stays on the Account screen's full controls.
  */
 export function PreferencesIcons({ onDark = false }: { onDark?: boolean } = {}) {
-  const { copy, colors, language, themeChoice, setLanguage, setTheme } = usePreferences();
-  const [sheet, setSheet] = useState(false);
+  const { copy, colors, language, theme, setLanguage, setTheme } = usePreferences();
   const [busy, setBusy] = useState(false);
   const foreground = onDark ? colors.onPrimary : colors.text;
   async function update(action: () => Promise<void>) {
@@ -474,13 +473,7 @@ export function PreferencesIcons({ onDark = false }: { onDark?: boolean } = {}) 
     </Pressable>;
   return <View style={{ flexDirection: 'row', gap: 8 }}>
     {button('globe', copy.branch.language, () => void update(() => setLanguage(language === 'ar' ? 'en' : 'ar')))}
-    {button('moon', copy.branch.theme, () => setSheet(true))}
-    {sheet ? <Sheet onClose={() => setSheet(false)}>
-      <Title style={{ fontSize: 18 }}>{copy.branch.theme}</Title>
-      <Segmented label={copy.branch.theme} value={themeChoice} disabled={busy}
-        options={(['light', 'dark', 'system'] as const).map(choice => ({ value: choice, label: copy.branch[choice] }))}
-        onChange={value => { setSheet(false); void update(() => setTheme(value)); }} />
-    </Sheet> : null}
+    {button('moon', copy.branch.theme, () => void update(() => setTheme(theme === 'dark' ? 'light' : 'dark')))}
   </View>;
 }
 

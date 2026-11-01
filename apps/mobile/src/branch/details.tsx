@@ -54,7 +54,7 @@ export function DetailsScreen() {
       const visitDay = attempts.find(a => a.recorded_at >= event.created_at)?.visit_day ?? row.visit_day;
       label = visitDay ? interpolate(t.ev_sched, { d: f.date(visitDay, true) }) : t.visitDay;
     } else if (event.to_status === 'completed') { label = t.ev_done; color = colors.success; }
-    else if (event.to_status === 'cancelled') { label = t.ev_cancel; color = colors.muted; }
+    else if (event.to_status === 'cancelled') { label = event.actor_kind === 'staff' ? t.ev_cancel_ops : t.ev_cancel; color = colors.muted; }
     else if (event.to_status === 'closed') { label = interpolate(t.ev_closed, { r: row.closed_reason ?? '' }); color = colors.muted; }
     else if (event.to_status === 'waiting') { label = t.ev_requeue; color = colors.warning; }
     else if (attempt) { label = attempt.outcome === 'partial' ? t.ev_mis : interpolate(t.ev_fail, { r: reason(attempt) }); color = colors.warning; }
@@ -70,6 +70,12 @@ export function DetailsScreen() {
   if (editable || locked) timeline.push({ key: 'pending', label: editable ? t.pend_sched : row.status === 'scheduled'
     ? interpolate(t.pend_visit, { d: f.date(row.visit_day, true) }) : t.pend_dec,
     time: '', color: editable ? colors.line : locked ? st.color : colors.primary, pending: true });
+  // An Ops cancel always carries a reason or a note (`staff_cancel_request` requires one); a
+  // branch's own cancel carries neither.
+  const cancelReason = data.reasons.find(r => r.id === row.cancel_reason_id);
+  const opsCancel = row.cancel_reason_id !== null || row.cancel_note !== null;
+  const opsReason = [cancelReason ? f.language === 'ar' ? cancelReason.label_ar : cancelReason.label_en : null,
+    row.cancel_note].filter(Boolean).join(' — ');
   const rescheduled = isRescheduled(row);
   const lastAttempt = attempts[attempts.length - 1];
   const subtitle = rescheduled ? interpolate(t.sub_resched, { o: outcome(lastAttempt ?? {
@@ -78,7 +84,7 @@ export function DetailsScreen() {
   }) }) : row.status === 'scheduled' ? t.sub_sched : row.status === 'needs_decision' ? t.sub_dec
     : row.status === 'completed' ? interpolate(t.sub_done, { d: f.date(row.visit_day) })
       : row.status === 'closed' ? interpolate(t.sub_closed, { r: row.closed_reason ?? '' })
-        : row.status === 'cancelled' ? t.sub_cancel : t.sub_await;
+        : row.status === 'cancelled' ? opsCancel ? interpolate(t.sub_cancel_ops, { r: opsReason }) : t.sub_cancel : t.sub_await;
   const alreadyOpen = data.requests.some(r => isOpen(r) && r.material_id === row.material_id && r.subtype_id === row.subtype_id);
   return <>
     <PageFrame title={interpolate(t.reqNo, { id: row.number ?? '' })} onBack={data.back}
