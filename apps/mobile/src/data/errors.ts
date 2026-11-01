@@ -10,6 +10,8 @@ export const errorMessages = {
   // Sign-in is one screen for both roles now and draws one locked banner, so both get the branch
   // wording. The driver's own 'lockedTitle' / 'lockedBody' stay for its locked artboard in bite 5.
   LOCKED: (copy: Copy) => copy.branch.lockMsg,
+  /** The sign-in function's answer to a right password on a deactivated account. */
+  ACCOUNT_INACTIVE: (copy: Copy) => copy.shared.accountInactive,
   PASSWORD_NOT_CHANGED: (copy: Copy) => copy.shared.samePassword,
 
   // The voluntary change's two refusals, raised as `PasswordError` by `changeOwnPassword`. The

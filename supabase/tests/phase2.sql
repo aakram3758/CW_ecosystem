@@ -88,7 +88,10 @@ select pg_temp.ok(not has_function_privilege('authenticated', 'public.login_guar
 -- ---------------------------------------------------------------- 15: temporary passwords
 update public.profiles set must_change_password = false where id = '00000000-0000-0000-0000-00000000f0b1';
 select public.login_guard_record('b-test-999999@branches.cloudswater.co', false);
+insert into auth.sessions (id, user_id) values ('00000000-0000-0000-0000-00000000f5e1', '00000000-0000-0000-0000-00000000f0b1');
 select public.set_temp_password('00000000-0000-0000-0000-00000000f0b1', '482913');
+select pg_temp.ok(not exists (select 1 from auth.sessions where user_id = '00000000-0000-0000-0000-00000000f0b1'),
+  'reset signs the account out everywhere (migration 21)');
 select pg_temp.ok((select encrypted_password = extensions.crypt('482913', encrypted_password) and encrypted_password like '$2a$10$%'
   from auth.users where id = '00000000-0000-0000-0000-00000000f0b1'), '6-digit temp password stored as bcrypt (what Auth checks)');
 select pg_temp.ok((select must_change_password from public.profiles where id = '00000000-0000-0000-0000-00000000f0b1'), 'temp password forces a change at sign-in');

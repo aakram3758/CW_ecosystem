@@ -16,7 +16,8 @@ exception when others then
   if position(p_expect in sqlerrm) = 0 then raise exception 'FAIL: % → got "%"', label, sqlerrm; end if;
   raise notice 'ok  % (%)', label, sqlerrm;
 end $$;
-grant execute on all functions in schema pg_temp to authenticated;
+-- anon too: since migration 21 a new function is not executable by PUBLIC by default.
+grant execute on all functions in schema pg_temp to anon, authenticated;
 
 -- accounts
 insert into auth.users (id, email) values
@@ -28,13 +29,14 @@ insert into auth.users (id, email) values
 update public.branches set user_id = null; update public.drivers set user_id = null;
 update public.profiles set active = false where role = 'staff';
 update public.materials set manager_id = null;
-insert into public.profiles (id, role, display_name) values
-  ('00000000-0000-0000-0000-0000000000a1', 'staff', 'مدير عام'),
-  ('00000000-0000-0000-0000-0000000000a2', 'staff', 'مشرف بلاستيك'),
-  ('00000000-0000-0000-0000-0000000000b1', 'branch', 'العثيم 207'),
-  ('00000000-0000-0000-0000-0000000000b2', 'branch', 'بنده 106'),
-  ('00000000-0000-0000-0000-0000000000d1', 'driver', 'أحمد سالم'),
-  ('00000000-0000-0000-0000-0000000000d2', 'driver', 'خالد عمر');
+-- must_change_password = false: an account still on its temporary password has no role (migration 21).
+insert into public.profiles (id, role, display_name, must_change_password) values
+  ('00000000-0000-0000-0000-0000000000a1', 'staff', 'مدير عام', false),
+  ('00000000-0000-0000-0000-0000000000a2', 'staff', 'مشرف بلاستيك', false),
+  ('00000000-0000-0000-0000-0000000000b1', 'branch', 'العثيم 207', false),
+  ('00000000-0000-0000-0000-0000000000b2', 'branch', 'بنده 106', false),
+  ('00000000-0000-0000-0000-0000000000d1', 'driver', 'أحمد سالم', false),
+  ('00000000-0000-0000-0000-0000000000d2', 'driver', 'خالد عمر', false);
 update public.materials set manager_id = '00000000-0000-0000-0000-0000000000a2' where code = 'plas';
 update public.branches set user_id = '00000000-0000-0000-0000-0000000000b1' where id = (select b.id from public.branches b join public.chains c on c.id = b.chain_id where c.code = 'othaim' and b.branch_number = '207');
 update public.branches set user_id = '00000000-0000-0000-0000-0000000000b2' where id = (select b.id from public.branches b join public.chains c on c.id = b.chain_id where c.code = 'panda' and b.branch_number = '106');
@@ -60,6 +62,8 @@ create temp table ids as select
   (select id from public.reasons where kind = 'partial' order by sort_order limit 1) as r_partial,
   private.next_working_day(private.ops_today()) as nwd;
 grant select on ids to authenticated;
+-- The branch's uploaded scale photo: migration 21 checks the object exists.
+insert into storage.objects (bucket_id, name) select 'request-photos', 'branch/' || b207 || '/a.jpg' from ids;
 create temp table vars (k text primary key, v uuid);
 grant all on vars to authenticated;
 
@@ -100,6 +104,15 @@ select pg_temp.ok((select created_via from public.requests where id = (select v 
 select pg_temp.err(format('select public.staff_create_request(%L, %L, %L, 10, null)', (select b212 from ids), (select plas from ids), (select mix from ids)), 'DUPLICATE_OPEN_REQUEST', 'duplicate open request blocked');
 select pg_temp.ok((public.staff_create_request((select b212 from ids), (select plas from ids), (select stretch from ids), 12, null) ->> 'number') is not null, 'other subtype allowed');
 select pg_temp.err(format('select public.staff_create_request(%L, %L, null, 10, null)', (select b212 from ids), (select plas from ids)), 'SUBTYPE_REQUIRED', 'subtype required for plastic');
+-- Migration 21
+select pg_temp.err(format('select public.staff_create_request(%L, %L, null, 5001, null)', (select b207 from ids), (select id from public.materials where code = 'bread')), 'KG_TOO_LARGE', 'staff create refuses over 5,000 kg');
+reset role;
+update public.material_subtypes set active = false where code = 'stretch';
+set local role authenticated;
+select pg_temp.err(format('select public.staff_create_request(%L, %L, %L, 10, null)', (select b207 from ids), (select plas from ids), (select stretch from ids)), 'MATERIAL_INACTIVE', 'inactive subtype refused');
+reset role;
+update public.material_subtypes set active = true where code = 'stretch';
+set local role authenticated;
 select pg_temp.err('insert into public.requests (branch_id, material_id) select b207, card from ids', 'permission denied', 'no direct insert into requests');
 select pg_temp.err('delete from public.cities', 'permission denied', 'reference rows cannot be deleted');
 select pg_temp.err('update public.requests set status = ''completed''', 'permission denied', 'no direct update of requests');
@@ -152,6 +165,9 @@ select pg_temp.err(format('select public.branch_create_request(%L, null, null, n
 -- Migration 18. The ceiling is checked before the duplicate test inside the function, so the
 -- material does not have to be a free one for this to reach the weight.
 select pg_temp.err(format('select public.branch_create_request(%L, null, 5001, null, ''سعد'', ''0512345678'')', (select id from public.materials where code = 'bread')), 'KG_TOO_LARGE', 'branch create refuses over 5,000 kg');
+-- Migration 21: the photo must be in this branch's folder and exist.
+select pg_temp.err(format('select public.branch_create_request(%L, null, 18, null, ''سعد'', ''0512345678'', %L)', (select id from public.materials where code = 'bread'), 'branch/' || (select b212 from ids) || '/a.jpg'), 'INVALID_PHOTO', 'photo from another branch folder refused');
+select pg_temp.err(format('select public.branch_create_request(%L, null, 18, null, ''سعد'', ''0512345678'', %L)', (select id from public.materials where code = 'bread'), 'branch/' || (select b207 from ids) || '/missing.jpg'), 'INVALID_PHOTO', 'photo that was never uploaded refused');
 insert into vars select 'br1', (public.branch_create_request((select id from public.materials where code = 'bread'), null, 18, 'خلف المستودع', 'سعد', '0512345678', 'branch/' || (select b207 from ids) || '/a.jpg') ->> 'id')::uuid;
 select public.branch_update_request((select v from vars where k='br1'), 22, null, 'سعد', '0512345678');
 select pg_temp.ok((select kg from public.requests where id = (select v from vars where k='br1')) = 22, 'branch edited waiting request');
@@ -169,6 +185,7 @@ select pg_temp.ok((select count(*) from public.notifications) > 0, 'branch got n
 select public.mark_notifications_read();
 select pg_temp.ok(not exists (select 1 from public.notifications where read_at is null), 'mark all read');
 select pg_temp.err(format('select public.branch_set_location(%s, %s)', 100, 39), 'INVALID_LOCATION', 'location bounds checked');
+select pg_temp.err('select public.branch_set_location(null, null)', 'INVALID_LOCATION', 'null location refused');
 -- Migration 17. Every seeded branch is confirmed, so even a valid pair is refused now. This has to
 -- sit after the bounds check above, which is why the guard is the later of the two in the function.
 select pg_temp.err(format('select public.branch_set_location(%s, %s)', 21.6, 39.2), 'LOCATION_ALREADY_SET', 'a confirmed branch cannot move its pin');
@@ -184,6 +201,7 @@ select pg_temp.err(format('select public.driver_record_outcome(%L, ''full'')', (
 select pg_temp.ok(private.photo_access('request/' || (select v from vars where k='w1') || '/p.jpg', true), 'driver can upload visit photo');
 select pg_temp.ok(private.photo_access('branch/' || (select b207 from ids) || '/a.jpg', false) = false, 'driver cannot read unrelated branch photo');
 select pg_temp.err(format('select public.driver_record_outcome(%L, ''failed'')', (select v from vars where k='w1')), 'REASON_REQUIRED', 'failed needs a reason');
+select pg_temp.err(format('select public.driver_record_outcome(%L, ''full'', null, null, null, %L)', (select v from vars where k='w1'), 'branch/' || (select b207 from ids) || '/a.jpg'), 'INVALID_PHOTO', 'driver photo must be in the request folder');
 select public.driver_record_outcome((select v from vars where k='w1'), 'partial', (select r_partial from ids), null, 'نصف الكمية', 'request/' || (select v from vars where k='w1') || '/p.jpg');
 select pg_temp.ok((select status from public.requests where id = (select v from vars where k='w1')) = 'needs_decision', 'partial → needs decision');
 select pg_temp.err(format('select public.driver_record_outcome(%L, ''full'', null, null, null, ''x'')', (select v from vars where k='w1')), 'INVALID_STATUS', 'cannot record twice');
@@ -215,7 +233,23 @@ select public.staff_set_account_active('00000000-0000-0000-0000-0000000000b1', f
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000b1', true);
 select pg_temp.ok((select count(*) from public.request_list) = 0, 'deactivated branch account sees nothing');
+select pg_temp.ok((select count(*) from public.branches) = 0 and (select count(*) from public.notifications) = 0, 'deactivated branch reads no branch row or notifications');
 reset role;
+
+\echo '--- migration 21: temporary password, private functions'
+update public.profiles set must_change_password = true where id = '00000000-0000-0000-0000-0000000000b2';
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000b2', true);
+select pg_temp.ok(private.my_role() is null and (select count(*) from public.request_list) = 0
+  and (select count(*) from public.cities) = 0 and (select count(*) from public.branches) = 0, 'on a temporary password: no role, no data');
+select pg_temp.ok((select must_change_password from public.profiles where id = '00000000-0000-0000-0000-0000000000b2'), 'on a temporary password: own profile still readable');
+select public.complete_password_change();
+select pg_temp.ok(private.my_role() = 'branch' and (select count(*) from public.branches) = 1, 'after the change: role and data back');
+reset role;
+select pg_temp.ok(not has_function_privilege('authenticated', 'private.sweep_unrecorded_visits()', 'EXECUTE')
+  and not has_function_privilege('authenticated', 'private.notify_stale_decisions()', 'EXECUTE')
+  and not has_function_privilege('anon', 'private.photo_access(text, boolean)', 'EXECUTE')
+  and has_function_privilege('authenticated', 'private.photo_access(text, boolean)', 'EXECUTE'), 'private jobs closed; photo_access kept');
 
 \echo 'ALL CHECKS PASSED'
 rollback;

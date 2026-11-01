@@ -4,6 +4,7 @@
 //   200 { session: { access_token, refresh_token, expires_in, expires_at, token_type } } → app calls auth.setSession()
 //   401 { error: 'INVALID_CREDENTIALS', attempts_left }
 //   429 { error: 'LOCKED', retry_after }  (seconds)
+//   403 { error: 'ACCOUNT_INACTIVE' }  — right password, deactivated account (no session is returned)
 // Deployed with verify_jwt = false: it is the sign-in itself, so the caller has no session yet.
 import { createClient } from 'npm:@supabase/supabase-js@2.118.0';
 import { admin, cors, json } from '../_shared/admin.ts';
@@ -35,7 +36,11 @@ Deno.serve(async (req) => {
 
   if (error) {
     // Only a wrong email/password counts towards the lock (not Auth rate limits or outages).
-    if (error.code !== 'invalid_credentials') return json({ error: 'AUTH_ERROR', detail: error.message }, error.status ?? 500);
+    // The detail stays in the function's logs; a caller with no session gets the code only.
+    if (error.code !== 'invalid_credentials') {
+      console.error('sign-in auth error', error.code, error.status, error.message);
+      return json({ error: 'AUTH_ERROR' }, error.status ?? 500);
+    }
     const { data: r, error: recordError } = await db.rpc('login_guard_record', { p_login: email, p_ok: false });
     if (recordError) return json({ error: 'SERVER_ERROR' }, 500);
     return r.locked_seconds > 0
@@ -44,6 +49,10 @@ Deno.serve(async (req) => {
   }
 
   await db.rpc('login_guard_record', { p_login: email, p_ok: true });
+  // Checked only after the password is right, so this answer never tells a stranger an account exists.
+  const { data: profile, error: profileError } = await db.from('profiles').select('active').eq('id', data.user.id).maybeSingle();
+  if (profileError) return json({ error: 'SERVER_ERROR' }, 500);
+  if (profile && !profile.active) return json({ error: 'ACCOUNT_INACTIVE' }, 403);
   const s = data.session!;
   return json({
     session: {

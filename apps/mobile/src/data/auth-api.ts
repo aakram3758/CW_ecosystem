@@ -11,7 +11,7 @@ const sessionResponse = z.object({
 });
 
 export class SignInError extends Error {
-  constructor(public code: 'INVALID_CREDENTIALS' | 'LOCKED', public attemptsLeft?: number,
+  constructor(public code: 'INVALID_CREDENTIALS' | 'LOCKED' | 'ACCOUNT_INACTIVE', public attemptsLeft?: number,
     public retryAfter?: number) {
     super(code);
   }
@@ -111,6 +111,10 @@ export async function signIn(email: string, password: string) {
   if (response.status === 429) {
     const error = z.object({ error: z.literal('LOCKED'), retry_after: z.number().nonnegative() }).parse(body);
     throw new SignInError(error.error, undefined, error.retry_after);
+  }
+  if (response.status === 403) {
+    const error = z.object({ error: z.literal('ACCOUNT_INACTIVE') }).parse(body);
+    throw new SignInError(error.error);
   }
   if (response.status !== 200) throw new Error('sign-in');
   const { error } = await supabase.auth.setSession(sessionResponse.parse(body).session);
