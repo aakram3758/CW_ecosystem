@@ -39,7 +39,11 @@ function useDriverState(today: string, identity: api.DriverContext) {
       () => { for (const name of names) void client.invalidateQueries({ queryKey: [...base, name] }); });
     on('requests', ['day', 'next', 'history']);
     on('visit_attempts', ['day', 'next', 'history', 'history-exists']);
-    on('notifications', ['notifications']);
+    // A notification also refetches the plans. Realtime only sends a change to someone who can read
+    // the row afterwards, so when ops moves a stop to another driver, this driver never hears about
+    // the request: it is not theirs any more. The `plan_updated` notification ops writes to them at
+    // the same moment is the one event that does arrive.
+    on('notifications', ['notifications', 'day', 'next']);
     on('driver_days_off', ['context']);
     on('plan_approvals', ['next']);
     channel.subscribe(status => { if (status === 'SUBSCRIBED') void client.invalidateQueries({ queryKey: base }); });

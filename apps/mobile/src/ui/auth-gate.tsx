@@ -4,7 +4,7 @@ import { Redirect } from 'expo-router';
 import { useAuth } from '@/providers/auth';
 import { usePreferences } from '@/providers/preferences';
 import { errorMessage, loadErrorTitle } from '@/data/errors';
-import { AppSplash, Button, ErrorState, OfflineBar, Screen } from '@/ui/components';
+import { BlankScreen, Button, ErrorState, OfflineBar, Screen } from '@/ui/components';
 
 export function AuthGate({ route, children }: PropsWithChildren<{
   route: '/sign-in' | '/change-password' | '/branch' | '/driver';
@@ -17,7 +17,7 @@ export function AuthGate({ route, children }: PropsWithChildren<{
         errorMessage(error, copy, side), [{ text: copy.branch.close }]));
     }} /> : null}
   </Screen>;
-  if (auth.loading) return <AppSplash />;
+  if (auth.loading) return <BlankScreen />;
   if (auth.destination !== route) return <Redirect href={auth.destination} />;
   return children;
 }

@@ -434,14 +434,15 @@ export function OfflineBar({ bottom = 24, busy = false, onRetry }: {
   </Animated.View>;
 }
 
-export function AppSplash() {
-  const { side, copy } = usePreferences();
-  return <Screen><View style={{ flex: 1, justifyContent: 'center', gap: 24 }}>
-    <Icon name={side === 'branch' ? 'store' : 'truck'} />
-    <Title>{side === 'branch' ? copy.branch.splashB : copy.driver.appName}</Title>
-    <Label>{side === 'branch' ? copy.branch.splashA : copy.driver.tagline}</Label>
-    <Loading /><OfflineBar />
-  </View></Screen>;
+/**
+ * What draws while the app is still finding out who is signed in: the background, and the offline
+ * bar if there is no connection to find out with. Nothing else, on purpose. It shows for a moment,
+ * straight after sign-in and at launch under the brand splash, and anything with a title in it was
+ * a second splash naming the wrong side: it read «ماء الغيوم للفروع» on the driver's way in.
+ */
+export function BlankScreen() {
+  const { colors } = usePreferences();
+  return <View style={{ flex: 1, backgroundColor: colors.bg }}><OfflineBar /></View>;
 }
 
 /**
