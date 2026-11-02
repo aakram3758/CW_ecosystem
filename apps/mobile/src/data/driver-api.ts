@@ -41,15 +41,16 @@ export async function fetchDay(driverId: string, day: string): Promise<RequestLi
   return data;
 }
 
-/** Earliest future assignment and its newest approval. An assignment need not have an approval row. */
+/** Earliest future assignment still scheduled, and its newest approval. An assignment need not have an approval row.
+ *  A cancelled request keeps its driver and visit day, so both reads filter on status. */
 export async function fetchNextPlan(driverId: string, today: string): Promise<{ day: string; rows: RequestListRow[]; approvedAt: string | null } | null> {
-  const first = await supabase.from('request_list').select('visit_day').eq('driver_id', driverId)
+  const first = await supabase.from('request_list').select('visit_day').eq('driver_id', driverId).eq('status', 'scheduled')
     .gt('visit_day', today).order('visit_day').limit(1).maybeSingle();
   if (first.error) throw first.error;
   const day = first.data?.visit_day;
   if (!day) return null;
   const [rows, approval] = await Promise.all([
-    supabase.from('request_list').select(REQUEST_COLUMNS).eq('driver_id', driverId).eq('visit_day', day)
+    supabase.from('request_list').select(REQUEST_COLUMNS).eq('driver_id', driverId).eq('visit_day', day).eq('status', 'scheduled')
       .order('chain_code').order('branch_number'),
     supabase.from('plan_approvals').select('approved_at').eq('driver_id', driverId).eq('visit_day', day)
       .order('approved_at', { ascending: false }).limit(1).maybeSingle(),

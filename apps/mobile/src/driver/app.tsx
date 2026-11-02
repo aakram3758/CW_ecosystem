@@ -73,7 +73,7 @@ function DriverStartup({ error, busy, retry }: { error: boolean; busy: boolean; 
   return <View style={{ flex: 1 }}><Screen topInset={false} contentStyle={{ padding: 0, gap: 0 }}>
     <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 20, paddingBottom: 84, borderBottomStartRadius: 32, borderBottomEndRadius: 32, backgroundColor: startupNavy, overflow: 'hidden' }}>
       <View style={{ position: 'absolute', width: 260, height: 260, borderRadius: 130, borderWidth: 1, borderColor: startupLine, left: -90, top: -60 }} /><View style={{ position: 'absolute', width: 180, height: 180, borderRadius: 90, borderWidth: 1, borderColor: startupGoldLine, right: -60, bottom: -40 }} />
-      <Image source={require('../../assets/cw-logo.png')} resizeMode="contain" style={{ height: 32, aspectRatio: 452 / 362 }} />
+      <Image source={require('../../assets/cw-mark.png')} accessible={false} resizeMode="contain" style={{ width: 61, height: 32 }} />
       <View style={{ gap: 12, paddingTop: 22 }}><Skeleton width="72%" height={30} style={{ backgroundColor: startupLine }} /><Skeleton width="44%" height={30} style={{ backgroundColor: startupLine }} /></View>
     </View><Card style={[shadowLg, { marginTop: -56, marginHorizontal: 16, padding: 18, borderRadius: 22, gap: 16 }]}>{error ? <ErrorState home onRetry={retry} /> : <LoadingCards home />}</Card>
     </Screen><OfflineNotice busy={busy} retry={retry} /></View>;

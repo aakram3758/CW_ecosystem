@@ -24,7 +24,7 @@ export function HomeScreen() {
     <View style={{ backgroundColor: navy, paddingTop: insets.top, paddingBottom: 84, borderBottomStartRadius: 32, borderBottomEndRadius: 32, overflow: 'hidden' }}>
       <View accessible={false} style={{ position: 'absolute', width: 260, height: 260, borderRadius: 130, borderWidth: 1, borderColor: heroLine, left: -90, top: -60 }} />
       <View accessible={false} style={{ position: 'absolute', width: 180, height: 180, borderRadius: 90, borderWidth: 1, borderColor: heroGoldLine, right: -60, bottom: -40 }} />
-      <View style={[styles.row, { justifyContent: 'space-between', paddingTop: 8, paddingHorizontal: 20 }]}><Image source={require('../../assets/cw-logo.png')} accessible={false} resizeMode="contain" style={{ height: 32, aspectRatio: 452 / 362 }} />
+      <View style={[styles.row, { justifyContent: 'space-between', paddingTop: 8, paddingHorizontal: 20 }]}><Image source={require('../../assets/cw-mark.png')} accessible={false} resizeMode="contain" style={{ width: 61, height: 32 }} />
         <View style={[styles.row, { gap: 8 }]}>{data.context.opsPhone ? <IconButton icon="headset" label={t.support} onPress={data.openOps} color={white} size={24} style={{ backgroundColor: headerFill }} /> : null}
           <View><IconButton icon="bell" label={t.notifAria} onPress={() => data.setPage('notifications')} color={white} size={24} style={{ backgroundColor: headerFill }} />
             {data.notifications.data?.some(n => !n.read_at) ? <View style={{ position: 'absolute', top: 9, right: 10, width: 11, height: 11, borderRadius: 5.5, backgroundColor: unreadRed, borderWidth: 2, borderColor: navy }} /> : null}</View></View>
