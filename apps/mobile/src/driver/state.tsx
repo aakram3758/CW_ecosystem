@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState, type PropsWithChildren } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, type PropsWithChildren, type ReactNode } from 'react';
 import { AppState } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as api from '@/data/driver-api';
@@ -6,7 +6,6 @@ import { fetchNotifications, markNotificationsRead } from '@/data/shared-api';
 import { supabase } from '@/data/supabase';
 import { errorCode } from '@/data/errors';
 import { opsToday } from '@/ui/date';
-import { ErrorState, OfflineBar, Screen, Skeleton } from '@/ui/components';
 import { useAuth } from '@/providers/auth';
 import { emptyDraft, shiftDay, suggest, validDraft, type Draft, type Outcome } from './model';
 import type { RequestListRow } from '@/data/rows';
@@ -117,7 +116,10 @@ function useDriverState(today: string, identity: api.DriverContext) {
 }
 type DriverState = ReturnType<typeof useDriverState>;
 const Context = createContext<DriverState | null>(null);
-export function DriverProvider({ children }: PropsWithChildren) {
+export function DriverProvider({ children, renderPending }: PropsWithChildren<{
+  // Expose only startup presentation state; the query and provider lifecycle stay here.
+  renderPending: (state: { error: boolean; busy: boolean; retry: () => void }) => ReactNode;
+}>) {
   const { session } = useAuth();
   const [today, setToday] = useState(opsToday);
   useEffect(() => {
@@ -128,8 +130,7 @@ export function DriverProvider({ children }: PropsWithChildren) {
   }, []);
   // Keep the provider mounted at Riyadh midnight so an in-memory draft survives the date refresh.
   const context = useQuery({ queryKey: ['driver', session!.user.id, 'context', today], queryFn: () => api.fetchDriverContext(today), placeholderData: previous => previous });
-  if (!context.data) return <Screen>{context.isError ? <ErrorState onRetry={() => void context.refetch()} />
-    : <><Skeleton height={90} /><Skeleton height={220} /></>}<OfflineBar onRetry={() => void context.refetch()} busy={context.isFetching} /></Screen>;
+  if (!context.data) return renderPending({ error: context.isError, busy: context.isFetching, retry: () => { void context.refetch(); } });
   return <DriverData today={today} identity={context.data}>{children}</DriverData>;
 }
 function DriverData({ today, identity, children }: PropsWithChildren<{ today: string; identity: api.DriverContext }>) {

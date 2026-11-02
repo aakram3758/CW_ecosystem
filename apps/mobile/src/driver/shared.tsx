@@ -1,25 +1,24 @@
 import { useState, type PropsWithChildren, type ReactNode } from 'react';
-import { Image, Linking, Modal, Pressable, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Image, Linking, Modal, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 import { usePreferences } from '@/providers/preferences';
-import { Button, Card, ErrorState, Icon, Label, Screen, Skeleton, Title } from '@/ui/components';
-import { IconButton, Muted, Pill, Tile, useSignedPhoto, Footer } from '@/ui/role-shared';
+import { Skeleton } from './visual';
+import { useSignedPhoto } from '@/ui/role-shared';
 import { useDateFormat } from '@/ui/date';
 import { ltr } from '@/i18n/copy';
 import { materialSoft, outcomeRing } from '@/ui/tokens';
 import type { RequestListRow } from '@/data/rows';
 import { stopState, type Outcome } from './model';
 import { useDriver, type Tab } from './state';
-
-export { IconButton, Muted, Pill, Tile, useSignedPhoto, Footer } from '@/ui/role-shared';
+import { Icon } from './icons';
+import { Button, Card, Label, Muted, Motion, Screen, Title, press, useShadows } from './visual';
+export { Muted } from './visual';
+const photoInk = '#05080C', white = '#FFFFFF', photoOverlay = 'rgba(0,0,0,.55)', closeFill = 'rgba(255,255,255,.14)', captionWhite = 'rgba(255,255,255,.85)', navShadow = '#0B1B2E';
 export const styles = StyleSheet.create({
-  body: { padding: 16, paddingBottom: 24, gap: 14 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  grow: { flex: 1, minWidth: 0 },
-  card: { padding: 14, borderRadius: 18, gap: 14, borderWidth: 0 },
-  h1: { fontSize: 22, lineHeight: 29.7 }, h2: { fontSize: 18, lineHeight: 24.3 },
-  bold: { fontFamily: 'Tajawal_700Bold' }, heavy: { fontFamily: 'Tajawal_800ExtraBold' },
+ body: { padding: 16, paddingBottom: 24, gap: 14 }, row: { flexDirection: 'row', alignItems: 'center', gap: 12 }, grow: { flex: 1, minWidth: 0 },
+ card: { padding: 14, borderRadius: 18, gap: 14 }, h1: { fontSize: 22, lineHeight: 29.7 }, h2: { fontSize: 18, lineHeight: 23.4 },
+ bold: { fontFamily: 'Tajawal_700Bold' }, heavy: { fontFamily: 'Tajawal_800ExtraBold' },
 });
 export function useDriverFormat() {
   const { copy, language, colors, theme } = usePreferences();
@@ -32,8 +31,8 @@ export function useDriverFormat() {
   const phone = (value: string) => ltr(value.startsWith('05') ? `+966 ${value.slice(1, 3)} ${value.slice(3, 6)} ${value.slice(6)}` : value.startsWith('5') && value.length === 9 ? `+966 ${value}` : value);
   const time = (value: string | null) => value ? new Intl.DateTimeFormat(locale, { timeZone: 'Asia/Riyadh', hour: 'numeric', minute: '2-digit' }).format(new Date(value)) : '';
   const status = (kind: Outcome | 'todo') => ({
-    label: t[`st_${kind}`], icon: kind === 'full' ? 'check' : kind === 'partial' ? 'scale' : kind === 'failed' ? 'x-circle' : 'clock',
-    color: kind === 'full' ? colors.success : kind === 'partial' ? colors.accent : kind === 'failed' ? colors.dangerText : colors.muted,
+    label: t[`st_${kind}`], icon: kind === 'full' ? 'check-circle' : kind === 'partial' ? 'circle-half' : kind === 'failed' ? 'x-circle' : 'circle-dashed',
+    color: kind === 'full' ? colors.success : kind === 'partial' ? colors.accentText : kind === 'failed' ? colors.dangerText : colors.muted,
     background: kind === 'full' ? colors.successSoft : kind === 'partial' ? colors.accentSoft : kind === 'failed' ? colors.dangerSoft : colors.surface2,
   });
   const materialStyle = (row: RequestListRow) => ({ color: (theme === 'dark' ? row.material_color_dark : row.material_color_light) ?? colors.primary,
@@ -41,120 +40,123 @@ export function useDriverFormat() {
   return { t, colors, language, locale, local, title, material, kg, phone, time, date, stamp, status, materialStyle };
 }
 
-export function PageFrame({ title, subtitle, onBack, trailing, footer, children }: PropsWithChildren<{
-  title: string; subtitle?: string; onBack?: () => void; trailing?: ReactNode; footer?: ReactNode;
+export function Tile({ icon, color, background, size = 44, iconSize = 24, radius = 14, weight }: { icon: string; color?: string; background?: string; size?: number; iconSize?: number; radius?: number; weight?: 'bold' | 'fill' | 'duotone' }) {
+  const { colors } = usePreferences(); return <View style={{ width: size, height: size, flexShrink: 0, borderRadius: radius, backgroundColor: background ?? colors.primarySoft, alignItems: 'center', justifyContent: 'center' }}>
+    <Icon name={icon} size={iconSize} color={color ?? colors.primary} weight={weight} /></View>;
+}
+export function IconButton({ icon, label, onPress, style, color, size = 22, disabled }: { icon: string; label: string; onPress: () => void; style?: StyleProp<ViewStyle>; color?: string; size?: number; disabled?: boolean }) {
+  const { colors } = usePreferences(); return <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={disabled} onPress={onPress}
+    style={[{ width: 48, height: 48, borderRadius: 14, backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }, style]}><Icon name={icon} color={color ?? colors.text} size={size} /></Pressable>;
+}
+export function Pill({ children, color, background, icon, dot, height = 28, radius = 9, fontSize = 13, weight = 700, padding = 10, iconSize = 15, iconWeight }: PropsWithChildren<{
+  color?: string; background?: string; icon?: string; dot?: boolean; height?: number; radius?: number; fontSize?: number; weight?: 700 | 800; padding?: number; iconSize?: number; iconWeight?: 'fill' | 'duotone' | 'bold';
 }>) {
-  const { t, colors, language } = useDriverFormat();
-  return <Screen contentStyle={styles.body} header={<View style={[styles.row, { padding: 16, minHeight: 61,
-    backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.line }]}>
-    {onBack ? <IconButton icon={language === 'ar' ? 'caretR' : 'caretL'} label={t.back} onPress={onBack} /> : null}
-    <View style={styles.grow}><Title style={styles.h1}>{title}</Title>{subtitle ? <Muted>{subtitle}</Muted> : null}</View>{trailing}
-  </View>} footer={footer}>{children}</Screen>;
+  const { colors } = usePreferences(); const fg = color ?? colors.muted;
+  return <View style={{ flexDirection: 'row', alignItems: 'center', gap: dot ? 6 : 4, height, paddingHorizontal: padding, borderRadius: radius, alignSelf: 'flex-start', backgroundColor: background ?? colors.surface2 }}>
+    {dot ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: fg }} /> : null}{icon ? <Icon name={icon} size={iconSize} color={fg} weight={iconWeight} /> : null}
+    <Label style={{ color: fg, fontSize, fontFamily: weight === 800 ? 'Tajawal_800ExtraBold' : 'Tajawal_700Bold' }}>{children}</Label></View>;
+}
+export function Footer({ children, style }: PropsWithChildren<{ style?: StyleProp<ViewStyle> }>) {
+  const { colors } = usePreferences(); const insets = useSafeAreaInsets();
+  return <View style={[{ paddingTop: 12, paddingHorizontal: 16, paddingBottom: Math.max(28, insets.bottom), gap: 8, backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.line }, style]}>{children}</View>;
+}
+export function PageFrame({ title, subtitle, onBack, trailing, footer, children, contentStyle, titleSize, close = false, backDisabled, afterHeader, motion = 'fade' }: PropsWithChildren<{
+  title: string; subtitle?: ReactNode; onBack?: () => void; trailing?: ReactNode; footer?: ReactNode; contentStyle?: StyleProp<ViewStyle>; titleSize?: number; close?: boolean; backDisabled?: boolean; afterHeader?: ReactNode; motion?: 'fade' | 'up';
+}>) {
+  const { t, colors } = useDriverFormat();
+  return <Screen safeColor={colors.surface} motion={motion} contentStyle={[styles.body, contentStyle]} header={<><View style={[styles.row, { height: 61, paddingHorizontal: onBack ? 16 : 20, backgroundColor: colors.surface, borderBottomWidth: afterHeader ? 0 : 1, borderBottomColor: colors.line }]}>
+    {onBack ? <IconButton icon={close ? 'x' : 'back'} size={close ? 20 : 22} disabled={backDisabled} label={close ? t.close : t.back} onPress={onBack} /> : null}
+    <View style={styles.grow}><Title numberOfLines={1} style={{ fontSize: titleSize ?? (onBack ? 21 : 22), lineHeight: (titleSize ?? (onBack ? 21 : 22)) * 1.3 }}>{title}</Title>
+      {typeof subtitle === 'string' ? <Muted numberOfLines={1} style={{ fontSize: 14 }}>{subtitle}</Muted> : subtitle}</View>{trailing}
+  </View>{afterHeader}</>} footer={footer}>{children}</Screen>;
 }
 export function BottomNav() {
   const data = useDriver(); const { t, colors } = useDriverFormat();
-  const items: { key: Tab; label: string; icon: string }[] = [
-    { key: 'home', label: t.navToday, icon: 'house' }, { key: 'upcoming', label: t.navUpcoming, icon: 'cal' },
-    { key: 'history', label: t.navHistory, icon: 'clock' }, { key: 'account', label: t.navAccount, icon: 'user' },
-  ];
-  return <View accessibilityLabel={t.navAria} style={{ flexDirection: 'row', paddingHorizontal: 6, paddingTop: 8,
-    paddingBottom: 22, minHeight: 88, backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.line }}>
-    {items.map(item => { const active = data.page === item.key || item.key === 'home' && data.page === 'plan';
-      return <Pressable key={item.key} accessibilityRole="tab" accessibilityState={{ selected: active }} onPress={() => data.setPage(item.key)}
-        style={{ flex: 1, minHeight: 56, gap: 3, alignItems: 'center', justifyContent: 'center' }}>
-        <View style={{ width: 58, height: 30, borderRadius: 15, backgroundColor: active ? colors.primarySoft : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
-          <Icon name={item.icon} color={active ? colors.link : colors.muted} /></View>
-        <Label style={[styles.bold, { fontSize: 13, color: active ? colors.link : colors.muted }]}>{item.label}</Label>
-      </Pressable>;
-    })}
+  const items: { key: Tab; label: string; icon: string }[] = [{ key: 'home', label: t.navToday, icon: 'house' }, { key: 'upcoming', label: t.navUpcoming, icon: 'calendar-blank' }, { key: 'history', label: t.navHistory, icon: 'clock-counter-clockwise' }, { key: 'account', label: t.navAccount, icon: 'user' }];
+  return <View accessibilityLabel={t.navAria} style={{ flexDirection: 'row', height: 88, paddingHorizontal: 6, paddingTop: 8, paddingBottom: 22, backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.line,
+    shadowColor: navShadow, shadowOffset: { width: 0, height: -6 }, shadowRadius: 20, shadowOpacity: .08, elevation: 5 }}>
+    {items.map(item => { const active = data.page === item.key || item.key === 'home' && data.page === 'plan'; return <Pressable key={item.key} accessibilityRole="tab" accessibilityState={{ selected: active }} onPress={() => data.setPage(item.key)} style={{ flex: 1, minHeight: 56, gap: 3, alignItems: 'center', justifyContent: 'center' }}>
+      <View style={{ width: 58, height: 30, borderRadius: 15, backgroundColor: active ? colors.primarySoft : 'transparent', alignItems: 'center', justifyContent: 'center' }}><Icon name={item.icon} weight={active ? 'fill' : 'duotone'} color={active ? colors.primary : colors.muted} /></View>
+      <Label style={{ fontFamily: active ? 'Tajawal_800ExtraBold' : 'Tajawal_700Bold', fontSize: 13, color: active ? colors.primary : colors.muted }}>{item.label}</Label></Pressable>; })}
   </View>;
 }
-export function LoadingCards() { return <View accessibilityState={{ busy: true }} style={{ gap: 14 }}>
-  <Skeleton height={26} width="46%" /><Skeleton height={10} /><Skeleton height={96} radius={18} /><Skeleton height={96} radius={18} />
-</View>; }
-export function OpsButton({ wrong = false }: { wrong?: boolean }) {
-  const data = useDriver(); const { t } = useDriverFormat();
-  if (!data.context.opsPhone) return wrong ? <Muted>{t.wrongEntry}</Muted> : null;
-  return <Button variant="branch" tone="muted" icon="headset" label={wrong ? t.wrongEntry : t.contactOps} onPress={data.openOps} />;
+export function LoadingCards({ home = false }: { home?: boolean }) {
+  if (home) return <View accessibilityState={{ busy: true }} style={{ gap: 14 }}><Skeleton width="46%" height={26} /><Skeleton height={10} />
+    <View style={styles.row}><Skeleton width={58} height={58} radius={18} /><View style={[styles.grow, { gap: 8 }]}><Skeleton width="70%" height={18} /><Skeleton width="45%" height={14} /></View></View><Skeleton height={56} radius={16} /></View>;
+  return <View accessibilityState={{ busy: true }} style={{ gap: 12 }}><Skeleton height={54} radius={14} />{[0, 1, 2, 3].map(n => <Card key={n} style={styles.row}><Skeleton width={52} height={52} radius={16} /><View style={[styles.grow, { gap: 10 }]}><Skeleton width="70%" height={16} /><Skeleton width="46%" height={12} /></View></Card>)}</View>;
 }
-export function ChangeBanner() {
-  const data = useDriver(); const f = useDriverFormat(); const n = data.change;
-  if (!n) return null;
-  return <Card style={[styles.card, styles.row, { borderWidth: 1.5, borderColor: f.colors.accent }]}>
-    <Tile icon="bell" background={f.colors.accentSoft} color={f.colors.accent} />
-    <View style={styles.grow}><Title style={{ fontSize: 16 }}>{f.local(n.title_ar, n.title_en)}</Title>
-      <Muted>{f.local(n.body_ar, n.body_en)}</Muted>
-      <View style={styles.row}><Button variant="branch" label={f.t.view} onPress={() => data.setPage('plan')} />
-        <Button variant="branch" tone="outline" label={f.t.gotIt} onPress={data.dismissChange} /></View>
-    </View>
-  </Card>;
+export function ErrorState({ onRetry, home = false }: { onRetry: () => void; home?: boolean }) {
+  const { colors, copy } = usePreferences(); const t = copy.driver;
+  return <View accessibilityRole="alert" style={{ flex: home ? undefined : 1, alignItems: 'center', justifyContent: 'center', gap: home ? 10 : 12, paddingHorizontal: home ? 4 : 20, paddingTop: home ? 6 : 0, paddingBottom: home ? 6 : 60 }}>
+    <Tile icon="warning-circle" size={home ? 64 : 76} radius={home ? 20 : 24} iconSize={home ? 34 : 40} color={colors.dangerText} background={colors.dangerSoft} />
+    <Title style={{ fontSize: home ? 18 : 20, textAlign: 'center' }}>{t.errTitle}</Title><Muted style={{ fontSize: home ? 15 : 16, textAlign: 'center' }}>{t.errBody}</Muted>
+    <Button label={t.retry} icon="arrows-clockwise" iconSize={16} onPress={onRetry} style={{ marginTop: home ? 0 : 6, height: home ? 54 : 56, borderRadius: home ? 14 : 16, paddingHorizontal: 28, alignSelf: home ? 'stretch' : 'center' }} />
+  </View>;
 }
-export function MaterialPill({ row }: { row: RequestListRow }) {
-  const f = useDriverFormat(); return <Pill {...f.materialStyle(row)}>{f.material(row)}</Pill>;
+export function EmptyState({ title, body, icon = 'clipboard-text', action }: { title: string; body?: string; icon?: string; action?: { label: string; icon?: string; onPress: () => void } }) {
+  return <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: action ? 10 : 12, paddingHorizontal: 24, paddingTop: action ? 40 : 0, paddingBottom: action ? 40 : 60 }}>
+    <Tile icon={icon} size={action ? 80 : 84} radius={action ? 26 : 28} iconSize={action ? 42 : 44} /><Title style={{ fontSize: action ? 19 : 20, lineHeight: (action ? 19 : 20) * 1.35, textAlign: 'center' }}>{title}</Title>
+    {body ? <Muted style={{ fontSize: action ? 15 : 16, textAlign: 'center' }}>{body}</Muted> : null}{action ? <Button {...action} fontSize={15} style={{ marginTop: 4, height: 52, paddingHorizontal: 22 }} /> : null}</View>;
 }
+export function OpsButton({ wrong = false, centered = false }: { wrong?: boolean; centered?: boolean }) {
+  const data = useDriver(); const { t, colors } = useDriverFormat();
+  if (!data.context.opsPhone) return wrong ? <Muted style={{ fontSize: 14 }}>{t.wrongEntry}</Muted> : null;
+  return <Button tone="text" icon="headset" iconSize={wrong ? 18 : 16} fontSize={wrong ? 14 : 16} weight={wrong ? 700 : 800} textColor={colors.link} label={wrong ? t.wrongEntry : t.contactOps} onPress={data.openOps}
+    style={{ minHeight: wrong ? centered ? 48 : 44 : 52, paddingHorizontal: 0, gap: wrong ? 6 : 8, justifyContent: centered || !wrong ? 'center' : 'flex-start' }} />;
+}
+export function ChangeBanner({ plan = false }: { plan?: boolean }) {
+  const data = useDriver(); const f = useDriverFormat(); const n = data.change; if (!n) return null;
+  if (plan) return <View style={[styles.row, { gap: 10, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 16, backgroundColor: f.colors.accentSoft }]}><Icon name="bell-ringing" color={f.colors.accent} />
+    <View style={styles.grow}><Title style={{ fontSize: 15 }}>{f.local(n.title_ar, n.title_en)}</Title><Muted style={{ fontSize: 14 }}>{f.local(n.body_ar, n.body_en)}</Muted></View>
+    <IconButton icon="x" label={f.t.gotIt} onPress={data.dismissChange} size={18} color={f.colors.muted} style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: 'transparent' }} /></View>;
+  return <Motion kind="up" style={[styles.row, { alignItems: 'flex-start', backgroundColor: f.colors.surface, borderWidth: 1.5, borderColor: f.colors.accent, borderRadius: 18, padding: 14 }]}>
+    <Tile icon="bell-ringing" background={f.colors.accentSoft} color={f.colors.accent} /><View style={[styles.grow, { gap: 4 }]}><Title style={{ fontSize: 16 }}>{f.local(n.title_ar, n.title_en)}</Title><Muted style={{ fontSize: 14 }}>{f.local(n.body_ar, n.body_en)}</Muted>
+      <View style={{ flexDirection: 'row', gap: 8, marginTop: 6 }}><Button label={f.t.view} fontSize={14} style={{ minHeight: 44, borderRadius: 12 }} onPress={() => data.setPage('plan')} /><Button label={f.t.gotIt} fontSize={14} weight={700} tone="outline" style={{ minHeight: 44, borderRadius: 12, backgroundColor: 'transparent' }} onPress={data.dismissChange} /></View></View></Motion>;
+}
+export function MaterialPill({ row, height = 28, fontSize = 13, radius = 9, padding = 10 }: { row: RequestListRow; height?: number; fontSize?: number; radius?: number; padding?: number }) {
+  const f = useDriverFormat(); return <Pill {...f.materialStyle(row)} dot height={height} fontSize={fontSize} radius={radius} padding={padding}>{f.material(row)}</Pill>;
+}
+export function Weight({ row }: { row: RequestListRow }) { const f = useDriverFormat(); return <View style={[styles.row, { gap: 4 }]}><Icon name="scales" size={18} color={f.colors.muted} /><Muted style={[styles.bold, { fontSize: 14 }]}>{f.kg(row.kg)}</Muted></View>; }
 export function StopCard({ row, readOnly = false }: { row: RequestListRow; readOnly?: boolean }) {
-  const data = useDriver(); const f = useDriverFormat(); const kind = stopState(row, data.today); const st = f.status(kind);
-  const suggested = !readOnly && data.suggestion?.row.id === row.id;
-  const done = !readOnly && kind !== 'todo';
-  const content = <Card style={[styles.card, styles.row, { minHeight: done ? 60 : readOnly ? 80 : 96,
-    paddingVertical: done ? 10 : 14, borderRadius: done ? 14 : 18,
-    backgroundColor: done ? f.colors.surface2 : f.colors.surface, borderWidth: suggested ? 2 : done ? 1 : 0,
-    borderColor: suggested ? f.colors.accent : f.colors.line }]}>
-    <Tile icon={done ? st.icon : 'store'} size={done ? 36 : 52} {...(done ? st : f.materialStyle(row))} />
-    <View style={[styles.grow, { gap: 7 }]}><Label style={[styles.heavy, { fontSize: done ? 15 : 17 }]}>{f.title(row)}</Label>
-      <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}><MaterialPill row={row} /><Muted>{f.kg(row.kg)}</Muted>
-        {!readOnly ? <Pill {...st} icon={st.icon}>{st.label}</Pill> : null}</View>
-      {done ? <Muted>{f.time(row.last_attempt_at)}</Muted> : null}
-      {suggested ? <Pill color={f.colors.accentText} background={f.colors.accentSoft} icon="navigation-arrow">{f.t.suggestedTag}</Pill> : null}
-      {!readOnly && row.id && data.drafts[row.id]?.kind ? <Muted style={{ color: f.colors.accentText }}>{f.t.draftTag}</Muted> : null}
-    </View>
-  </Card>;
-  return readOnly ? content : <Pressable accessibilityRole="button" onPress={() => row.id && data.openStop(row.id)}>{content}</Pressable>;
+  const data = useDriver(); const f = useDriverFormat(); const kind = stopState(row, data.today); const st = f.status(kind); const { shadow } = useShadows();
+  const suggested = !readOnly && data.suggestion?.row.id === row.id; const done = !readOnly && kind !== 'todo';
+  if (done) return <Pressable onPress={() => row.id && data.openStop(row.id)} accessibilityRole="button" style={[styles.row, { gap: 10, paddingVertical: 10, paddingHorizontal: 14, minHeight: 60, borderWidth: 1, borderColor: f.colors.line, borderRadius: 14, backgroundColor: f.colors.surface2 }]}>
+    <Icon name={st.icon} weight="fill" size={26} color={st.color} /><View style={styles.grow}><Label style={[styles.bold, { fontSize: 15 }]}>{f.title(row)}</Label><Muted style={{ fontSize: 13 }}>{f.material(row)} · {f.time(row.last_attempt_at)}</Muted></View><Pill {...st} padding={9} weight={800}>{st.label}</Pill></Pressable>;
+  const content = <><Tile icon="storefront" size={readOnly ? 48 : 52} radius={readOnly ? 15 : 16} iconSize={readOnly ? 26 : 28} {...f.materialStyle(row)} />
+    <View style={[styles.grow, { gap: readOnly ? 6 : 7 }]}><View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}><Label style={[styles.heavy, { fontSize: readOnly ? 16 : 17, lineHeight: (readOnly ? 16 : 17) * 1.3 }]}>{f.title(row)}</Label>
+      {suggested ? <Pill color={f.colors.accentText} background={f.colors.accentSoft} height={24} radius={7} padding={8} fontSize={12} weight={800}>{f.t.suggestedTag}</Pill> : null}</View>
+      <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}><MaterialPill row={row} /><Weight row={row} />{!readOnly ? <Pill {...st} icon={st.icon} padding={9}>{st.label}</Pill> : null}</View>
+      {!readOnly && row.id && data.drafts[row.id]?.kind ? <View style={[styles.row, { gap: 4 }]}><Icon name="note-pencil" size={16} color={f.colors.accentText} /><Label style={[styles.heavy, { fontSize: 13, color: f.colors.accentText }]}>{f.t.draftTag}</Label></View> : null}</View>
+    {!readOnly ? <Icon name="fwd" color={f.colors.muted} size={18} /> : null}</>;
+  const box: StyleProp<ViewStyle> = [shadow, styles.row, { minHeight: readOnly ? 80 : 96, paddingVertical: readOnly ? 12 : 14, paddingHorizontal: 14, borderRadius: 18, backgroundColor: f.colors.surface, borderWidth: readOnly ? 0 : suggested ? 2 : 1, borderColor: suggested ? f.colors.accent : 'transparent' }];
+  return readOnly ? <View style={box}>{content}</View> : <Pressable accessibilityRole="button" onPress={() => row.id && data.openStop(row.id)} style={state => [box, press(state)]}>{content}</Pressable>;
 }
 export function ProgressRing({ kinds, size = 136, history = false }: { kinds: (Outcome | 'todo')[]; size?: number; history?: boolean }) {
-  const { t, colors, status } = useDriverFormat(); const remaining = kinds.filter(k => k === 'todo').length;
-  const stroke = size === 136 ? 15 : size === 96 ? 11 : 7;
-  const radius = (size - stroke) / 2; const circumference = 2 * Math.PI * radius;
-  const segment = circumference / Math.max(1, kinds.length); const gap = Math.min(3, segment / 5);
-  return <View accessible accessibilityRole="progressbar" accessibilityLabel={t.progress}
-    accessibilityValue={{ min: 0, max: kinds.length, now: kinds.length - remaining }} style={{ width: size, height: size }}>
-    <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
-      <Circle cx={size / 2} cy={size / 2} r={radius} stroke={colors.ringTodo} strokeWidth={stroke} fill="none" />
-      {kinds.map((kind, i) => <Circle key={i} cx={size / 2} cy={size / 2} r={radius} fill="none"
-        stroke={colors[outcomeRing[kind]]} strokeWidth={stroke}
-        strokeDasharray={`${Math.max(.1, segment - gap)} ${circumference - segment + gap}`}
-        strokeDashoffset={-i * segment} rotation={-90} origin={`${size / 2}, ${size / 2}`} />)}
-    </Svg>
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Label style={[styles.heavy, { fontSize: size === 136 ? 44 : size === 96 ? 28 : 18, lineHeight: size === 136 ? 48 : 28 }]}>{history ? kinds.length : remaining}</Label>
-      <Muted style={{ fontSize: size < 96 ? 9 : 12 }}>{history ? t.visitsUnit : size < 96 ? t.leftShort : remaining === 1 ? t.left1 : t.left}</Muted>
-    </View>
-  </View>;
+  const { t, colors } = useDriverFormat(); const remaining = kinds.filter(k => k === 'todo').length;
+  const stroke = size === 136 ? 15 : size === 96 ? 11 : 7; const radius = (size - stroke) / 2; const circumference = 2 * Math.PI * radius;
+  const segment = circumference / Math.max(1, kinds.length);
+  // ringBg's gap is degrees, not pixels, and disappears above sixteen stops.
+  const gap = kinds.length <= 16 ? circumference * Math.min(3, 360 / Math.max(1, kinds.length) * .3) / 360 : 0;
+  return <View accessible accessibilityRole="progressbar" accessibilityLabel={t.progress} accessibilityValue={{ min: 0, max: kinds.length, now: kinds.length - remaining }} style={{ width: size, height: size, flexShrink: 0 }}>
+    <Svg width={size} height={size} style={StyleSheet.absoluteFill}><Circle cx={size / 2} cy={size / 2} r={radius} stroke={kinds.length ? colors.surface : colors.ringTodo} strokeWidth={stroke} fill="none" />
+      {kinds.map((kind, i) => <Circle key={i} cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={colors[outcomeRing[kind]]} strokeWidth={stroke} strokeDasharray={`${segment - gap} ${circumference - segment + gap}`} strokeDashoffset={-i * segment} rotation={-90} origin={`${size / 2}, ${size / 2}`} />)}</Svg>
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><Label style={[styles.heavy, { fontSize: size === 136 ? 44 : size === 96 ? 28 : 18, lineHeight: size === 136 ? 44 : size === 96 ? 28 : 18 }]}>{history ? kinds.length : remaining}</Label>
+      <Muted style={{ fontFamily: size === 136 ? 'Tajawal_800ExtraBold' : 'Tajawal_700Bold', fontSize: size === 136 ? 14 : size === 96 ? 12 : 9, lineHeight: size === 136 ? 18.2 : size === 96 ? 15.6 : 10.8, marginTop: size === 136 ? 4 : size === 96 ? 3 : 0 }}>{history ? t.visitsUnit : size < 96 ? t.leftShort : remaining === 1 ? t.left1 : t.left}</Muted></View></View>;
 }
-export function Legend({ kinds }: { kinds: (Outcome | 'todo')[] }) {
-  const f = useDriverFormat();
-  return <View style={[styles.grow, { gap: 9 }]}>{(['full', 'partial', 'failed'] as const).map(kind => <View key={kind} style={[styles.row, { gap: 8 }]}>
-    <View style={{ width: 14, height: 14, borderRadius: 5, backgroundColor: f.colors[outcomeRing[kind]] }} />
-    <Label style={[styles.grow, styles.bold, { fontSize: 15 }]}>{f.status(kind).label}</Label>
-    <Label style={styles.heavy}>{kinds.filter(k => k === kind).length}</Label>
-  </View>)}</View>;
+export function Legend({ kinds, history = false }: { kinds: (Outcome | 'todo')[]; history?: boolean }) {
+  const f = useDriverFormat(); return <View style={[styles.grow, { gap: history ? 8 : 9 }]}>{(['full', 'partial', 'failed'] as const).map(kind => <View key={kind} style={[styles.row, { gap: 8 }]}><View style={{ width: 14, height: 14, borderRadius: 5, backgroundColor: f.colors[outcomeRing[kind]] }} /><Label style={[styles.grow, styles.bold, { fontSize: 15 }]}>{f.status(kind).label}</Label><Label style={[styles.heavy, { fontSize: 15 }]}>{kinds.filter(k => k === kind).length}</Label></View>)}</View>;
 }
-/** Private photos never use a made-up scale drawing when the URL or native image fails. */
-export function StoredPhoto({ path, label, height = 170, enlarge = false, caption }: { path: string; label: string; height?: number; enlarge?: boolean; caption?: string }) {
-  const photo = useSignedPhoto(path); const f = useDriverFormat(); const [failed, setFailed] = useState(false); const [big, setBig] = useState(false);
+export function StoredPhoto({ path, label, height = 170, enlarge = false, caption, labelFirst = false }: { path: string; label: string; height?: number; enlarge?: boolean; caption?: string; labelFirst?: boolean }) {
+  const photo = useSignedPhoto(path); const f = useDriverFormat(); const [failed, setFailed] = useState(false); const [big, setBig] = useState(false); const insets = useSafeAreaInsets();
   if (photo.isPending) return <Skeleton height={height} radius={16} />;
   if (!photo.data || failed) return <ErrorState onRetry={() => { setFailed(false); void photo.refetch(); }} />;
-  const uri = photo.data;
-  return <View style={{ gap: 8 }}>
-    <Pressable disabled={!enlarge} accessibilityRole={enlarge ? 'button' : 'image'} accessibilityLabel={label} onPress={() => setBig(true)}>
-      <Image source={{ uri }} accessibilityLabel={label} onError={() => setFailed(true)} style={{ width: '100%', height, borderRadius: 16 }} />
-      {enlarge ? <View style={{ position: 'absolute', bottom: 10, start: 10 }}><Pill icon="magnifying-glass-plus">{f.t.tapEnlarge}</Pill></View> : null}
-    </Pressable><Muted>{label}</Muted>
-    {big ? <Modal onRequestClose={() => setBig(false)} animationType="fade"><SafeAreaView style={{ flex: 1, backgroundColor: f.colors.navy, direction: f.language === 'ar' ? 'rtl' : 'ltr' }}>
-      <View style={[styles.row, { padding: 16 }]}><IconButton icon="x" label={f.t.close} onPress={() => setBig(false)} /><Label style={{ color: f.colors.onPrimary }}>{label}</Label></View>
-      <Image source={{ uri }} resizeMode="contain" style={{ flex: 1, width: '100%' }} />
-      {caption ? <Label style={{ padding: 20, color: f.colors.onPrimary }}>{caption}</Label> : null}
-    </SafeAreaView></Modal> : null}
-  </View>;
+  const captionLabel = <Muted style={[styles.bold, { fontSize: 13 }]}>{label}</Muted>;
+  return <View style={{ gap: 8 }}>{labelFirst ? captionLabel : null}<Pressable disabled={!enlarge} accessibilityRole={enlarge ? 'button' : 'image'} accessibilityLabel={label} onPress={() => setBig(true)}>
+    <Image source={{ uri: photo.data }} accessibilityLabel={label} onError={() => setFailed(true)} style={{ width: '100%', height, borderRadius: 16 }} />
+    {enlarge ? <View style={{ position: 'absolute', bottom: 10, left: 10 }}><Pill icon="magnifying-glass-plus" iconSize={18} height={34} radius={10} color={white} background={photoOverlay}>{f.t.tapEnlarge}</Pill></View> : null}</Pressable>{!labelFirst ? captionLabel : null}
+    {big ? <Modal onRequestClose={() => setBig(false)} animationType="fade"><View style={{ flex: 1, backgroundColor: photoInk, direction: f.language === 'ar' ? 'rtl' : 'ltr' }}>
+      <View style={[styles.row, { paddingTop: insets.top + 5, paddingHorizontal: 16, paddingBottom: 12 }]}><IconButton icon="x" label={f.t.close} onPress={() => setBig(false)} color={white} size={20} style={{ borderRadius: 24, backgroundColor: closeFill }} /><Label style={[styles.heavy, { fontSize: 17, color: white }]}>{label}</Label></View>
+      <View style={{ flex: 1, justifyContent: 'center', paddingBottom: 40 }}><Image source={{ uri: photo.data }} resizeMode="contain" style={{ width: '100%', height: 470, maxHeight: '100%' }} /></View>
+      {caption ? <View style={[styles.row, { justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 34 }]}><Label style={[styles.bold, { fontSize: 15, color: captionWhite }]}>{f.t.declared}</Label><Label style={[styles.heavy, { fontSize: 15, color: white }]}>{caption}</Label></View> : null}</View></Modal> : null}</View>;
 }
 export async function openDeviceUrl(url: string, onError: () => void) { try { await Linking.openURL(url); } catch { onError(); } }
