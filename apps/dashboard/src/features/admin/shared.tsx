@@ -20,7 +20,6 @@ const ar = {
   save: 'حفظ',
   saveChanges: 'حفظ التعديلات',
   add: '+ إضافة',
-  required: 'مطلوب',
   search: 'بحث',
   nameAr: 'الاسم بالعربي *',
   nameEn: 'الاسم بالإنجليزي',
@@ -32,7 +31,6 @@ const ar = {
   noLogin: 'بدون حساب دخول',
   firstLogin: 'لم يغيّر الباسورد المؤقت',
   resetPw: 'تغيير الباسورد',
-  createLogin: 'إنشاء حساب دخول',
   pw: {
     confirmTitle: (name: string) => `تغيير باسورد ${name}؟`,
     confirmBody: 'يتوقف الباسورد الحالي فورًا، ويُطلب منه تغيير المؤقت عند أول دخول.',
@@ -60,6 +58,8 @@ const ar = {
     INVALID_DAY: 'لا يمكن تغيير يوم مضى.',
     CANNOT_DEACTIVATE_SELF: 'لا يمكنك إيقاف حسابك أنت.',
     NAME_REQUIRED: 'الاسم مطلوب.',
+    PHONE_REQUIRED: 'رقم الجوال مطلوب.',
+    INVALID_EMAIL: 'البريد الإلكتروني غير صحيح.',
   } as Record<string, string>,
 };
 type Dict = typeof ar;
@@ -73,7 +73,6 @@ const en: Dict = {
   save: 'Save',
   saveChanges: 'Save changes',
   add: '+ Add',
-  required: 'Required',
   search: 'Search',
   nameAr: 'Arabic name *',
   nameEn: 'English name',
@@ -85,7 +84,6 @@ const en: Dict = {
   noLogin: 'No login',
   firstLogin: "Hasn't changed the temporary password",
   resetPw: 'Reset password',
-  createLogin: 'Create login',
   pw: {
     confirmTitle: (name) => `Reset ${name}'s password?`,
     confirmBody: 'The current password stops working now; they must change the temporary one at first sign-in.',
@@ -112,6 +110,8 @@ const en: Dict = {
     INVALID_DAY: "A past day can't be changed.",
     CANNOT_DEACTIVATE_SELF: "You can't deactivate your own account.",
     NAME_REQUIRED: 'The name is required.',
+    PHONE_REQUIRED: 'The mobile number is required.',
+    INVALID_EMAIL: 'Invalid email address.',
   },
 };
 export const ADMIN_STRINGS = { ar, en };

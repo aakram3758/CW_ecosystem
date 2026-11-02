@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 import { interpolate } from '@/i18n/copy';
-import { Button, Card, Icon, Label, Sheet, Title } from '@/ui/components';
+import { Button, Card, ErrorState, Icon, Label, Loading, Sheet, Title } from '@/ui/components';
 import { useBranch, isOpen, isRescheduled } from './state';
 import { Footer, Muted, PageFrame, Photo, styles, Tile, useSignedPhoto, useBranchFormat } from './shared';
 import { useContact } from './main-screens';
@@ -28,7 +28,10 @@ export function DetailsScreen() {
   // turns the stored path into an hour-long URL, and is disabled when there is no path.
   const [confirming, setConfirming] = useState(false);
   const signedPhoto = useSignedPhoto(row?.branch_photo_path ?? null);
-  if (!row) return null;
+  // Opened before the list has arrived (from a notification, say): keep the header and Back.
+  if (!row) return <PageFrame title={t.reqsT} onBack={data.back}>
+    {data.requestsError ? <ErrorState onRetry={data.retry} /> : <Loading />}
+  </PageFrame>;
   const material = data.materials.find(m => m.id === row.material_id);
   const st = f.status(row);
   const editable = row.status === 'waiting';
@@ -93,7 +96,8 @@ export function DetailsScreen() {
         <Muted style={{ textAlign: 'center', fontSize: 13 }}>{t.editHint}</Muted>
         <Button variant="branch" tone="outline" icon="pencil" label={t.editT}
           onPress={() => row.id && data.startCreate(row.material_id, row.subtype_id, row.id)} />
-        <Button variant="branch" tone="text" label={t.cancelReq} onPress={() => setConfirming(true)} />
+        {/* Off while a cancel is in flight, so the sheet can't be reopened and confirmed twice. */}
+        <Button variant="branch" tone="text" label={t.cancelReq} disabled={data.cancelling} onPress={() => setConfirming(true)} />
       </> : locked ? <>
         <View style={[styles.row, { justifyContent: 'center', gap: 8 }]}><Icon name="lock" size={18} color={colors.muted} />
           <Muted style={[styles.bold, { fontSize: 13.5, flexShrink: 1, textAlign: 'center' }]}>{t.lockedT}</Muted></View>
@@ -151,7 +155,8 @@ export function DetailsScreen() {
       </View>)}
     </Card> : null}
     <Card style={[styles.card, { gap: 0 }]}><Title style={{ fontSize: 16, marginBottom: 12 }}>{t.history}</Title>
-      {timeline.map((event, index) => <View key={event.key} style={{ flexDirection: 'row', gap: 12 }}>
+      {/* A failed history read is an error with a retry, not an empty history. */}
+      {data.timelineError ? <ErrorState onRetry={data.retry} /> : timeline.map((event, index) => <View key={event.key} style={{ flexDirection: 'row', gap: 12 }}>
         <View style={{ width: 16, alignItems: 'center' }}><View style={{ width: 14, height: 14, borderRadius: 7,
           marginTop: 4, borderWidth: 2, borderColor: event.color, backgroundColor: event.pending ? colors.surface : event.color }} />
           {index < timeline.length - 1 ? <View style={{ width: 2, flex: 1, minHeight: 18, backgroundColor: colors.line }} /> : null}

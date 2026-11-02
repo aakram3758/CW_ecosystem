@@ -261,7 +261,8 @@ function CancelSection({ r, driverName }: { r: RequestRow; driverName: string })
   }, [open, form]);
 
   const onSubmit = form.handleSubmit(async (v) => {
-    const picked = v.reason === OTHER ? null : CANCEL_REASONS[Number(v.reason)];
+    // By id, not position: an admin edit to the list while this form is open must not change the pick.
+    const picked = v.reason === OTHER ? null : (CANCEL_REASONS.find((c) => c.id === v.reason) ?? null);
     try {
       await cancel.mutateAsync({ id: r.id, reason: picked, note: v.note.trim() });
       toast.success(isScheduled ? s.doneScheduled(r.id, driverName) : s.doneWaiting(r.id));
@@ -291,8 +292,8 @@ function CancelSection({ r, driverName }: { r: RequestRow; driverName: string })
             {({ id, invalid, describedBy }) => (
               <Select id={id} aria-invalid={invalid} aria-describedby={describedBy} {...form.register('reason')}>
                 <option value="">{t.chooseReason}</option>
-                {CANCEL_REASONS.map((c, i) => (
-                  <option key={i} value={String(i)}>
+                {CANCEL_REASONS.map((c) => (
+                  <option key={c.id} value={c.id}>
                     {l(c)}
                   </option>
                 ))}

@@ -56,6 +56,8 @@ export function CreateScreen() {
   const open = data.requests.filter(r => isOpen(r) && r.id !== data.editId);
   const lockedRequest = (mid: string, sid: string | null) => open.find(r => r.material_id === mid && r.subtype_id === sid);
   const back = useCallback(() => {
+    // Not while sending: the write's success would otherwise land on whatever screen was opened next.
+    if (data.sending) return;
     if (sheetMaterial) setSheetMaterial(null);
     else if (editing?.id) data.openRequest(editing.id);
     else if (step > 1) setStep(n => n - 1);
@@ -92,7 +94,9 @@ export function CreateScreen() {
     if (editing || step === 3) submit(); else setStep(3);
   }
   function submit() {
-    if (!valid || !material || lockedRequest(material.id, subtypeId)) return;
+    if (!valid || !material) return;
+    // Another phone on this account opened the same material meanwhile: say so instead of nothing.
+    if (lockedRequest(material.id, subtypeId)) { data.showToast(t.subOpen); return; }
     const args = { p_kg: weight, p_note: note.trim() || null, p_contact_name: contactName.trim(),
       p_contact_phone: `0${contactPhone}` };
     if (editing?.id) data.edit({ ...args, p_request_id: editing.id }, chosenPhoto);

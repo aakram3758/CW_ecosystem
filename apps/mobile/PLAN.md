@@ -170,7 +170,7 @@ these reads; phase B swaps the source.
 | Sign in | `POST functions/v1/sign-in` `{ email, password }` → `auth.setSession(session)` |
 | Who am I | `profiles` → `role, display_name, display_name_en, must_change_password, active` where `id = auth.uid()` |
 | Change password | `auth.updateUser({ password })` then `rpc('complete_password_change')` |
-| Verify the current password (Account → change password) | `POST functions/v1/sign-in` with the same email before `updateUser` |
+| Verify the current password (Account → change password) | `auth.signInWithPassword` with the same email before `updateUser` (brief 07:41; it skips the sign-in lock, see supabase/README.md) |
 | Notifications | `notifications` → `id, kind, title_ar, title_en, body_ar, body_en, link, request_id, read_at, created_at`, newest first |
 | Mark them read | `rpc('mark_notifications_read')` |
 | Ops phone | `app_settings` → `value` where `key = 'ops_phone'` |
@@ -341,7 +341,8 @@ Auth is **real from day one**. A fake sign-in proves nothing — the temporary p
 - [x] Forced password change: `auth.updateUser({ password })` → `rpc('complete_password_change')`,
       `PASSWORD_NOT_CHANGED` handled. Rule: 8+ characters with at least one Latin letter and one digit
 - [x] Role routing from `profiles.role`; if the account belongs to the other side, sign out and say so
-- [x] Error-code → message map covering every UPPER_SNAKE code in `supabase/README.md`
+- [x] Error-code → message map for the codes a person can meet; `NOT_ALLOWED`, `SUBTYPE_REQUIRED`, `LOCATION_REQUIRED`,
+      `INVALID_LOCATION` and `INVALID_PHOTO` are left to the generic message on purpose (`src/data/errors.ts`)
 
 **Done when** a real branch account and a real driver account each sign in on a phone, change the temporary
 password, and land on their own role's home.
@@ -510,7 +511,7 @@ Mock data out, Supabase in. Reads go through RLS, every write goes through an RP
 - [x] Delete the device-side location memory in `branch/state.tsx` — it exists only so phase A
       stops asking a branch to place its pin on every launch; `branches.location_confirmed_at`
       is the real answer
-- [x] Every error code from the README mapped to its designed message
+- [x] Every error code a person can meet mapped to its designed message (the deliberate gaps are listed in `src/data/errors.ts`)
 - [x] Bite **3b** — the branch's data states, which are states of this wiring and not of a mock:
       home loading / error / no requests, the offline retry bar, send failed while offline, and a
       request being rescheduled after a failed pickup
@@ -524,8 +525,9 @@ word — `feat/mobile-app` is pushed and a PR opened.
 
 ## Backend changes
 
-Each one is a **new** migration; nothing already applied is ever edited. Convention: `2026MMDD000N00_name.sql`,
-continuing after the applied 01–16.
+Each one is a **new** migration; nothing already applied is ever edited. File versions match the live migration
+history (renamed in the audit, Nov 2026), so a new file takes the version the live project gives it when applied.
+01–20 are live; 21 is `20261101120000_audit_fixes.sql`.
 
 | # | What | When |
 | --- | --- | --- |
@@ -606,3 +608,15 @@ the Excel branch-import script.
 
 The unified ops number and the materials' contact numbers get filled from the dashboard later. Every screen handles
 their absence: the contact button hides rather than showing a number that isn't there.
+
+## Decided in the audit (Nov 2026)
+
+- **Temporary password = no access.** Until the forced change is done the database gives the account no role (migration 21);
+  the apps route on `profiles.role` and still reach the change-password screen. A staff reset signs the account out everywhere.
+- **Forgot password (branch).** The designed contact sheet: `forgotT` / `forgotB` over the ops number, Call / WhatsApp / Copy.
+  The number comes from the public `chains` function (`ops_phone`), so it works before sign-in; with none set, `forgotNoPhone`.
+- **Location: GPS first.** The screen asks for a fix on arrival; a hand-placed pin is allowed only after the phone has answered
+  (a fix, a refusal, a failure or the 15 s timeout), on a map centred on the branch's own city. Account's map is centred on the pin.
+- **Sign-in preferences.** The globe and moon stay in the sign-in hero; the moon toggles dark / light (see stage 1 above).
+- **Cancelled by Ops.** A request Ops cancelled says so, with the reason: «ألغاه فريق التشغيل. السبب: …» (new copy, no artboard).
+- **English branch name.** `name_en`, falling back to the district; the dashboard edits it on Branches.

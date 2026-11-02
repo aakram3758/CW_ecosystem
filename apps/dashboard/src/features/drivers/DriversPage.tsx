@@ -120,9 +120,10 @@ export function DriversPage() {
           <div className="text-[13px] text-muted">{s.note(nextName)}</div>
         </section>
 
-        {drivers.isError ? (
-          <ErrorState title={s.loadError} body={a.loadBody} onRetry={() => drivers.refetch()} />
-        ) : !drivers.data ? (
+        {/* The activity read too: without it every driver would show as working with switches on. */}
+        {drivers.isError || activity.isError ? (
+          <ErrorState title={s.loadError} body={a.loadBody} onRetry={() => { void drivers.refetch(); void activity.refetch(); }} />
+        ) : !drivers.data || !activity.data ? (
           <LoadingBlock>
             <div className={clsx(cardClass, 'flex flex-col gap-3 p-5')}>
               {[0, 1, 2, 3].map((i) => (

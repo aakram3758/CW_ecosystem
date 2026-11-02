@@ -70,7 +70,7 @@ export const useNotifications = (user: DashboardUser) => useQuery({ queryKey: qk
 export const usePhotoUrl = (path: string | undefined) => useQuery({ queryKey: ['photo', path], queryFn: () => signedPhotoUrl(path!),
   enabled: !!path, staleTime: 50 * 60_000, refetchInterval: false });
 
-/** Every write changes requests; most also change plans, history and notifications. */
+/** Every write changes requests; most also change plans, history, notifications and the report numbers. */
 function useInvalidateAll() {
   const qc = useQueryClient();
   return () =>
@@ -80,6 +80,10 @@ function useInvalidateAll() {
       qc.invalidateQueries({ queryKey: qk.late }),
       qc.invalidateQueries({ queryKey: ['history'] }),
       qc.invalidateQueries({ queryKey: ['notifications'] }),
+      qc.invalidateQueries({ queryKey: ['report'] }),
+      qc.invalidateQueries({ queryKey: qk.branchActivity }),
+      qc.invalidateQueries({ queryKey: qk.driverActivity }),
+      qc.invalidateQueries({ queryKey: qk.reasonUsage }),
     ]);
 }
 
@@ -155,6 +159,7 @@ export function useAdminAction() {
         qc.invalidateQueries({ queryKey: qk.reasonUsage }),
         qc.invalidateQueries({ queryKey: qk.requests }),
         qc.invalidateQueries({ queryKey: qk.late }),
+        qc.invalidateQueries({ queryKey: ['report'] }),
       ]);
     },
   });

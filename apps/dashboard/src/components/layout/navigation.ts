@@ -9,20 +9,18 @@ export interface NavItem {
   section?: keyof CommonDict['nav'];
   /** Shows the "needs decision" count badge. */
   showDecisionBadge?: boolean;
-  /** Built in this phase (others show "Coming soon"). */
-  built?: boolean;
 }
 
 /** Every dashboard user has general-manager permissions, so every item is visible to everyone. */
 export const NAV_ITEMS: NavItem[] = [
-  { key: 'overview', path: '/', icon: 'home', built: true },
-  { key: 'requests', path: '/requests', icon: 'req', built: true },
-  { key: 'scheduling', path: '/scheduling', icon: 'cal', built: true },
-  { key: 'decisions', path: '/decisions', icon: 'warn', showDecisionBadge: true, built: true },
-  { key: 'branches', path: '/branches', icon: 'bld', section: 'adminSection', built: true },
-  { key: 'districts', path: '/districts', icon: 'pin', built: true },
-  { key: 'drivers', path: '/drivers', icon: 'truck', built: true },
-  { key: 'materials', path: '/materials', icon: 'cube', built: true },
-  { key: 'lists', path: '/lists', icon: 'lists', built: true },
-  { key: 'reports', path: '/reports', icon: 'chart', built: true },
+  { key: 'overview', path: '/', icon: 'home' },
+  { key: 'requests', path: '/requests', icon: 'req' },
+  { key: 'scheduling', path: '/scheduling', icon: 'cal' },
+  { key: 'decisions', path: '/decisions', icon: 'warn', showDecisionBadge: true },
+  { key: 'branches', path: '/branches', icon: 'bld', section: 'adminSection' },
+  { key: 'districts', path: '/districts', icon: 'pin' },
+  { key: 'drivers', path: '/drivers', icon: 'truck' },
+  { key: 'materials', path: '/materials', icon: 'cube' },
+  { key: 'lists', path: '/lists', icon: 'lists' },
+  { key: 'reports', path: '/reports', icon: 'chart' },
 ];

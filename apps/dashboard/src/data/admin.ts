@@ -1,4 +1,5 @@
-import { ApiError, supabase, toApiError } from '../lib/supabase';
+import { ApiError, supabase } from '../lib/supabase';
+import { run } from './api';
 import { CODES, IDS, REF } from './catalog';
 import type { CityCode, DayKey, LocalizedText, MaterialCode } from './types';
 
@@ -8,22 +9,6 @@ import type { CityCode, DayKey, LocalizedText, MaterialCode } from './types';
  * (row level security lets only dashboard users write them); anything with rules goes through an RPC,
  * and logins go through the account Edge Functions.
  */
-
-type Result<T> = { data: T | null; error: { message: string; code?: string; details?: string | null } | null };
-
-async function run<T>(query: PromiseLike<Result<T>>): Promise<T> {
-  let res: Result<T>;
-  try {
-    res = await query;
-  } catch (e) {
-    throw toApiError({ message: e instanceof Error ? e.message : String(e) });
-  }
-  if (res.error) {
-    if (res.error.code === '23505') throw new ApiError('ALREADY_EXISTS', res.error.details ?? undefined);
-    throw toApiError(res.error);
-  }
-  return res.data as T;
-}
 
 /** Latin key from an English name: "Al Danube Market" → "aldanubemarket" (chains) or "al_danube" (others). */
 export const slug = (text: string, sep = '_', max = 20) =>

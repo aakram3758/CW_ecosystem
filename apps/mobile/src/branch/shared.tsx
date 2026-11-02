@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState, type PropsWithChildren, type ReactNode } from 'react';
-import { Image, Linking, Modal, Pressable, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Image, Linking, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import * as api from '@/data/branch-api';
 import * as Clipboard from 'expo-clipboard';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Stop, Rect, Text as SvgText } from 'react-native-svg';
 import type { MaterialRow, RequestListRow } from '@/data/rows';
 import { interpolate, ltr } from '@/i18n/copy';

@@ -41,8 +41,12 @@ Only **dashboard (staff) accounts** can sign in. Branch and driver accounts are 
 
 - The first account (`superadmin@cloudswater.com`) was created in Supabase → Authentication and linked as general manager.
 - Accounts created later get a 6-digit temporary password and must choose a new one at first sign-in
-  (8+ characters with a letter and a number).
+  (8+ characters with a letter and a number). Until they do, the database gives the account no access at all
+  except its own profile and the password change (migration 21).
+- A password reset from *Materials & managers* signs that account out of every session.
 - Deactivated accounts are refused at sign-in.
+- There is no sign-in lock on the dashboard: it signs in with Supabase Auth directly. The 5-tries lock covers the
+  mobile apps only (see `supabase/README.md`).
 - Sign out from the button next to your name at the bottom of the sidebar.
 
 ## What works (all against the real database)
@@ -52,8 +56,12 @@ Only **dashboard (staff) accounts** can sign in. Branch and driver accounts are 
   add a request for a branch (the database enforces one open request per branch per subtype).
 - **Scheduling** — build the next working day's plan by drag-and-drop or selects, approve (`staff_approve_plan`),
   approved plans with "Change driver". Requests cancelled by the branch meanwhile are skipped and reported.
-- **Needs decision** — reschedule (with undo within 15 minutes) or close with a reason.
-- **Notifications** — from the `notifications` table, already scoped to the user's material for supervisors.
+- **Needs decision** — reschedule or close with a reason. After a reschedule the toast offers *Undo* for 8 seconds
+  (the server would allow it for 15 minutes by the same user; the dashboard only offers it from the toast).
+- **Notifications** — from the `notifications` table: a general manager gets every material, a material manager
+  their materials.
+- Every dashboard user has general-manager permissions: anyone can schedule, decide, cancel and edit. A user's
+  materials only set the default filter and the notification scope.
 - Server rules come back as clear messages (e.g. "the request just changed — data refreshed").
 - Data refreshes every minute and when you come back to the tab; every change refreshes the affected screens.
 
@@ -67,7 +75,8 @@ src/
   lib/supabase.ts   ← the Supabase client (URL + publishable key) and error codes → messages
   lib/auth.tsx      ← session lifecycle: sign-in → profile check → temp password → app; sign-out clears all cached data
   lib/app-context   ← language + theme (everywhere) and the signed-in user (inside the app)
-  data/api.ts       ← the ONLY module that talks to Supabase: reads (tables/views) and writes (RPCs)
+  data/api.ts       ← reads (tables/views) and writes (RPCs) for the main screens, and the shared `run()` error wrapper
+  data/admin.ts     ← the admin screens' reads and writes, and the account Edge Functions (uses `run()` from api.ts)
   data/catalog.ts   ← cities, districts, chains, materials, reasons — loaded from the database after sign-in
   data/queries.ts   ← TanStack Query hooks + mutations (refresh after every write)
   data/selectors.ts ← pure functions deriving what each screen shows

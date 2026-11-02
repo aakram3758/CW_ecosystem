@@ -113,7 +113,8 @@ export async function signIn(email: string, password: string) {
   });
   const body: unknown = await response.json();
   if (response.status === 401) {
-    const error = z.object({ error: z.literal('INVALID_CREDENTIALS'), attempts_left: z.number().int().min(0).max(5) }).parse(body);
+    // `attempts_left` is absent when the function refuses before counting (an empty or over-long password).
+    const error = z.object({ error: z.literal('INVALID_CREDENTIALS'), attempts_left: z.number().int().min(0).max(5).optional() }).parse(body);
     throw new SignInError(error.error, error.attempts_left);
   }
   if (response.status === 429) {

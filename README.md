@@ -8,8 +8,8 @@ One repository for the Clouds Water branch-pickup system.
 | `apps/mobile` | Branch + driver app (Expo, SDK 58) — see [its plan](apps/mobile/PLAN.md) |
 | `supabase/` | Database migrations, Edge Functions, demo seed and tests — see [supabase/README.md](supabase/README.md) |
 
-Nothing is shared in `packages/` yet; the two apps only have the generated database types in common, and one
-copy each is cheaper than a package.
+Nothing is shared in `packages/`. The mobile app has generated database types (`apps/mobile/src/data/database.types.ts`);
+the dashboard types its rows by hand in `src/data/types.ts`. The two apps share no code.
 
 ## Getting started
 

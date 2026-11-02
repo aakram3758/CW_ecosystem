@@ -8,11 +8,12 @@ import { materialInfo } from '../../data/catalog';
 import { Icon } from '../ui/Icon';
 import logo from '../../assets/logo.png';
 
-/** "Needs decision" count in the user's scope: GM = every material, supervisor = own material. */
+/** "Needs decision" count in the user's scope: GM = every material, a manager = every material they manage. */
 export function useDecisionCount() {
   const { user } = useApp();
   const { data } = useRequests();
-  return (data ?? []).filter((r) => r.status === 'needs_decision' && (!user.material || r.material === user.material)).length;
+  const mats = user.materials?.length ? user.materials : user.material ? [user.material] : [];
+  return (data ?? []).filter((r) => r.status === 'needs_decision' && (!mats.length || mats.includes(r.material))).length;
 }
 
 export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {

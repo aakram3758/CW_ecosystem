@@ -39,11 +39,12 @@ export function OverviewPage() {
   const today = opsToday();
   const planDay = nextWorkingDay(today);
 
+  // `today` is a dependency: an unchanged list must still move to the new day's numbers at midnight.
   const summary = useMemo(
-    () => (requests.data ? overviewSummary(requests.data, city, material) : null),
-    [requests.data, city, material],
+    () => (requests.data ? overviewSummary(requests.data, city, material, today) : null),
+    [requests.data, city, material, today],
   );
-  const stale = useMemo(() => (requests.data ? staleWaiting(requests.data, city, material) : []), [requests.data, city, material]);
+  const stale = useMemo(() => (requests.data ? staleWaiting(requests.data, city, material) : []), [requests.data, city, material, today]);
   const late = useMemo(() => (lateRefs.data && branches.data ? lateBranches(branches.data, lateRefs.data, city) : []), [lateRefs.data, branches.data, city]);
 
   const materialName = material === 'all' ? null : l(MATERIALS[material].name);

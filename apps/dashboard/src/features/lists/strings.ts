@@ -6,7 +6,7 @@ const ar = {
   meta: {
     failed: { tab: 'الزيارة الفاشلة', title: 'أسباب الزيارة الفاشلة', hint: 'يختار السائق منها عند تسجيل زيارة فاشلة، بنفس الترتيب الظاهر هنا. السبب المعطّل لا يظهر للسائق لكنه يبقى في السجلات القديمة.', unit: 'زيارة' },
     partial: { tab: 'الاستلام الجزئي', title: 'أسباب الاستلام الجزئي', hint: 'يختار السائق منها عندما يستلم جزءًا من الكمية فقط. الطلب يذهب بعدها إلى «يحتاج قرار».', unit: 'زيارة' },
-    close: { tab: 'الإغلاق', title: 'أسباب الإغلاق', hint: 'يختار منها المدير العام أو مسؤول المادة عند إغلاق طلب من طابور «يحتاج قرار» (أو يكتب سببًا آخر). الطلب المغلق لا يُحتسب «تم جمعه» في التقارير.', unit: 'طلب' },
+    close: { tab: 'الإغلاق', title: 'أسباب الإغلاق', hint: 'يختار منها مستخدم اللوحة عند إغلاق طلب من طابور «يحتاج قرار» (أو يكتب سببًا آخر). الطلب المغلق لا يُحتسب «تم جمعه» في التقارير.', unit: 'طلب' },
     cancel: { tab: 'الإلغاء', title: 'أسباب الإلغاء', hint: 'يختار منها الفرع أو فريق التشغيل عند إلغاء طلب قبل تنفيذه.', unit: 'طلب' },
   } as Record<ReasonKind, { tab: string; title: string; hint: string; unit: string }>,
   used: (n: number, unit: string) => (n === 0 ? 'لم يُستخدم بعد' : `استُخدم في ${n} ${unit === 'زيارة' ? (n > 10 ? 'زيارة' : n === 1 ? 'زيارة' : 'زيارات') : n > 10 ? 'طلبًا' : n === 1 ? 'طلب' : 'طلبات'}`),
@@ -39,7 +39,7 @@ const en: Dict = {
   meta: {
     failed: { tab: 'Failed visit', title: 'Failed-visit reasons', hint: 'Drivers pick one when recording a failed visit, in the order shown here. An inactive reason is hidden from drivers but stays in old records.', unit: 'visit' },
     partial: { tab: 'Partial pickup', title: 'Partial-pickup reasons', hint: 'Drivers pick one when they collect only part of the quantity. The request then goes to "Needs decision".', unit: 'visit' },
-    close: { tab: 'Closing', title: 'Closing reasons', hint: 'The general manager or material manager picks one when closing a request from "Needs decision" (or types another). A closed request never counts as collected in Reports.', unit: 'request' },
+    close: { tab: 'Closing', title: 'Closing reasons', hint: 'A dashboard user picks one when closing a request from "Needs decision" (or types another). A closed request never counts as collected in Reports.', unit: 'request' },
     cancel: { tab: 'Cancelling', title: 'Cancellation reasons', hint: 'The branch or the ops team picks one when cancelling a request before it is carried out.', unit: 'request' },
   },
   used: (n, unit) => (n === 0 ? 'Not used yet' : `Used in ${n} ${unit}${n === 1 ? '' : 's'}`),

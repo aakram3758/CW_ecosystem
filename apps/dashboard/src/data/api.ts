@@ -6,7 +6,6 @@ import type {
   DashboardUser,
   DayKey,
   Driver,
-  LocalizedText,
   MaterialCode,
   NotificationKind,
   PickupRequest,
@@ -34,14 +33,19 @@ const PAGE = 1000;
 
 type Result<T> = { data: T | null; error: { message: string; code?: string; details?: string | null } | null };
 
-async function run<T>(query: PromiseLike<Result<T>>): Promise<T> {
+/** Runs one query and turns its error into an ApiError. Shared with `data/admin.ts`. */
+export async function run<T>(query: PromiseLike<Result<T>>): Promise<T> {
   let res: Result<T>;
   try {
     res = await query;
   } catch (e) {
     throw toApiError({ message: e instanceof Error ? e.message : String(e) });
   }
-  if (res.error) throw toApiError(res.error);
+  if (res.error) {
+    // A unique constraint the screens did not pre-check (e.g. a duplicate code on an admin screen).
+    if (res.error.code === '23505') throw new ApiError('ALREADY_EXISTS', res.error.details ?? undefined);
+    throw toApiError(res.error);
+  }
   return res.data as T;
 }
 
@@ -582,4 +586,3 @@ export async function markAllNotificationsRead() {
   await run(supabase.rpc('mark_notifications_read'));
 }
 
-export type { LocalizedText };

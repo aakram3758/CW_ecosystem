@@ -223,6 +223,9 @@ function useBranchState() {
     requestsError: requests.isError || reference.isError,
     notificationsLoading: notifications.isPending,
     notificationsError: notifications.isError,
+    /** The details screen's history; home folds it into `error`. */
+    timelineError: timeline.isError,
+    cancelling: cancel.isPending,
     /** Refetch everything the home screen needs. The retry button and the offline bar share it. */
     retry: () => Promise.all(Object.values(KEYS).map(queryKey => client.invalidateQueries({ queryKey }))),
     refreshing: context.isFetching || reference.isFetching || requests.isFetching || timeline.isFetching || notifications.isFetching,
