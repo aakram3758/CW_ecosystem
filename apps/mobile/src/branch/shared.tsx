@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type PropsWithChildren, type ReactNode } from 'react';
-import { Image, Linking, Modal, Pressable, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import { useQuery } from '@tanstack/react-query';
-import * as api from '@/data/branch-api';
+import { Image, Linking, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Muted, Tile, IconButton, Pill, useSignedPhoto, Footer } from '@/ui/role-shared';
+export { Muted, Tile, IconButton, Pill, useSignedPhoto, Footer } from '@/ui/role-shared';
+import { useDateFormat } from '@/ui/date';
 import * as Clipboard from 'expo-clipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Stop, Rect, Text as SvgText } from 'react-native-svg';
@@ -26,13 +27,7 @@ export const styles = StyleSheet.create({
 export function useBranchFormat() {
   const { language, copy, theme, colors } = usePreferences();
   const t = copy.branch;
-  const locale = language === 'ar' ? 'ar-SA-u-ca-gregory-nu-latn' : 'en-GB';
-  const date = (value: string | null, long = false) => value ? new Intl.DateTimeFormat(locale, {
-    timeZone: 'Asia/Riyadh', day: 'numeric', month: 'short', ...(long ? { weekday: 'long' as const } : {}),
-  }).format(new Date(value.length === 10 ? `${value}T12:00:00+03:00` : value)) : t.notSet;
-  const stamp = (value: string | null) => value ? `${date(value)} · ${new Intl.DateTimeFormat(locale, {
-    timeZone: 'Asia/Riyadh', hour: 'numeric', minute: '2-digit', hour12: true,
-  }).format(new Date(value))}` : '';
+  const { date, stamp } = useDateFormat(t.notSet);
   const name = (row: { name_ar: string; name_en: string }) => language === 'ar' ? row.name_ar : row.name_en;
   const requestName = (row: RequestListRow) => [language === 'ar' ? row.material_name_ar : row.material_name_en,
     language === 'ar' ? row.subtype_name_ar : row.subtype_name_en].filter(Boolean).join(' · ');
@@ -56,37 +51,8 @@ export function useBranchFormat() {
   };
   return { t, colors, language, name, date, stamp, requestName, kg, phone, materialStyle, status };
 }
-export function Muted({ children, style }: PropsWithChildren<{ style?: React.ComponentProps<typeof Label>['style'] }>) {
-  const { colors } = usePreferences();
-  return <Label style={[{ color: colors.muted, fontSize: 14, lineHeight: 23.1 }, style]}>{children}</Label>;
-}
-export function Tile({ icon, color, background, size = 44, iconSize = 24, radius }: {
-  icon: string; color?: string; background?: string; size?: number; iconSize?: number;
-  /** The canvas rounds a tile by its size, except the password screen's, which is 18 at 56. */
-  radius?: number;
-}) {
-  const { colors } = usePreferences();
-  return <View style={{ width: size, height: size, borderRadius: radius ?? (size === 44 ? 13 : 16),
-    backgroundColor: background ?? colors.surface2, alignItems: 'center', justifyContent: 'center' }}>
-    <Icon name={icon} size={iconSize} color={color ?? colors.primary} tint={color ? `${color}33` : undefined} />
-  </View>;
-}
-export function IconButton({ icon, label, onPress, style }: { icon: string; label: string; onPress: () => void; style?: StyleProp<ViewStyle> }) {
-  const { colors } = usePreferences();
-  return <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress}
-    style={[{ width: 48, height: 48, borderRadius: 14, backgroundColor: colors.surface2,
-      alignItems: 'center', justifyContent: 'center' }, style]}><Icon name={icon} color={colors.text} /></Pressable>;
-}
-export function Pill({ children, color, background, icon }: PropsWithChildren<{ color?: string; background?: string; icon?: string }>) {
-  const { colors } = usePreferences();
-  return <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 28,
-    paddingVertical: 2, paddingHorizontal: 10, borderRadius: 999, alignSelf: 'flex-start',
-    backgroundColor: background ?? colors.surface2, flexShrink: 1 }}>
-    {icon ? <Icon name={icon} size={15} color={color ?? colors.muted} /> : null}
-    <Label style={{ color: color ?? colors.muted, fontSize: 12.5, lineHeight: 16.25,
-      fontFamily: 'Tajawal_700Bold', flexShrink: 1 }}>{children}</Label>
-  </View>;
-}
+
+
 /**
  * Who to call, and about what. One of these is what `useBranch().contact` holds while the contact
  * sheet is open — the material's manager, or the operations team.
@@ -208,11 +174,7 @@ export function Header({ title, onBack, trailing }: { title: string; onBack?: ()
     <View style={{ minWidth: 48, alignItems: 'flex-end', justifyContent: 'center' }}>{trailing}</View>
   </View>;
 }
-export function Footer({ children }: PropsWithChildren) {
-  const { colors } = usePreferences();
-  return <View style={{ padding: 16, paddingTop: 12, paddingBottom: 28, gap: 8, backgroundColor: colors.surface,
-    borderTopWidth: 1, borderTopColor: colors.line }}>{children}</View>;
-}
+
 export function BottomNav() {
   const { page, navigate, notifications } = useBranch();
   const { t, colors } = useBranchFormat();
@@ -263,10 +225,7 @@ export function RequestCard({ row }: { row: RequestListRow }) {
     </Card>
   </Pressable>;
 }
-export function useSignedPhoto(path: string | null) {
-  return useQuery({ queryKey: ['photo', path], queryFn: () => api.signedPhotoUrl(path!),
-    staleTime: 50 * 60_000, enabled: path !== null });
-}
+
 export function Photo({ kg, material, size = 104, uri }: { kg: number; material: MaterialRow; size?: number; uri?: string | null }) {
   const { t, materialStyle } = useBranchFormat();
   const color = materialStyle(material).color;

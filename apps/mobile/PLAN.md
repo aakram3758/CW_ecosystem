@@ -234,9 +234,12 @@ the request and — if it was their only one for that branch — the branch too,
 stays readable. Their history shows a row with no branch, no material and no request number. This follows
 the most ordinary action ops takes after a failed visit, so it is the normal case, not an edge one.
 
-Fix in phase B as migration 21: widen the driver's read to what they have a `visit_attempts` row for,
-rather than only what they are assigned right now. Build the history screen so a row still renders without
-its joined request either way — ops can reschedule at any moment.
+Fixed by migration 21 (`20261102000100_driver_history.sql`): the driver's read is widened to what they
+have a `visit_attempts` row for, rather than only what they are assigned right now, through a
+`security definer` helper so the `requests` ↔ `visit_attempts` policies do not recurse. The history
+screen still renders a row without its joined request, because ops can reschedule at any moment. And
+because the widened read reaches requests now assigned to another driver, every plan read in the app
+filters on `driver_id = me` itself.
 
 ## Phase A — the shell
 
@@ -248,8 +251,8 @@ each one before the next starts.
 **Development on the branch app is closed.** Bites 1, 2, 2.5, 3a and 3b are done and the app runs
 entirely on the live project — `src/data/mock/` is deleted. It has been walked end to end on a real
 phone across three rounds, but every one of those rounds was on mock data: **nothing below has been
-tried against the real backend from a device yet.** The driver app has not been started; nothing of
-bites 4 and 5 exists.
+tried against the real backend from a device yet.** The driver app is built — see *Bites 4 and 5*
+below — and not yet tried on a phone either.
 
 #### What the app does, all of it on the real backend
 
@@ -486,6 +489,40 @@ stop couldn't load · stop with no branch photo · plan loading / couldn't load 
 while sending (the photo and the choice stay on screen) · next plan not approved yet · notifications empty ·
 history empty.
 
+### Bites 4 and 5 — where they stand, 2 November 2026
+
+**Built in one pass on the live backend, not on mock data** — Ahmed's call: the backend exists, and
+building the data states on a mock means drawing them twice. Brief `briefs/08-driver-app.md`; Codex
+wrote it, Claude reviewed every file and fixed what is listed in the commit. Every screen and every
+state above is in `src/driver/`. **Not tried on a phone yet.** To test: from the dashboard, assign
+requests for today to the driver «احمد اكرم» (glass), then sign in on the Driver side.
+
+Decided on the way, each because the database or the phone says otherwise than the canvas:
+
+- **The phone's own camera**, as the branch uses it; the canvas's viewfinder screen is not built.
+  Camera only, no gallery — the photo is proof of the visit.
+- **Reasons come from `reasons`.** The failed tiles are the database's `failed` reasons plus «سبب
+  آخر» (free text); the partial chips are its `partial` reasons, and with none picked a 3+
+  character note is required. That is the RPC's own rule. The canvas's fixed six and its three chip
+  sentences are unused.
+- **A stop's state is today's attempt only** (`last_attempt_day = today`), so a visit rescheduled
+  after yesterday's failure reads «لم تُزر», not «تعذّرت». Today's plan is `visit_day = today` and
+  either still `scheduled` or recorded today, so a request ops cancelled this morning drops off.
+- **«جديدة» is dropped** — no column says a stop was added after approval. **The plan-changed
+  banner** shows the notification's own text. **«اعتُمدت …»** appears only when a `plan_approvals`
+  row exists. **Ops contact** hides while `ops_phone` is empty.
+- The offline state is the shared `OfflineBar`, not the canvas's toast — one visual language.
+
+**Copy gaps a driver can meet**, all falling to the generic «تعذّر التحميل»: the RPC's
+`INVALID_STATUS` and `NOT_VISIT_DAY` (the stop changed under them; the day is refetched),
+`NOT_ALLOWED`, `INVALID_OUTCOME`, `PHOTO_REQUIRED`, `INVALID_REASON`; a refused dialer or maps app;
+a camera failure. Written if Ahmed meets one on a phone.
+
+Moved rather than copied, so neither role imports the other: notifications and signed photo URLs
+into `src/data/shared-api.ts`; `Muted`, `Tile`, `Pill`, `IconButton`, `Footer`, `useSignedPhoto` into
+`src/ui/role-shared.tsx`; the date formatter and Riyadh's today into `src/ui/date.ts`.
+`src/ui/role-home.tsx` is deleted. Eight icons drawn in the branch's hand.
+
 ### Checkpoint
 
 Expo Go on Ahmed's phone. Both journeys end to end, both languages, both themes. **Phase B does not start until
@@ -497,13 +534,14 @@ Mock data out, Supabase in. Reads go through RLS, every write goes through an RP
 
 - [x] Branch reads: `request_list`, `branches`, `notifications`, reference tables
 - [x] Branch writes: `branch_set_location`, `branch_create_request`, `branch_update_request`, `branch_cancel_request`
-- [ ] Driver reads: assigned requests, `visit_attempts`, `notifications`
-- [ ] Driver writes: `driver_record_outcome`
+- [x] Driver reads: today's plan, the next plan with its approval time, `visit_attempts` for
+      history, `driver_days_off`, `reasons`, `notifications` — `src/data/driver-api.ts`
+- [x] Driver writes: `driver_record_outcome`
 - [x] Everyone: `mark_notifications_read`
-- [x] Photo upload, the branch half — private bucket `request-photos`, `branch/<branch_id>/…`, uploaded
-      before the row is written. The driver's `request/<request_id>/…` comes with bite 5.
-- [x] Migrations 17, 18, 19 and 20, applied to the live project and verified in it. 21 is the
-      driver's and comes with bite 4.
+- [x] Photo upload, both halves — private bucket `request-photos`, uploaded before the row is
+      written: the branch's `branch/<branch_id>/…`, the driver's `request/<request_id>/…`. Both read
+      the file with `expo-file-system`'s `File`.
+- [x] Migrations 17–21, applied to the live project and verified in it.
 - [x] Live updates — migration 20 publishes the nine tables the branch app reads to
       `supabase_realtime`, and `branch/state.tsx` subscribes and refetches the matching query on any
       change. RLS filters each change per subscriber, so a branch hears only about its own rows.
@@ -534,7 +572,7 @@ continuing after the applied 01–16.
 | 18 | Maximum 5,000 kg, enforced in `branch_create_request` **and** `branch_update_request` | phase B |
 | 19 | `branches.name_en` + a field on the dashboard's branches screen + **fix `private.request_label(…, 'en')`**, which today falls back to the Arabic `b.name` so English notifications show Arabic branch names | phase B |
 | 20 | Publish `requests`, `request_events`, `visit_attempts`, `notifications`, `branches`, `materials`, `material_subtypes`, `reasons` and `app_settings` to `supabase_realtime`, so the branch app hears changes while it is open | phase B, applied |
-| 21 | A driver may read the branch and request behind any `visit_attempts` row of their own, not only what they are assigned right now — see *Driver history* above | phase B |
+| 21 | A driver may read the branch, request and photos behind any `visit_attempts` row of their own, not only what they are assigned right now — see *Driver history* above. Also: a driver reads their own `plan_approvals` rows, and `driver_days_off` and `plan_approvals` join `supabase_realtime` | phase B, applied 2 November |
 
 All four premises were checked against the live database on 2026-10-27, not assumed:
 

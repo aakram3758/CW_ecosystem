@@ -1,6 +1,6 @@
 import { AuthGate } from '@/ui/auth-gate';
-import { RoleHome } from '@/ui/role-home';
+import { DriverApp } from '@/driver/app';
 
 export default function DriverHome() {
-  return <AuthGate route="/driver"><RoleHome role="driver" /></AuthGate>;
+  return <AuthGate route="/driver"><DriverApp /></AuthGate>;
 }

@@ -26,8 +26,10 @@ export const errorMessages = {
   //
   // The two that a person will actually meet are the first two.
 
-  /** A visit day was set, or the request was cancelled, while this screen was open. */
-  INVALID_STATUS: (copy: Copy) => copy.branch.lockedT,
+  /** A visit day was set, or the request was cancelled, while this screen was open. For a driver: the
+   * stop was recorded, rescheduled or cancelled under them, which no approved sentence says, so the
+   * generic one, and the outcome screen refetches the day. */
+  INVALID_STATUS: (copy: Copy, role: Role) => role === 'branch' ? copy.branch.lockedT : copy.driver.errBody,
   /** Another device on the same account already confirmed the pin. */
   LOCATION_ALREADY_SET: (copy: Copy) => copy.branch.locLocked,
 

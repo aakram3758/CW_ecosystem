@@ -40,3 +40,5 @@ export type CreateRequestArgs =
 export type EditRequestArgs =
   Omit<Database['public']['Functions']['branch_update_request']['Args'], 'p_note'>
   & { p_note: string | null };
+
+export type DriverRow = Tables['drivers']['Row'];
