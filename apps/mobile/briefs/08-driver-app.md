@@ -22,7 +22,7 @@ both: `src/branch/state.tsx` (queries, mutations, realtime, the page switch), `s
 `src/branch/create.tsx` (a photo uploaded before the row is written, and the send-failure block).
 
 **Do not write SQL and do not touch `supabase/`.** The one migration this needs —
-`supabase/migrations/20261102000100_driver_history.sql`, migration 21 — is **already applied to the
+`supabase/migrations/20261102122213_driver_history.sql`, migration 21 — is **already applied to the
 live project**. Read its header: it is why some of the reads below behave the way they do.
 `database.types.ts` needs no change, because the migration adds no column and no public function.
 

@@ -396,7 +396,7 @@ function BranchDrawer({
 
   const chainName = l(CHAINS[chain]);
   const no = v.number.trim();
-  const errNo = !no ? s.errNo : !/^[A-Za-z0-9]{1,10}$/.test(no) ? s.errNoFormat : taken.includes(no.toLowerCase()) ? s.errNoTaken(no, chainName) : '';
+  const errNo = !no ? s.errNo : !/^[0-9]{1,6}$/.test(no) ? s.errNoFormat : taken.includes(no.toLowerCase()) ? s.errNoTaken(no, chainName) : '';
   const errName = !v.name.trim() ? s.errName : '';
   const errCity = !v.city ? s.errCity : '';
   const errDistrict = v.city && !v.district ? s.errDistrict : '';

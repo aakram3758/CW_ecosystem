@@ -10,11 +10,11 @@ so the two apps can never disagree.
 
 | Folder | What |
 | --- | --- |
-| `migrations/` | The schema, applied in order (01 → 21). File versions match the live migration history 1:1. 01–20 are applied to the live project; 21 (`20261101120000_audit_fixes.sql`) is applied once you run it. |
+| `migrations/` | The schema, applied in order (01 → 24). File versions match the live migration history 1:1. 01–23 are applied to the live project; 24 (`20261104000000_audit_fixes.sql`) is applied once you run it, then renamed to the version the live project gives it. |
 | `functions/` | Edge Functions `create-account` and `reset-password` (JWT required, staff only), and `sign-in` and `chains` (no JWT — the branch + driver apps call them before there is a session). `chains` returns the active chains and `app_settings.ops_phone` for «نسيت كلمة المرور؟». |
 | `seed/demo.sql` | Demo branches, drivers and 40 requests in every state, dated relative to the day it runs. Already loaded. |
-| `tests/lifecycle.sql` | 90 end-to-end checks as GM / supervisor / branch / driver, including migration 21's rules. Runs in one transaction and rolls back. Expects the demo seed data. Run with `psql -f` (it uses psql meta-commands). |
-| `tests/phase2.sql` | Checks for 13–16 (morning notice, sign-in lock, temporary passwords) and 21 (a reset ends every session). Ends with a deliberate error that rolls back; the message says `ALL CHECKS PASSED`. |
+| `tests/lifecycle.sql` | 96 end-to-end checks as GM / supervisor / branch / driver, including the rules of migrations 21, 23 and 24. Runs in one transaction and rolls back. Expects the demo seed data. Run with `psql -f` (it uses psql meta-commands). |
+| `tests/phase2.sql` | Checks for 13–16 (morning notice, sign-in lock, temporary passwords) and 24 (a reset ends every session). Ends with a deliberate error that rolls back; the message says `ALL CHECKS PASSED`. |
 
 ## Rules enforced by the database
 
@@ -32,6 +32,7 @@ so the two apps can never disagree.
   `request/<request id>/` (`INVALID_PHOTO`). A request can't be created on an inactive material or subtype (`MATERIAL_INACTIVE`).
 - 5,000 kg is the ceiling for staff-created requests too.
 - Every dashboard user has general-manager permissions. Each material has one manager (`materials.manager_id`) who gets that material's notifications; staff who manage no material get everything.
+- A driver keeps reading a request, its branch and its photos after visiting it, even once it is moved off them; a visit the 20:00 sweep closed in their name does not count.
 - Driver availability is per day (`driver_days_off`); planning refuses a driver on a day off, and Reports count the days off.
 - Unified ops number: `app_settings.ops_phone` — branches call it when a material has no contact number.
 

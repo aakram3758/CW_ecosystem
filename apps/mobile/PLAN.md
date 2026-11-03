@@ -234,7 +234,7 @@ the request and — if it was their only one for that branch — the branch too,
 stays readable. Their history shows a row with no branch, no material and no request number. This follows
 the most ordinary action ops takes after a failed visit, so it is the normal case, not an edge one.
 
-Fixed by migration 21 (`20261102000100_driver_history.sql`): the driver's read is widened to what they
+Fixed by migration 21 (`20261102122213_driver_history.sql`): the driver's read is widened to what they
 have a `visit_attempts` row for, rather than only what they are assigned right now, through a
 `security definer` helper so the `requests` ↔ `visit_attempts` policies do not recurse. The history
 screen still renders a row without its joined request, because ops can reschedule at any moment. And
@@ -565,7 +565,7 @@ word — `feat/mobile-app` is pushed and a PR opened.
 
 Each one is a **new** migration; nothing already applied is ever edited. File versions match the live migration
 history (renamed in the audit, Nov 2026), so a new file takes the version the live project gives it when applied.
-01–20 are live; 21 is `20261101120000_audit_fixes.sql`.
+01–23 are live; 24 is `20261104000000_audit_fixes.sql` (it takes the version the live project gives it when applied).
 
 | # | What | When |
 | --- | --- | --- |
@@ -575,8 +575,9 @@ history (renamed in the audit, Nov 2026), so a new file takes the version the li
 | 19 | `branches.name_en` + a field on the dashboard's branches screen + **fix `private.request_label(…, 'en')`**, which today falls back to the Arabic `b.name` so English notifications show Arabic branch names | phase B |
 | 20 | Publish `requests`, `request_events`, `visit_attempts`, `notifications`, `branches`, `materials`, `material_subtypes`, `reasons` and `app_settings` to `supabase_realtime`, so the branch app hears changes while it is open | phase B, applied |
 | 21 | A driver may read the branch, request and photos behind any `visit_attempts` row of their own, not only what they are assigned right now — see *Driver history* above. Also: a driver reads their own `plan_approvals` rows, and `driver_days_off` and `plan_approvals` join `supabase_realtime` | phase B, applied 2 November |
-| 22 | `reasons.icon`: the Phosphor name the driver canvas draws on a failed reason's tile, set for the four failed reasons; null falls back to the app's default icon (`20261103000100_reason_icons.sql`) | phase B, applied 3 November |
-| 23 | `request_list` gains `creator_name`, `creator_name_en` and `creator_phone` for a dashboard request, through the `security definer` helper `private.request_creator`, which returns a staff profile only to a driver or staff; the driver's stop screen shows that person in place of a contact (`20261103000200_request_creator.sql`) | phase B, applied 3 November |
+| 22 | `reasons.icon`: the Phosphor name the driver canvas draws on a failed reason's tile, set for the four failed reasons; null falls back to the app's default icon (`20261103153545_reason_icons.sql`) | phase B, applied 3 November |
+| 23 | `request_list` gains `creator_name`, `creator_name_en` and `creator_phone` for a dashboard request, through the `security definer` helper `private.request_creator`, which returns a staff profile only to a driver or staff; the driver's stop screen shows that person in place of a contact (`20261103154719_request_creator.sql`) | phase B, applied 3 November |
+| 24 | The audit's fixes (temporary password = no role, photo paths, races, inactive materials, closed private functions, a reset ends every session) and from the second audit: the sweep's `no_result` gives a driver no lasting read, and the two helpers from 21 and 23 lose PUBLIC EXECUTE (`20261104000000_audit_fixes.sql`) | audit, **not applied yet** |
 
 All four premises were checked against the live database on 2026-10-27, not assumed:
 
@@ -651,7 +652,7 @@ their absence: the contact button hides rather than showing a number that isn't 
 
 ## Decided in the audit (Nov 2026)
 
-- **Temporary password = no access.** Until the forced change is done the database gives the account no role (migration 21);
+- **Temporary password = no access.** Until the forced change is done the database gives the account no role (migration 24);
   the apps route on `profiles.role` and still reach the change-password screen. A staff reset signs the account out everywhere.
 - **Forgot password (branch).** The designed contact sheet: `forgotT` / `forgotB` over the ops number, Call / WhatsApp / Copy.
   The number comes from the public `chains` function (`ops_phone`), so it works before sign-in; with none set, `forgotNoPhone`.

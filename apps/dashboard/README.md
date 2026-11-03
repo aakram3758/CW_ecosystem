@@ -42,7 +42,7 @@ Only **dashboard (staff) accounts** can sign in. Branch and driver accounts are 
 - The first account (`superadmin@cloudswater.com`) was created in Supabase → Authentication and linked as general manager.
 - Accounts created later get a 6-digit temporary password and must choose a new one at first sign-in
   (8+ characters with a letter and a number). Until they do, the database gives the account no access at all
-  except its own profile and the password change (migration 21).
+  except its own profile and the password change (migration 24).
 - A password reset from *Materials & managers* signs that account out of every session.
 - Deactivated accounts are refused at sign-in.
 - There is no sign-in lock on the dashboard: it signs in with Supabase Auth directly. The 5-tries lock covers the

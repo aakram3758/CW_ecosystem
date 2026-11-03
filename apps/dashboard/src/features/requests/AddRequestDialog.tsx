@@ -68,7 +68,8 @@ export function AddRequestDialog({
   const branch = useMemo(() => {
     const no = number.trim();
     if (!chain || !no) return undefined;
-    return branches.find((b) => b.chain === chain && (b.number === no || Number(b.number) === Number(no)));
+    const inChain = branches.filter((b) => b.chain === chain);
+    return inChain.find((b) => b.number === no) ?? inChain.find((b) => Number(b.number) === Number(no));
   }, [branches, chain, number]);
 
   const subtypes = material ? MATERIALS[material as MaterialCode].subtypes : [];

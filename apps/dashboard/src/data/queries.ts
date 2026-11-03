@@ -66,9 +66,10 @@ export const useLateBranches = () => useQuery({ queryKey: qk.late, queryFn: fetc
 export const useHistory = (id: string, branchLabel: string, updatedAt: string) =>
   useQuery({ queryKey: [...qk.history(id), updatedAt], queryFn: () => fetchHistory(id, branchLabel), refetchInterval: false });
 export const useNotifications = (user: DashboardUser) => useQuery({ queryKey: qk.notifications(user.id), queryFn: fetchNotifications });
-/** The URL lasts an hour; refetch it at 50 minutes so an open drawer never holds a dead one. */
+/** The URL lasts an hour; refetch it at 50 minutes so an open drawer never holds a dead one. A failed signing is
+ *  cached as null, so it stays stale: the next focus or mount asks again. */
 export const usePhotoUrl = (path: string | undefined) => useQuery({ queryKey: ['photo', path], queryFn: () => signedPhotoUrl(path!),
-  enabled: !!path, staleTime: 50 * 60_000, refetchInterval: false });
+  enabled: !!path, staleTime: (query) => (query.state.data === null ? 0 : 50 * 60_000), refetchInterval: 50 * 60_000 });
 
 /** Every write changes requests; most also change plans, history, notifications and the report numbers. */
 function useInvalidateAll() {

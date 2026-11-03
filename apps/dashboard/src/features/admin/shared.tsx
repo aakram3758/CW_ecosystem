@@ -28,7 +28,6 @@ const ar = {
   done: 'تم',
   loadBody: 'تحقق من الاتصال ثم أعد المحاولة.',
   never: 'لم يسجّل دخول',
-  noLogin: 'بدون حساب دخول',
   firstLogin: 'لم يغيّر الباسورد المؤقت',
   resetPw: 'تغيير الباسورد',
   pw: {
@@ -81,7 +80,6 @@ const en: Dict = {
   done: 'Done',
   loadBody: 'Check your connection, then try again.',
   never: 'Never signed in',
-  noLogin: 'No login',
   firstLogin: "Hasn't changed the temporary password",
   resetPw: 'Reset password',
   pw: {
@@ -249,7 +247,7 @@ export function PasswordDialog({ target, onClose }: { target: PasswordTarget | n
   };
 
   return (
-    <Dialog open={!!target} onOpenChange={(o) => !o && close()} title={shown ? shown.title : target ? (target.userId ? a.confirmTitle(target.name) : a.createTitle(target.name)) : ''} kicker={target?.name} width={500}>
+    <Dialog open={!!target} onOpenChange={(o) => !o && !busy && close()} title={shown ? shown.title : target ? (target.userId ? a.confirmTitle(target.name) : a.createTitle(target.name)) : ''} kicker={target?.name} width={500}>
       {target && !shown && (
         <>
           <p className="m-0 text-[15px] leading-relaxed text-muted">{target.userId ? a.confirmBody : a.createBody}</p>
@@ -257,7 +255,7 @@ export function PasswordDialog({ target, onClose }: { target: PasswordTarget | n
             <Button variant="gold" size="lg" onClick={generate} disabled={busy}>
               {a.generate}
             </Button>
-            <Button size="lg" onClick={close}>
+            <Button size="lg" onClick={close} disabled={busy}>
               {t.cancel}
             </Button>
           </div>

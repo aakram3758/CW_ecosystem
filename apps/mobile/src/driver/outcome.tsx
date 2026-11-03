@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Image, Pressable, View } from 'react-native';
 import { takePhoto } from '@/data/device';
 import { errorCode, errorMessage } from '@/data/errors';
@@ -9,7 +9,7 @@ import { Button, Card, ErrorLine, Field, Label, Title, Motion, press } from './v
 import { Icon, reasonIcon } from './icons';
 import { useDriver } from './state';
 import { emptyDraft, stopState, validDraft, type Outcome } from './model';
-import { ErrorState, Footer, LoadingCards, Muted, PageFrame, Pill, Tile, styles, useDriverFormat } from './shared';
+import { EmptyState, ErrorState, Footer, LoadingCards, Muted, PageFrame, Pill, Tile, styles, useDriverFormat } from './shared';
 
 const photoGreen = '#19764A', white = '#FFFFFF';
 export function OutcomeScreen() {
@@ -39,6 +39,9 @@ export function OutcomeScreen() {
   ];
   const chosen = choices.find(c => c.kind === d.kind);
   const changed = !row || stopState(row, data.today) !== 'todo';
+  // Recorded under the form (a lost response, or a second phone): open the stop, which shows what was recorded.
+  const recorded = !!row && stopState(row, data.today) !== 'todo';
+  useEffect(() => { if (recorded && !data.sending) data.setPage('stop'); }, [recorded, data.sending, data.setPage]);
   const reasonNeeded = d.kind === 'partial' || d.kind === 'failed';
   const kindStyle = (kind: Outcome) => ({ ...f.status(kind), color: kind === 'partial' ? colors.accent : f.status(kind).color });
   const disabled = busy || !valid || changed || (reasonNeeded && !data.reasons.data);
@@ -53,7 +56,8 @@ export function OutcomeScreen() {
     </Footer> : undefined}>
     {failedSend ? <Motion kind="up"><View accessibilityRole="alert" style={[styles.row, { alignItems: 'flex-start', padding: 14, borderRadius: 16, backgroundColor: colors.dangerSoft, borderWidth: 1.5, borderColor: colors.danger }]}><Icon name="cloud-slash" size={30} color={colors.dangerText} /><View style={[styles.grow, { gap: 2 }]}><Title style={{ fontSize: 17, color: colors.dangerText }}>{t.notSent}</Title><Label style={{ fontSize: 15 }}>{t.keptData}</Label>{errorCode(data.sendError) ? <ErrorLine>{errorMessage(data.sendError, copy, 'driver')}</ErrorLine> : null}</View></View></Motion> : null}
     {offline ? <Motion kind="up"><View accessibilityRole="alert" style={[styles.row, { alignItems: 'flex-start', padding: 14, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1.5, borderColor: colors.text }]}><Icon name="wifi-slash" size={30} color={colors.dangerText} /><View style={[styles.grow, { gap: 2 }]}><Title style={{ fontSize: 17 }}>{t.offline}</Title><Muted>{t.offlineSub}</Muted></View></View></Motion> : null}
-    {changed && !data.sending ? <ErrorState onRetry={() => void data.day.refetch()} /> : null}
+    {!row && !data.sending ? data.day.isError ? <ErrorState onRetry={() => void data.day.refetch()} />
+      : <EmptyState icon="calendar-blank" title={t.movedTitle} body={t.movedBody} action={{ label: t.toPlan, onPress: () => data.setPage('plan') }} /> : null}
     <View pointerEvents={busy || changed ? 'none' : 'auto'} style={{ gap: 14, opacity: busy ? .55 : 1 }}>
       {!chosen ? <><View style={{ gap: 6, marginTop: 4, marginBottom: 2 }}><Title style={{ fontSize: 22, lineHeight: 29.7 }}>{t.question}</Title><Pill icon="scales" iconSize={20} height={34} radius={10} padding={12} fontSize={15} weight={800} color={colors.text}>{interpolate(t.declaredQ, { n: row ? f.kg(row.kg) : '' })}</Pill></View>
         {choices.map(choice => { const st = kindStyle(choice.kind); return <Pressable key={choice.kind} accessibilityRole="button" onPress={() => patch({ kind: choice.kind, reasonId: null, other: false })} style={press}>

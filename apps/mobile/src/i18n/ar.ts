@@ -177,7 +177,10 @@ export const ar = {
     sFullTitle: 'تم الاستلام وأُغلق الطلب', sPartialTitle: 'تم تسجيل الاستلام', sPartialSub: 'الكمية مختلفة – الطلب الآن «يحتاج قرار»', sFailedTitle: 'تم تسجيل تعذّر الاستلام', sFailedSub: 'الطلب الآن «يحتاج قرار» عند المشرف',
     todayProgress: 'تقدّم اليوم', next: 'الزيارة التالية', toPlan: 'العودة للخطة', backHome: 'الرئيسية', lastDone: 'كانت هذه آخر زيارة اليوم',
     upTitle: 'الخطة القادمة', viewOnly: 'للعرض فقط', approved: 'معتمدة', upEmpty: 'لم تُعتمد الخطة القادمة بعد', upEmptySub: 'سيصلك إشعار فور اعتمادها من العمليات.',
-    approvedAt: 'يوم العمل التالي · اعتُمدت {when}',
+    // [changed] audit v2 N13: the day shown is the earliest future one, not always the next working day. Was: 'يوم العمل التالي · اعتُمدت {when}'
+    approvedAt: 'اعتُمدت {when}',
+    // [added] audit v2: a stop Operations moved off this driver's plan while it was open. Approved in chat, 3 November 2026.
+    movedTitle: 'هذه الزيارة لم تعد ضمن خطتك', movedBody: 'نقلتها العمليات أو غيّرت موعدها.',
     // [added] adminLabel, adminNote, noAdminPhoto: a dashboard request's creator card and note label. Approved in chat, 3 November 2026.
     contactLabel: 'صاحب الطلب', adminLabel: 'طلب من الإدارة', adminNote: 'ملاحظة الإدارة', noAdminPhoto: 'لا توجد صورة للميزان — الطلب من الإدارة', callContact: 'اتصال بصاحب الطلب', noBranchPhoto: 'لم يرفق الفرع صورة للميزان', noBranchPhotoSub: 'اعتمد على الوزن المكتوب، وصوّر الميزان عند الاستلام.',
     lockedTitle: 'تم إيقاف الدخول مؤقتًا', lockedBody: '5 محاولات خاطئة. حاول بعد 15 دقيقة، أو تواصل مع العمليات لفتح الحساب.',

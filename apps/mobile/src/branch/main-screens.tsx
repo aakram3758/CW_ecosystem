@@ -9,7 +9,7 @@ import { Button, Card, EmptyState, ErrorState, Icon, Label, PreferencesControls,
 import { branchArtwork } from '@/ui/tokens';
 import { BranchMap } from './location';
 import { isOpen, useBranch } from './state';
-import { BottomNav, Footer, IconButton, Muted, PageFrame, Pill, RequestCard, styles, Tile, useBranchFormat } from './shared';
+import { BottomNav, Footer, Muted, PageFrame, Pill, RequestCard, styles, Tile, useBranchFormat } from './shared';
 
 /**
  * Who to call about a material, and how to open the sheet that calls them.
@@ -115,7 +115,7 @@ export function HomeScreen() {
         <Title style={{ fontSize: 30, lineHeight: 39, color: colors.onPrimary }}>{t.heroQ}{'\n'}
           <Label style={{ fontSize: 30, lineHeight: 39, color: colors.gold, fontFamily: 'Tajawal_800ExtraBold' }}>{t.heroA}</Label>
         </Title>
-        <Button variant="branch" tone="gold" icon="plus" label={t.newReq} onPress={() => data.startCreate()} style={{ alignSelf: 'flex-start', paddingHorizontal: 22 }} />
+        <Button variant="branch" tone="gold" icon="plus" label={t.newReq} disabled={data.loading || data.error} onPress={() => data.startCreate()} style={{ alignSelf: 'flex-start', paddingHorizontal: 22 }} />
       </View>
     </View>
     {data.loading ? <Card style={{ marginTop: -52, marginHorizontal: 16,
@@ -275,7 +275,7 @@ export function AccountScreen() {
         <Muted style={{ fontSize: 13 }}>{t.locLocked}</Muted>
         <Muted style={{ fontSize: 13 }}>{ltr(`${data.branch.lat?.toFixed(5)}, ${data.branch.lng?.toFixed(5)}`)}</Muted>
       </Card>
-      <Card style={{ borderRadius: 18, padding: 16 }}><PreferencesControls variant="branch" /></Card>
+      <Card style={{ borderRadius: 18, padding: 16 }}><PreferencesControls /></Card>
       <Card style={{ borderRadius: 18, paddingHorizontal: 14, paddingVertical: 0, gap: 0 }}>
         <Pressable accessibilityRole="button" onPress={() => data.openPassword()}
           style={[styles.row, { minHeight: 56 }]}>

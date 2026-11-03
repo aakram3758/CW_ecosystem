@@ -20,7 +20,12 @@ function useDriverState(today: string, identity: api.DriverContext) {
   const prefix = ['driver', session!.user.id];
   const keys = { context: [...prefix, 'context'], day: [...prefix, 'day'], next: [...prefix, 'next'],
     history: [...prefix, 'history'], reasons: [...prefix, 'reasons'], notifications: [...prefix, 'notifications'] };
-  const [range, setRange] = useState({ from: shiftDay(today, -6), to: today });
+  // The default period follows the Riyadh day (the provider outlives midnight); a period the driver picked stays put.
+  const [picked, setRange] = useState<{ from: string; to: string } | null>(null);
+  const range = picked ?? { from: shiftDay(today, -6), to: today };
+  // The canvas keeps both filters in app state, so they survive opening a stop and coming back.
+  const [planFilter, setPlanFilter] = useState<'all' | 'remaining'>('all');
+  const [historyFilter, setHistoryFilter] = useState<'all' | Outcome>('all');
   const context = useQuery({ queryKey: [...keys.context, today], queryFn: () => api.fetchDriverContext(today) });
   const day = useQuery({ queryKey: [...keys.day, id, today], queryFn: () => api.fetchDay(id, today) });
   const next = useQuery({ queryKey: [...keys.next, id, today], queryFn: () => api.fetchNextPlan(id, today) });
@@ -95,7 +100,9 @@ function useDriverState(today: string, identity: api.DriverContext) {
       setPage('success');
     } catch (error) {
       setSendError(error);
-      if (['INVALID_STATUS', 'NOT_VISIT_DAY'].includes(errorCode(error) ?? '')) void day.refetch();
+      // Refetch after every failure: the stop may have been recorded (a lost response), moved or rescheduled.
+      void day.refetch();
+      if (errorCode(error) === 'INVALID_REASON') void reasons.refetch();
     } finally { sendingRef.current = false; setSending(false); }
   }
   function openStop(requestId: string, from: Page = page) { setSelectedId(requestId); setStopFrom(from); setPage('stop'); }
@@ -107,7 +114,7 @@ function useDriverState(today: string, identity: api.DriverContext) {
     && ['plan_changed', 'plan_updated'].includes(n.kind)
     && new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Riyadh' }).format(new Date(n.created_at)) === today);
   return { today, context: context.data ?? identity, contextError: context.isError, rows, day, next, history, historyExists,
-    reasons, notifications, range, setRange, retry, selected, selectedId, page, setPage, openStop, back,
+    reasons, notifications, range, setRange, planFilter, setPlanFilter, historyFilter, setHistoryFilter, retry, selected, selectedId, page, setPage, openStop, back,
     drafts, patchDraft, sending, sendError, clearSendError: () => setSendError(null), send, last,
     suggestion: suggest(rows, today), change, dismissChange: () => { if (change) setDismissed(ids => [...ids, change.id]); },
     ops, openOps: () => { if ((context.data ?? identity).opsPhone) setOps(true); }, closeOps: () => setOps(false),

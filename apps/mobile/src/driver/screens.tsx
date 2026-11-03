@@ -11,7 +11,7 @@ const navy = '#0B2340', gold = '#E8CE84', white = '#FFFFFF', logoutRed = '#B3382
 const successRings = { full: 'rgba(70,196,137,.18)', partial: 'rgba(232,206,132,.18)', failed: 'rgba(244,154,144,.18)' };
 import { useDriver } from './state';
 import { groupStops, stopState } from './model';
-import { EmptyState, ErrorState, BottomNav, LoadingCards, Muted, OpsButton, PageFrame, Pill, StopCard, Tile, styles, useDriverFormat } from './shared';
+import { EmptyState, ErrorState, BottomNav, LoadingCards, Muted, PageFrame, Pill, StopCard, Tile, styles, useDriverFormat } from './shared';
 
 export function NextPlanScreen() {
   const data = useDriver(); const f = useDriverFormat(); const plan = data.next.data;

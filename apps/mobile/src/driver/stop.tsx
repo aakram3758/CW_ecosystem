@@ -3,7 +3,7 @@ import { Button, Card, Label, Title } from './visual';
 import { Icon } from './icons';
 import { useDriver } from './state';
 import { stopState } from './model';
-import { DecisionLine, ErrorState, Footer, LoadingCards, MaterialPill, Muted, OpsButton, PageFrame, Pill, StoredPhoto, Tile, openDeviceUrl, styles, useDriverFormat } from './shared';
+import { DecisionLine, EmptyState, ErrorState, Footer, LoadingCards, MaterialPill, Muted, OpsButton, PageFrame, Pill, StoredPhoto, Tile, openDeviceUrl, styles, useDriverFormat } from './shared';
 const navy = '#0B2340', white = '#FFFFFF', gold = '#E8CE84';
 export function StopScreen() {
   const data = useDriver(); const f = useDriverFormat(); const { t, colors } = f; const row = data.selected;
@@ -18,7 +18,8 @@ export function StopScreen() {
   return <PageFrame title={row ? f.title(row) : t.request} titleSize={20} onBack={data.back} contentStyle={data.day.isPending || data.day.isError || !row ? { padding: 16, gap: 12 } : undefined}
     subtitle={<View style={[styles.row, { gap: 8 }]}><Muted style={{ fontSize: 14 }}>{t.request} {row?.number ? `#${row.number}` : ''}</Muted><Pill {...st} icon={st.icon} iconWeight={kind === 'todo' ? 'duotone' : 'fill'} height={24} radius={8} fontSize={12} iconSize={12} padding={8} weight={800}>{st.label}</Pill></View>}
     footer={row && kind === 'todo' && !data.day.isError ? <Footer><Button cwPress icon={row.id && data.drafts[row.id]?.kind ? 'note-pencil' : 'clipboard-text'} iconSize={26} fontSize={18} style={{ height: 60, borderRadius: 18, gap: 10 }} label={row.id && data.drafts[row.id]?.kind ? t.continueDraft : t.record} onPress={() => { data.clearSendError(); data.setPage('outcome'); }} /></Footer> : undefined}>
-    {data.day.isPending ? <LoadingCards /> : data.day.isError || !row ? <ErrorState onRetry={() => void data.day.refetch()} /> : <>
+    {data.day.isPending ? <LoadingCards /> : data.day.isError ? <ErrorState onRetry={() => void data.day.refetch()} />
+      : !row ? <EmptyState icon="calendar-blank" title={t.movedTitle} body={t.movedBody} action={{ label: t.toPlan, onPress: () => data.setPage('plan') }} /> : <>
       {row.branch_access_notes ? <View style={[styles.row, { padding: 14, borderRadius: 18, backgroundColor: colors.accentSoft, alignItems: 'flex-start' }]}><Tile icon="door-open" background={colors.surface} color={colors.accent} size={48} radius={14} iconSize={26} /><View style={[styles.grow, { gap: 2 }]}><Label style={[styles.bold, { fontSize: 13, color: colors.accentText }]}>{t.access}</Label><Title style={{ fontSize: 17, lineHeight: 23.8 }}>{row.branch_access_notes}</Title></View></View> : null}
       {/* No call-the-branch button: the canvas never draws one (callBranch is in its copy, unused). */}
       {row.branch_address || contact || row.lat !== null && row.lng !== null ? <Card>

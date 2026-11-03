@@ -32,6 +32,11 @@ export const errorMessages = {
    * stop was recorded, rescheduled or cancelled under them, which no approved sentence says, so the
    * generic one, and the outcome screen refetches the day. */
   INVALID_STATUS: (copy: Copy, role: Role) => role === 'branch' ? copy.branch.lockedT : copy.driver.errBody,
+  /** The driver's outcome RPC: the stop's visit day moved, or the chosen reason was retired, while the form was
+   * open. No approved sentence names either, so the generic one; listed so `errorCode` recognises them and the
+   * driver state can refetch the day / the reasons. */
+  NOT_VISIT_DAY: (copy: Copy) => copy.driver.errBody,
+  INVALID_REASON: (copy: Copy) => copy.driver.errBody,
   /** Another device on the same account already confirmed the pin. */
   LOCATION_ALREADY_SET: (copy: Copy) => copy.branch.locLocked,
 

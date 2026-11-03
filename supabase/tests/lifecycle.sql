@@ -16,7 +16,7 @@ exception when others then
   if position(p_expect in sqlerrm) = 0 then raise exception 'FAIL: % → got "%"', label, sqlerrm; end if;
   raise notice 'ok  % (%)', label, sqlerrm;
 end $$;
--- anon too: since migration 21 a new function is not executable by PUBLIC by default.
+-- anon too: since migration 24 a new function is not executable by PUBLIC by default.
 grant execute on all functions in schema pg_temp to anon, authenticated;
 
 -- accounts
@@ -29,7 +29,7 @@ insert into auth.users (id, email) values
 update public.branches set user_id = null; update public.drivers set user_id = null;
 update public.profiles set active = false where role = 'staff';
 update public.materials set manager_id = null;
--- must_change_password = false: an account still on its temporary password has no role (migration 21).
+-- must_change_password = false: an account still on its temporary password has no role (migration 24).
 insert into public.profiles (id, role, display_name, must_change_password) values
   ('00000000-0000-0000-0000-0000000000a1', 'staff', 'مدير عام', false),
   ('00000000-0000-0000-0000-0000000000a2', 'staff', 'مشرف بلاستيك', false),
@@ -62,7 +62,7 @@ create temp table ids as select
   (select id from public.reasons where kind = 'partial' order by sort_order limit 1) as r_partial,
   private.next_working_day(private.ops_today()) as nwd;
 grant select on ids to authenticated;
--- The branch's uploaded scale photo: migration 21 checks the object exists.
+-- The branch's uploaded scale photo: migration 24 checks the object exists.
 insert into storage.objects (bucket_id, name) select 'request-photos', 'branch/' || b207 || '/a.jpg' from ids;
 create temp table vars (k text primary key, v uuid);
 grant all on vars to authenticated;
@@ -104,7 +104,7 @@ select pg_temp.ok((select created_via from public.requests where id = (select v 
 select pg_temp.err(format('select public.staff_create_request(%L, %L, %L, 10, null)', (select b212 from ids), (select plas from ids), (select mix from ids)), 'DUPLICATE_OPEN_REQUEST', 'duplicate open request blocked');
 select pg_temp.ok((public.staff_create_request((select b212 from ids), (select plas from ids), (select stretch from ids), 12, null) ->> 'number') is not null, 'other subtype allowed');
 select pg_temp.err(format('select public.staff_create_request(%L, %L, null, 10, null)', (select b212 from ids), (select plas from ids)), 'SUBTYPE_REQUIRED', 'subtype required for plastic');
--- Migration 21
+-- Migration 24
 select pg_temp.err(format('select public.staff_create_request(%L, %L, null, 5001, null)', (select b207 from ids), (select id from public.materials where code = 'bread')), 'KG_TOO_LARGE', 'staff create refuses over 5,000 kg');
 reset role;
 update public.material_subtypes set active = false where code = 'stretch';
@@ -165,7 +165,7 @@ select pg_temp.err(format('select public.branch_create_request(%L, null, null, n
 -- Migration 18. The ceiling is checked before the duplicate test inside the function, so the
 -- material does not have to be a free one for this to reach the weight.
 select pg_temp.err(format('select public.branch_create_request(%L, null, 5001, null, ''سعد'', ''0512345678'')', (select id from public.materials where code = 'bread')), 'KG_TOO_LARGE', 'branch create refuses over 5,000 kg');
--- Migration 21: the photo must be in this branch's folder and exist.
+-- Migration 24: the photo must be in this branch's folder and exist.
 select pg_temp.err(format('select public.branch_create_request(%L, null, 18, null, ''سعد'', ''0512345678'', %L)', (select id from public.materials where code = 'bread'), 'branch/' || (select b212 from ids) || '/a.jpg'), 'INVALID_PHOTO', 'photo from another branch folder refused');
 select pg_temp.err(format('select public.branch_create_request(%L, null, 18, null, ''سعد'', ''0512345678'', %L)', (select id from public.materials where code = 'bread'), 'branch/' || (select b207 from ids) || '/missing.jpg'), 'INVALID_PHOTO', 'photo that was never uploaded refused');
 insert into vars select 'br1', (public.branch_create_request((select id from public.materials where code = 'bread'), null, 18, 'خلف المستودع', 'سعد', '0512345678', 'branch/' || (select b207 from ids) || '/a.jpg') ->> 'id')::uuid;
@@ -221,7 +221,27 @@ select private.notify_stale_decisions();
 select pg_temp.ok(exists (select 1 from public.notifications where kind = 'stale_decisions' and user_id = '00000000-0000-0000-0000-0000000000a1'), 'GM got stale digest');
 select pg_temp.ok((select count(*) from public.request_events where request_id = (select v from vars where k='w1')) >= 4, 'history kept for the request');
 
+\echo '--- migrations 21, 23 and 24: what a driver keeps, and who created a request'
+-- Ops takes w1 off Khaled after his partial visit (staff_decide's reschedule clears driver_id the same way).
+update public.requests set driver_id = null where id = (select v from vars where k='w1');
+-- A request the sweep closed in a driver's name, then taken off them.
+insert into vars select 'swept', (select v.request_id from public.visit_attempts v join public.drivers d on d.id = v.driver_id
+  where v.outcome = 'no_result' and d.user_id is not null order by v.recorded_at limit 1);
+insert into vars select 'swept_user', (select d.user_id from public.requests r join public.drivers d on d.id = r.driver_id
+  where r.id = (select v from vars where k='swept'));
+update public.requests set driver_id = null where id = (select v from vars where k='swept');
 set local role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000d2', true);
+select pg_temp.ok(exists (select 1 from public.request_list where id = (select v from vars where k='w1')), 'driver still reads a request he visited after it is taken off him (21)');
+select pg_temp.ok(private.photo_access('request/' || (select v from vars where k='w1') || '/p.jpg', false)
+  and not private.photo_access('request/' || (select v from vars where k='w1') || '/p.jpg', true), 'his own photo stays readable, no longer writable (21)');
+select pg_temp.ok(exists (select 1 from private.request_creator('00000000-0000-0000-0000-0000000000a1')), 'a driver sees the staff creator (23)');
+select set_config('request.jwt.claim.sub', (select v from vars where k='swept_user')::text, true);
+select pg_temp.ok((select v from vars where k='swept') is not null
+  and not exists (select 1 from public.request_list where id = (select v from vars where k='swept')), 'a swept no_result gives no lasting read (24)');
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000b2', true);
+select pg_temp.ok(not exists (select 1 from private.request_creator('00000000-0000-0000-0000-0000000000a1')), 'a branch gets no creator (23)');
+
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000a2', true);
 select pg_temp.ok((select count(*) from public.notifications where kind <> 'stale_decisions') > 0
   and not exists (select 1 from public.notifications where material_id <> (select plas from ids)), 'supervisor notifications only for plastic');
@@ -236,7 +256,7 @@ select pg_temp.ok((select count(*) from public.request_list) = 0, 'deactivated b
 select pg_temp.ok((select count(*) from public.branches) = 0 and (select count(*) from public.notifications) = 0, 'deactivated branch reads no branch row or notifications');
 reset role;
 
-\echo '--- migration 21: temporary password, private functions'
+\echo '--- migration 24: temporary password, private functions'
 update public.profiles set must_change_password = true where id = '00000000-0000-0000-0000-0000000000b2';
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000b2', true);
@@ -250,6 +270,10 @@ select pg_temp.ok(not has_function_privilege('authenticated', 'private.sweep_unr
   and not has_function_privilege('authenticated', 'private.notify_stale_decisions()', 'EXECUTE')
   and not has_function_privilege('anon', 'private.photo_access(text, boolean)', 'EXECUTE')
   and has_function_privilege('authenticated', 'private.photo_access(text, boolean)', 'EXECUTE'), 'private jobs closed; photo_access kept');
+select pg_temp.ok(not has_function_privilege('anon', 'private.my_attempted_request_ids()', 'EXECUTE')
+  and not has_function_privilege('anon', 'private.request_creator(uuid)', 'EXECUTE')
+  and has_function_privilege('authenticated', 'private.my_attempted_request_ids()', 'EXECUTE')
+  and has_function_privilege('authenticated', 'private.request_creator(uuid)', 'EXECUTE'), 'the two driver helpers closed to anon, kept for authenticated (24)');
 
 \echo 'ALL CHECKS PASSED'
 rollback;

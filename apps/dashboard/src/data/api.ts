@@ -343,7 +343,6 @@ async function uuidOf(reference: string): Promise<string> {
   return row.id;
 }
 
-/** Status history of one request (shown in the drawer). */
 /**
  * A signed URL for a stored photo, or null when it cannot be made.
  *
@@ -359,6 +358,7 @@ export async function signedPhotoUrl(path: string): Promise<string | null> {
   return error ? null : data.signedUrl;
 }
 
+/** Status history of one request (shown in the drawer). */
 export async function fetchHistory(reference: string, branchLabelText: string): Promise<StatusChange[]> {
   const id = await uuidOf(reference);
   const events = await run(

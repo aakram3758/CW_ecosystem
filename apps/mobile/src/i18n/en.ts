@@ -159,7 +159,8 @@ export const en = {
     sFullTitle: 'Collected – request closed', sPartialTitle: 'Pickup recorded', sPartialSub: 'Quantity differs – request now “Needs decision”', sFailedTitle: 'Failed pickup recorded', sFailedSub: 'Request now “Needs decision” for the supervisor',
     todayProgress: 'Today’s progress', next: 'Next visit', toPlan: 'Back to plan', backHome: 'Home', lastDone: 'That was today’s last visit',
     upTitle: 'Next plan', viewOnly: 'View only', approved: 'Approved', upEmpty: 'Your next plan isn’t approved yet', upEmptySub: 'You’ll be notified as soon as Operations approves it.',
-    approvedAt: 'Next working day · approved {when}',
+    approvedAt: 'Approved {when}',
+    movedTitle: 'This stop is no longer on your plan', movedBody: 'Operations moved or rescheduled it.',
     contactLabel: 'Requested by', adminLabel: 'Requested by Operations', adminNote: 'Operations note', noAdminPhoto: 'No scale photo — requested by Operations', callContact: 'Call requester', noBranchPhoto: 'The branch didn’t attach a scale photo', noBranchPhotoSub: 'Go by the stated weight and photograph the scale at pickup.',
     lockedTitle: 'Sign-in paused', lockedBody: '5 wrong attempts. Try again in 15 minutes, or contact Operations to unlock.',
     // [changed] twice: PIN -> password, then the redrawn sign-in screen's own wording, which

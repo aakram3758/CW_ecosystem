@@ -1,4 +1,5 @@
--- 21 — audit fixes (docs/audit-report.md, kept local): B1, B3, B4, B16, B17, B18, B20, B32, B36, S2, S3.
+-- 24 — audit fixes (docs/audit-report.md and audit-report-v2.md, kept local): B1, B3, B4, B16, B17, B18, B20, B32,
+-- B36, S2, S3, and from v2 N3 and N4 (the two helpers migrations 21 and 23 added also kept PUBLIC EXECUTE).
 --
 -- B1  An account still on its temporary password can do nothing but change it: the role helpers return null while
 --     `must_change_password` is true. Its own profile stays readable (`profiles_read` checks `auth.uid()`, not a
@@ -80,10 +81,22 @@ alter policy drivers_read on public.drivers
 -- ---------------------------------------------------------------- B20: private functions are not public
 
 revoke execute on function
-  private.sweep_unrecorded_visits(), private.notify_stale_decisions(), private.photo_access(text, boolean)
+  private.sweep_unrecorded_visits(), private.notify_stale_decisions(), private.photo_access(text, boolean),
+  private.my_attempted_request_ids(), private.request_creator(uuid)
 from public, anon;
 alter default privileges revoke execute on functions from public;
--- photo_access keeps its explicit grant to authenticated (migration 06); the storage policies need it.
+-- photo_access, my_attempted_request_ids and request_creator keep their explicit grant to authenticated
+-- (migrations 06, 21, 23); the storage policies, `requests_read` and `request_list` need them.
+
+-- ---------------------------------------------------------------- audit v2 N3: a swept visit is not the driver's
+
+-- The 20:00 sweep records a `no_result` attempt in the assigned driver's name. That is not a visit, so it must not
+-- give the driver the lasting read migration 21 grants for "what they visited". `create or replace` keeps the grant.
+create or replace function private.my_attempted_request_ids() returns setof uuid
+language sql stable security definer set search_path = '' as $$
+  select distinct v.request_id from public.visit_attempts v
+  where v.driver_id = private.my_driver_id() and v.outcome <> 'no_result'
+$$;
 
 -- ---------------------------------------------------------------- S3
 

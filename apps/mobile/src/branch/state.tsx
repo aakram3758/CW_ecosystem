@@ -222,7 +222,7 @@ function useBranchState() {
     timelineError: timeline.isError,
     cancelling: cancel.isPending,
     /** Refetch everything the home screen needs. The retry button and the offline bar share it. */
-    retry: () => Promise.all(Object.values(KEYS).map(queryKey => client.invalidateQueries({ queryKey }))),
+    retry: () => Promise.all([...Object.values(KEYS), ['photo']].map(queryKey => client.invalidateQueries({ queryKey }))),
     refreshing: context.isFetching || reference.isFetching || requests.isFetching || timeline.isFetching || notifications.isFetching,
 
     page: context.data!.branch.location_confirmed_at === null ? 'loc' as const : page, tab, selected, editId, initialMaterial, initialSubtype,

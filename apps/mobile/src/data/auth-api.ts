@@ -5,7 +5,7 @@ export type Role = 'branch' | 'driver';
 
 const chainsResponse = z.object({
   chains: z.array(z.object({ code: z.string(), name_ar: z.string(), name_en: z.string() })),
-  // `app_settings.ops_phone`, for «نسيت كلمة المرور؟» before there is a session (migration 21's
+  // `app_settings.ops_phone`, for «نسيت كلمة المرور؟» before there is a session (migration 24's
   // companion change to the function). Optional, so a `chains` deployed before it still parses.
   ops_phone: z.string().nullable().optional(),
 });

@@ -6,6 +6,9 @@
     "orientation": "portrait",
     "scheme": "cloudswater",
     "userInterfaceStyle": "automatic",
+    "locales": {
+      "en": "./locales/en.json"
+    },
     "newArchEnabled": true,
     "android": {
       "package": "co.cloudswater.app",
@@ -37,7 +40,7 @@
       [
         "expo-image-picker",
         {
-          "cameraPermission": "يستخدم التطبيق الكاميرا لتصوير المادة على الميزان مع طلب الاستلام.",
+          "cameraPermission": "يستخدم التطبيق الكاميرا لتصوير الميزان: مع طلب الاستلام من الفرع، ولتوثيق الزيارة من السائق.",
           "photosPermission": "يحتاج التطبيق للوصول إلى صورك لإرفاق صورة الميزان بطلب الاستلام.",
           "microphonePermission": false
         }

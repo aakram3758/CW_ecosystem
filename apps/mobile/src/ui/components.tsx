@@ -478,7 +478,8 @@ export function PreferencesIcons({ onDark = false }: { onDark?: boolean } = {}) 
   </View>;
 }
 
-export function PreferencesControls({ variant }: { variant?: 'branch' } = {}) {
+/** Account's language and theme rows (the branch's; the driver draws its own in driver/screens.tsx). */
+export function PreferencesControls() {
   const { copy, side, language, themeChoice, setLanguage, setTheme } = usePreferences();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
@@ -486,7 +487,7 @@ export function PreferencesControls({ variant }: { variant?: 'branch' } = {}) {
     setBusy(true); setError(null);
     try { await action(); } catch (error) { setError(error); } finally { setBusy(false); }
   }
-  if (variant === 'branch') return <View style={{ gap: 16 }}>
+  return <View style={{ gap: 16 }}>
     {[
       { label: copy.branch.language, icon: 'globe', options: [
         { value: 'ar', label: copy.shared.arabic, selected: language === 'ar', action: () => setLanguage('ar') },
@@ -503,22 +504,6 @@ export function PreferencesControls({ variant }: { variant?: 'branch' } = {}) {
         onChange={value => { const option = group.options.find(option => option.value === value);
           if (option) void update(option.action); }} />
     </View>)}
-    {error ? <Message>{errorMessage(error, copy, side)}</Message> : null}
-  </View>;
-  return <View style={{ gap: 8 }}>
-    <Label>{copy.branch.language}</Label>
-    <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-      <Button label={copy.shared.arabic} secondary selected={language === 'ar'} disabled={busy}
-        onPress={() => void update(() => setLanguage('ar'))} />
-      <Button label={copy.shared.english} secondary selected={language === 'en'} disabled={busy}
-        onPress={() => void update(() => setLanguage('en'))} />
-    </View>
-    <Label>{copy.branch.theme}</Label>
-    <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-      {(['light', 'dark', 'system'] as const).map(choice => <Button key={choice}
-        label={copy.branch[choice]} selected={choice === themeChoice} secondary disabled={busy}
-        onPress={() => void update(() => setTheme(choice))} />)}
-    </View>
     {error ? <Message>{errorMessage(error, copy, side)}</Message> : null}
   </View>;
 }
