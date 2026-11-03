@@ -9,7 +9,6 @@
     "locales": {
       "en": "./locales/en.json"
     },
-    "newArchEnabled": true,
     "android": {
       "package": "co.cloudswater.app",
       "predictiveBackGestureEnabled": false
