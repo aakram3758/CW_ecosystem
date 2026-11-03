@@ -42,6 +42,7 @@ const ar = {
     once: 'يظهر مرة واحدة فقط. انسخه أو أرسله الآن.',
     copy: 'نسخ البيانات',
     copied: 'تم النسخ ✓',
+    copyFailed: 'تعذّر النسخ. انسخ البيانات يدويًا.',
     whatsapp: 'إرسال عبر واتساب',
     noPhone: 'لا يوجد جوال مسجّل، لذلك زر واتساب غير متاح. انسخ البيانات وأرسلها.',
     message: (name: string, app: string, login: string, pass: string) =>
@@ -94,6 +95,7 @@ const en: Dict = {
     once: 'Shown once only. Copy or send it now.',
     copy: 'Copy details',
     copied: 'Copied ✓',
+    copyFailed: "Couldn't copy. Copy the details by hand.",
     whatsapp: 'Send on WhatsApp',
     noPhone: 'No mobile on file, so WhatsApp is unavailable. Copy the details and send them.',
     message: (name, app, login, pass) => `Hello ${name}, your ${app} login — Clouds Water: login "${login}" — temporary password: ${pass} (you will change it at first sign-in)`,
@@ -286,12 +288,10 @@ export function PasswordDialog({ target, onClose }: { target: PasswordTarget | n
               size="lg"
               className="min-w-[140px] flex-1"
               onClick={() => {
-                try {
-                  void navigator.clipboard.writeText(a.copyText(target.login, shown.pass));
-                } catch {
-                  /* clipboard blocked */
-                }
-                setCopied(true);
+                // Only claim "Copied" once the browser confirms it (S20b); writeText rejects when blocked.
+                Promise.resolve()
+                  .then(() => navigator.clipboard.writeText(a.copyText(target.login, shown.pass)))
+                  .then(() => setCopied(true), () => toast.error(a.copyFailed));
               }}
             >
               <Icon name="copy" size={18} />

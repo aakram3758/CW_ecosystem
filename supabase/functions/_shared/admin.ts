@@ -15,14 +15,14 @@ export const admin = (): SupabaseClient =>
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-/** The caller must be an active dashboard user. Returns their id or a ready error response. */
+/** The caller must be an active dashboard user who has replaced their temporary password (as in the DB helpers). Returns their id or a ready error response. */
 export async function requireStaff(req: Request, db: SupabaseClient): Promise<{ userId: string } | { error: Response }> {
   const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
   if (!token) return { error: json({ error: 'NOT_SIGNED_IN' }, 401) };
   const { data, error } = await db.auth.getUser(token);
   if (error || !data.user) return { error: json({ error: 'NOT_SIGNED_IN' }, 401) };
-  const { data: profile } = await db.from('profiles').select('role, active').eq('id', data.user.id).maybeSingle();
-  if (!profile || profile.role !== 'staff' || !profile.active) return { error: json({ error: 'NOT_ALLOWED' }, 403) };
+  const { data: profile } = await db.from('profiles').select('role, active, must_change_password').eq('id', data.user.id).maybeSingle();
+  if (!profile || profile.role !== 'staff' || !profile.active || profile.must_change_password) return { error: json({ error: 'NOT_ALLOWED' }, 403) };
   return { userId: data.user.id };
 }
 

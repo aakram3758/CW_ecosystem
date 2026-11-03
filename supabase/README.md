@@ -27,7 +27,8 @@ so the two apps can never disagree.
 - 20:00 Riyadh (cron): visits with no outcome → needs decision. 09:00 Riyadh: digest for decisions older than 24 h.
 - Decisions: reschedule (undo within 15 min by the same user) or close with a reason.
 - An account still on its temporary password has no role: it can read only its own profile and finish the password
-  change (`complete_password_change`). A password reset deletes every session of the account.
+  change (`complete_password_change`). The staff Edge Functions (`create-account`, `reset-password`) refuse it too
+  (`NOT_ALLOWED`). A password reset deletes every session of the account.
 - Photo paths: a branch's must be an uploaded object in `branch/<its own id>/`, a driver's must be in
   `request/<request id>/` (`INVALID_PHOTO`). A request can't be created on an inactive material or subtype (`MATERIAL_INACTIVE`).
 - 5,000 kg is the ceiling for staff-created requests too.
