@@ -227,7 +227,7 @@ const toAttempt = (a: AttemptRow): Attempt => ({
   outcome: a.outcome,
   reason: a.reason_id ? REASONS[a.reason_id] : a.reason_text ? { ar: a.reason_text, en: a.reason_text } : undefined,
   note: a.note ?? undefined,
-  hasPhoto: !!a.photo_path,
+  photoPath: a.photo_path ?? undefined,
 });
 
 function toRow(r: ListRow, attempts: Attempt[]): RequestRow {
@@ -241,7 +241,7 @@ function toRow(r: ListRow, attempts: Attempt[]): RequestRow {
         outcome: r.last_outcome,
         reason: r.last_reason_ar ? { ar: r.last_reason_ar, en: r.last_reason_en ?? r.last_reason_ar } : undefined,
         note: r.last_attempt_note ?? undefined,
-        hasPhoto: !!r.last_attempt_photo,
+        photoPath: r.last_attempt_photo ?? undefined,
       },
     ];
   }

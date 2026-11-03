@@ -65,7 +65,7 @@ export interface Attempt {
   outcome: VisitOutcome;
   reason?: LocalizedText;
   note?: string; // free text typed by the driver
-  hasPhoto: boolean;
+  photoPath?: string; // the driver's photo in request-photos
 }
 
 export type Actor =
