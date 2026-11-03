@@ -4,7 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { PreferencesProvider, usePreferences } from '@/providers/preferences';
 import { QueryProvider } from '@/providers/query';
 import { AuthProvider } from '@/providers/auth';
-import { AppSplash, ErrorState, Screen } from '@/ui/components';
+import { BlankScreen, ErrorState, Screen } from '@/ui/components';
 import { BootGate } from '@/ui/boot-gate';
 
 function ReadyProviders({ children }: PropsWithChildren) {
@@ -18,7 +18,7 @@ function ReadyProviders({ children }: PropsWithChildren) {
   // whatever the language — a phone number, a weight, the map.
   return <View style={{ flex: 1, direction: preferences.language === 'ar' ? 'rtl' : 'ltr' }}>
     {preferences.error ? <Screen><ErrorState onRetry={preferences.retry} /></Screen>
-      : !preferences.ready ? <AppSplash />
+      : !preferences.ready ? <BlankScreen />
       : <QueryProvider><AuthProvider>
         <StatusBar style={preferences.theme === 'dark' ? 'light' : 'dark'} />
         <BootGate>{children}</BootGate>

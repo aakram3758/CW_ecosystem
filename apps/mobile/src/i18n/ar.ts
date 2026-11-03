@@ -159,6 +159,8 @@ export const ar = {
     declared: 'الوزن المعلن من الفرع', branchPhoto: 'صورة الميزان من الفرع', tapEnlarge: 'اضغط للتكبير', branchNote: 'ملاحظة الفرع',
     requestedOn: 'طُلب في', record: 'تسجيل نتيجة الزيارة', continueDraft: 'متابعة التسجيل', recordedAs: 'تم التسجيل',
     wrongEntry: 'سجّلت نتيجة خاطئة؟ تواصل مع العمليات',
+    // [added] The decision on a recorded stop; the canvas never draws one. Wording approved in chat, 3 November 2026.
+    decisionPending: 'بانتظار قرار العمليات', decisionRescheduled: 'أُعيدت جدولتها ليوم {date}', decisionClosed: 'مغلقة', decisionCancelled: 'ملغاة',
     outcomeTitle: 'نتيجة الزيارة', step1: '1 · النتيجة', step2: '2 · التوثيق', step3: '3 · الإرسال', question: 'هل استلمت الكمية المكتوبة؟',
     oFull: 'نعم، استلمتها كاملة', oFullSub: 'صوّر الميزان وأرسل – يُغلق الطلب', oPartial: 'لا، الكمية مختلفة', oPartialSub: 'صورة الميزان + ملاحظة – يحتاج قرار',
     oFailed: 'تعذّر الاستلام', oFailedSub: 'اختر السبب – بدون صورة',
@@ -176,7 +178,8 @@ export const ar = {
     todayProgress: 'تقدّم اليوم', next: 'الزيارة التالية', toPlan: 'العودة للخطة', backHome: 'الرئيسية', lastDone: 'كانت هذه آخر زيارة اليوم',
     upTitle: 'الخطة القادمة', viewOnly: 'للعرض فقط', approved: 'معتمدة', upEmpty: 'لم تُعتمد الخطة القادمة بعد', upEmptySub: 'سيصلك إشعار فور اعتمادها من العمليات.',
     approvedAt: 'يوم العمل التالي · اعتُمدت {when}',
-    contactLabel: 'صاحب الطلب', callContact: 'اتصال بصاحب الطلب', noBranchPhoto: 'لم يرفق الفرع صورة للميزان', noBranchPhotoSub: 'اعتمد على الوزن المكتوب، وصوّر الميزان عند الاستلام.',
+    // [added] adminLabel, adminNote, noAdminPhoto: a dashboard request's creator card and note label. Approved in chat, 3 November 2026.
+    contactLabel: 'صاحب الطلب', adminLabel: 'طلب من الإدارة', adminNote: 'ملاحظة الإدارة', noAdminPhoto: 'لا توجد صورة للميزان — الطلب من الإدارة', callContact: 'اتصال بصاحب الطلب', noBranchPhoto: 'لم يرفق الفرع صورة للميزان', noBranchPhotoSub: 'اعتمد على الوزن المكتوب، وصوّر الميزان عند الاستلام.',
     lockedTitle: 'تم إيقاف الدخول مؤقتًا', lockedBody: '5 محاولات خاطئة. حاول بعد 15 دقيقة، أو تواصل مع العمليات لفتح الحساب.',
     // [changed] twice: PIN -> password, then the redrawn sign-in screen's own wording, which
     // names the field that was wrong and counts out of five. Was: 'الرقم السري غير صحيح – تبقّى {n}'

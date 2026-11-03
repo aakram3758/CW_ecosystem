@@ -40,6 +40,21 @@ function BranchPhoto({ path, label }: { path: string | undefined; label: string 
   </a>;
 }
 
+/** The driver's photo for one attempt, as an 84px thumbnail that opens full size, like the branch photo. */
+function DriverPhoto({ path, label, empty }: { path: string | undefined; label: string; empty: string }) {
+  const url = usePhotoUrl(path).data;
+  const [failed, setFailed] = useState<string | null>(null);
+  const box = 'flex size-[84px] flex-none items-center justify-center rounded-xl border border-line';
+  if (!url || failed === url) {
+    return <div role="img" aria-label={label} className={clsx(box, 'photo-placeholder text-center text-[11px] text-muted')}>
+      {path ? <Icon name="camera" size={22} /> : empty}
+    </div>;
+  }
+  return <a href={url} target="_blank" rel="noopener noreferrer" className="flex-none cursor-zoom-in">
+    <img src={url} alt={label} onError={() => setFailed(url)} className={clsx(box, 'bg-surface-2 object-cover')} />
+  </a>;
+}
+
 /** Side drawer with the full story of one request. Opened via `?open=REQ-…` so any screen can link to it. */
 export function RequestDrawer({ requestId, onClose }: { requestId: string | null; onClose: () => void }) {
   const { t, lang } = useApp();
@@ -193,9 +208,7 @@ function DrawerBody({ r }: { r: RequestRow }) {
                 : `${s.reasonLabel}${textOf(a.reason, lang)}${a.note ? s.driverNote + a.note : ''}`;
           return (
             <div key={i} className="flex gap-3.5 rounded-2xl border border-line bg-surface p-3.5">
-              <div role="img" aria-label={s.driverPhoto} className="photo-placeholder flex size-[84px] flex-none items-center justify-center rounded-xl border border-line text-center text-[11px] text-muted">
-                {a.hasPhoto ? <Icon name="camera" size={22} /> : s.noDriverPhoto}
-              </div>
+              <DriverPhoto path={a.photoPath} label={s.driverPhoto} empty={s.noDriverPhoto} />
               <div className="flex min-w-0 flex-1 flex-col gap-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-sm font-extrabold">{s.attemptN(i + 1)}</span>

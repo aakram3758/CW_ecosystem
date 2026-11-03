@@ -1,3 +1,5 @@
+import { opsToday } from '@/ui/date';
+import { fetchNotifications, markNotificationsRead } from '@/data/shared-api';
 import { createContext, useContext, useEffect, useState, type PropsWithChildren } from 'react';
 import { supabase } from '@/data/supabase';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -29,13 +31,6 @@ export const isOpen = (row: RequestListRow) =>
 export const isRescheduled = (row: RequestListRow) =>
   row.status === 'waiting' && row.last_outcome !== null;
 
-/** Today in Riyadh, as `YYYY-MM-DD`, which is what `visit_day` is compared against. */
-function opsToday() {
-  // `en-CA` formats as YYYY-MM-DD, and the time zone is fixed because the business day is Riyadh's
-  // wherever the phone happens to think it is.
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Riyadh' }).format(new Date());
-}
-
 const KEYS = {
   context: ['branch', 'context'] as const,
   reference: ['branch', 'reference'] as const,
@@ -64,7 +59,7 @@ function useBranchState() {
   const reference = useQuery({ queryKey: KEYS.reference, queryFn: api.fetchReference, staleTime: 5 * 60_000 });
   const requests = useQuery({ queryKey: KEYS.requests, queryFn: api.fetchRequests });
   const timeline = useQuery({ queryKey: KEYS.timeline, queryFn: api.fetchTimeline });
-  const notifications = useQuery({ queryKey: KEYS.notifications, queryFn: api.fetchNotifications });
+  const notifications = useQuery({ queryKey: KEYS.notifications, queryFn: fetchNotifications });
 
   // ---------------------------------------------------------------- live
   //
@@ -174,7 +169,7 @@ function useBranchState() {
       }
     },
   });
-  const readAll = useMutation({ mutationFn: api.markNotificationsRead,
+  const readAll = useMutation({ mutationFn: markNotificationsRead,
     onSuccess: () => client.invalidateQueries({ queryKey: KEYS.notifications }),
   });
 
