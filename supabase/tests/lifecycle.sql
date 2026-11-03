@@ -149,9 +149,16 @@ select pg_temp.err('select public.staff_set_account_active(''00000000-0000-0000-
 select pg_temp.err(format('select public.branch_create_request(%L, null, 50, null, ''سعد'', ''0512345678'')', (select card from ids)), 'DUPLICATE_OPEN_REQUEST', 'branch duplicate blocked (card scheduled)');
 select pg_temp.err(format('select public.branch_create_request(%L, null, 50, null, ''سعد'', ''12345'')', (select id from public.materials where code = 'bread')), 'INVALID_PHONE', 'phone format checked');
 select pg_temp.err(format('select public.branch_create_request(%L, null, null, null, ''سعد'', ''0512345678'')', (select id from public.materials where code = 'bread')), 'KG_REQUIRED', 'kg required from branch');
+-- Migration 18. The ceiling is checked before the duplicate test inside the function, so the
+-- material does not have to be a free one for this to reach the weight.
+select pg_temp.err(format('select public.branch_create_request(%L, null, 5001, null, ''سعد'', ''0512345678'')', (select id from public.materials where code = 'bread')), 'KG_TOO_LARGE', 'branch create refuses over 5,000 kg');
 insert into vars select 'br1', (public.branch_create_request((select id from public.materials where code = 'bread'), null, 18, 'خلف المستودع', 'سعد', '0512345678', 'branch/' || (select b207 from ids) || '/a.jpg') ->> 'id')::uuid;
 select public.branch_update_request((select v from vars where k='br1'), 22, null, 'سعد', '0512345678');
 select pg_temp.ok((select kg from public.requests where id = (select v from vars where k='br1')) = 22, 'branch edited waiting request');
+-- Migration 18, the other half: while br1 is still waiting, so this reaches the weight check rather
+-- than INVALID_STATUS. Both functions needed the cap — an uncapped update could turn 50 kg into
+-- 50,000 after the fact.
+select pg_temp.err(format('select public.branch_update_request(%L, 5001, null, ''سعد'', ''0512345678'')', (select v from vars where k='br1')), 'KG_TOO_LARGE', 'branch update refuses over 5,000 kg');
 select public.branch_cancel_request((select v from vars where k='br1'));
 select pg_temp.ok((select draft_cancelled from public.requests where id = (select v from vars where k='br1')), 'branch cancel → struck-through in scheduling');
 select pg_temp.err(format('select public.branch_cancel_request(%L)', (select v from vars where k='w1')), 'INVALID_STATUS', 'branch cannot cancel once scheduled');
@@ -162,6 +169,9 @@ select pg_temp.ok((select count(*) from public.notifications) > 0, 'branch got n
 select public.mark_notifications_read();
 select pg_temp.ok(not exists (select 1 from public.notifications where read_at is null), 'mark all read');
 select pg_temp.err(format('select public.branch_set_location(%s, %s)', 100, 39), 'INVALID_LOCATION', 'location bounds checked');
+-- Migration 17. Every seeded branch is confirmed, so even a valid pair is refused now. This has to
+-- sit after the bounds check above, which is why the guard is the later of the two in the function.
+select pg_temp.err(format('select public.branch_set_location(%s, %s)', 21.6, 39.2), 'LOCATION_ALREADY_SET', 'a confirmed branch cannot move its pin');
 
 \echo '--- driver (Khaled, jed cardboard) — move the plan to today to simulate the visit day'
 reset role;

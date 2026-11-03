@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { I18nManager } from 'react-native';
 import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
+import { AppProviders } from '@/providers/app';
 import * as SplashScreen from 'expo-splash-screen';
 import {
   useFonts,
@@ -35,9 +35,8 @@ export default function RootLayout() {
   if (!fontsLoaded && !fontError) return null;
 
   return (
-    <>
-      <StatusBar style="auto" />
+    <AppProviders>
       <Stack screenOptions={{ headerShown: false }} />
-    </>
+    </AppProviders>
   );
 }

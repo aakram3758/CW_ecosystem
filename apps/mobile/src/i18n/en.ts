@@ -14,6 +14,53 @@
  */
 
 export const en = {
+  shared: {
+    // Main's material/subtype hints and map label live outside its T dictionary; the screens still need them.
+    materialHintCard: 'Flattened boxes and cartons',
+    materialHintPlas: 'Mixed or stretch film',
+    materialHintPaper: 'Office and printed paper',
+    materialHintMetal: 'Iron, copper or aluminium',
+    materialHintBread: 'Dry and surplus bread',
+    subtypeHintMix: 'Mixed bottles and plastic items',
+    subtypeHintStretch: 'Pallet and shipment wrap film',
+    subtypeHintIron: 'Shelves, iron parts and scrap',
+    subtypeHintCopper: 'Copper wires and pipes',
+    subtypeHintAluminium: 'Drink cans and aluminium trays',
+    mapStreet: 'Prince Majed St',
+    roleBranch: 'Branch',
+    roleDriver: 'Driver',
+    wrongSideBranch: 'This is a driver account. Switch to "Driver" and sign in there.',
+    wrongSideDriver: 'This is a branch account. Switch to "Branch" and sign in there.',
+    accountInactive: 'This account is disabled. Contact the Operations team.',
+    samePassword: 'Choose a password different from the temporary one.',
+    wrongPassword: 'The current password isn’t correct.',
+    samePasswordNow: 'Choose a password different from your current one.',
+    loading: 'Loading…',
+    arabic: 'Arabic',
+    english: 'English',
+    phonePrefix: '+966',
+    phonePlaceholder: '5X XXX XXXX',
+    noChains: 'No chains are available. Contact the Operations team.',
+    unsupportedRole: 'This account cannot use the branch or driver app.',
+    forgotNoPhone: 'Contact the Operations team to reset your password.',
+    // Neither design drew a "hide" label for a single password field: the branch pairs the singular
+    // `showPass` with the plural `hidePw` from its two-field screen. This is that pair's missing
+    // singular half, worded off `showPass` — confirm it at the design review.
+    hidePassword: 'Hide password',
+    modeLabel: 'Account type',
+    // The three onboarding slides. Their text is written into the canvas's markup rather than its
+    // `T` dictionary, which is why the phase 0 extraction missed them — lifted verbatim here.
+    onbNext: 'Next', startNow: 'Get started', skip: 'Skip', onbStep: '{n} of 3',
+    onb1T: 'Request a pickup in a minute', onb1B: 'Choose the material and enter the weight. Operations sets the visit day.',
+    onb2T: 'We tell you the visit day', onb2B: 'You get a notification with the visit day, and a reminder that morning.',
+    onb3T: 'All your requests in one place', onb3B: 'Follow each request’s status and every visit outcome.',
+    // Neither canvas drew a refused permission — it had no real camera or GPS to refuse. These are
+    // written to match the voice around them and are flagged for design review.
+    camDenied: 'Camera permission was not granted. Turn it on in your phone settings, or pick a photo from the gallery.',
+    galDenied: 'Photo permission was not granted. Turn it on in your phone settings.',
+    locDenied: 'Location permission was not granted. Turn it on in your phone settings, or drag the pin on the map yourself.',
+    locFailed: 'Couldn’t find your location. Drag the pin on the map yourself.',
+  },
   branch: {
     next: 'Continue', splashA: 'Easier pickups for your branch', splashB: 'Clouds Water for Branches',
     loginTitle: 'Welcome, branch team', loginSub: 'Log in with the branch account the Operations team sent you.',
@@ -69,7 +116,10 @@ export const en = {
 
   driver: {
     appName: 'Driver app', tagline: 'Your day’s plan in one place', 'continue': 'Continue', back: 'Back', close: 'Close',
-    loginHello: 'Welcome', loginSub: 'Sign in to see your day’s plan', mobile: 'Mobile number',
+    // [changed] sign-in is one screen for both roles now, redrawn in the branch canvas
+    // (Main.dc.html 171–247), and its driver wording replaces what the driver canvas's own
+    // sign-in screen said. Was: 'Welcome' / 'Sign in to see your day’s plan'
+    loginHello: 'Welcome, driver', loginSub: 'Log in with your mobile number and the password Operations sent you.', mobile: 'Mobile number',
     // [changed] PIN -> password, here and in every string below that mentioned it
     password: 'Password', showPw: 'Show password',
     login: 'Sign in', signingIn: 'Signing in…', forgot: 'Forgot password?', loginErr: 'Wrong mobile number or password', accountsNote: 'Accounts are created by the Operations team',
@@ -92,6 +142,7 @@ export const en = {
     declared: 'Weight declared by branch', branchPhoto: 'Branch’s scale photo', tapEnlarge: 'Tap to enlarge', branchNote: 'Branch note',
     requestedOn: 'Requested on', record: 'Record visit outcome', continueDraft: 'Continue recording', recordedAs: 'Recorded',
     wrongEntry: 'Recorded the wrong outcome? Contact Operations',
+    decisionPending: 'Waiting for Operations to decide', decisionRescheduled: 'Rescheduled to {date}', decisionClosed: 'Closed', decisionCancelled: 'Cancelled',
     outcomeTitle: 'Visit outcome', step1: '1 · Outcome', step2: '2 · Proof', step3: '3 · Send', question: 'Did you collect the stated quantity?',
     oFull: 'Yes, all of it', oFullSub: 'Photo of the scale, then send – closes the request', oPartial: 'No, the quantity differs', oPartialSub: 'Scale photo + a note – needs a decision',
     oFailed: 'Pickup failed', oFailedSub: 'Pick a reason – no photo',
@@ -109,10 +160,11 @@ export const en = {
     todayProgress: 'Today’s progress', next: 'Next visit', toPlan: 'Back to plan', backHome: 'Home', lastDone: 'That was today’s last visit',
     upTitle: 'Next plan', viewOnly: 'View only', approved: 'Approved', upEmpty: 'Your next plan isn’t approved yet', upEmptySub: 'You’ll be notified as soon as Operations approves it.',
     approvedAt: 'Next working day · approved {when}',
-    contactLabel: 'Requested by', callContact: 'Call requester', noBranchPhoto: 'The branch didn’t attach a scale photo', noBranchPhotoSub: 'Go by the stated weight and photograph the scale at pickup.',
+    contactLabel: 'Requested by', adminLabel: 'Requested by Operations', adminNote: 'Operations note', noAdminPhoto: 'No scale photo — requested by Operations', callContact: 'Call requester', noBranchPhoto: 'The branch didn’t attach a scale photo', noBranchPhotoSub: 'Go by the stated weight and photograph the scale at pickup.',
     lockedTitle: 'Sign-in paused', lockedBody: '5 wrong attempts. Try again in 15 minutes, or contact Operations to unlock.',
-    // [changed] was: 'Wrong PIN – {n} left'
-    loginErrN: 'Wrong password – {n} left',
+    // [changed] twice: PIN -> password, then the redrawn sign-in screen's own wording, which
+    // names the field that was wrong and counts out of five. Was: 'Wrong PIN – {n} left'
+    loginErrN: 'Mobile number or password is wrong. {n} of 5 attempts left.',
     left: 'visits left', left1: 'visit left', leftShort: 'left',
     period: 'Period', changePeriod: 'Change period', rangeTitle: 'Choose a period', from: 'From', to: 'To', qToday: 'Today', qYesterday: 'Yesterday', q7: 'Last 7 days', qMonth: 'This month',
     apply: 'Show results', f_all: 'All', rangeEmpty: 'No visits in this period', rangeEmptySub: 'Try another period or filter.',

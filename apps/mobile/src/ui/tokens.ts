@@ -19,6 +19,14 @@
 
 export type ThemeName = 'light' | 'dark';
 
+// Literal artwork colours from Main.dc.html, shared by its scale thumbnail and schematic map.
+export const branchArtwork = {
+  photoTop: '#3A4A5E', photoBottom: '#1E2A38', display: '#0E1A12', digits: '#7CF0A8',
+  locationDot: '#2E7BE0', locationRing: 'rgba(46,123,224,.18)',
+  heroTile: 'rgba(255,255,255,.1)', heroLine: 'rgba(255,255,255,.08)',
+  heroGoldLine: 'rgba(232,206,132,.22)', accountLine: 'rgba(255,255,255,.12)',
+} as const;
+
 export const palette = {
   light: {
     bg: '#F4F6FA',
@@ -56,6 +64,11 @@ export const palette = {
     skeleton: '#E3E9F1',
     skeletonHighlight: '#F1F4F9',
     toast: '#0B1B2E',
+    // The colours inside the canvas's two rgba() shadows: --ov-shadow under the sign-in card, and
+    // .mode-on's lift under the selected half of a segmented switch. The opacity stays with the
+    // shadow, since React Native keeps colour and opacity apart.
+    overlayShadow: '#0B1B2E',
+    modeShadow: '#1F4E8C',
     scrim: 'rgba(11,27,46,.48)',
 
     // The branch location map only
@@ -99,12 +112,36 @@ export const palette = {
     skeleton: '#17304A',
     skeletonHighlight: '#1F3B58',
     toast: '#EAF1F8',
+    overlayShadow: '#000000',
+    modeShadow: '#1F4E8C', // not themed: the canvas keeps the light blue here in dark mode too
     scrim: 'rgba(3,9,17,.72)', // [branch] driver had rgba(0,0,0,.62)
 
     mapBg: '#10253C',
     mapBlock: '#17304A',
     mapRoad: '#24496E',
   },
+} as const;
+
+/**
+ * The splash animation's five materials, in the order they fly in, with the offset each starts
+ * from. Hardcoded rather than read from `materials` for one reason: the splash plays before the
+ * app has signed in, so there is no row to read. The colours are the canvas's own and match the
+ * seeded `materials.color_dark` — dark values because the splash is navy in both themes.
+ */
+export const splashMaterials = [
+  { icon: 'box', color: '#D89A5B', x: -115, y: -250 },
+  { icon: 'bottle', color: '#5C9BE0', x: 125, y: -205 },
+  { icon: 'paper', color: '#4FBF86', x: 140, y: 175 },
+  { icon: 'can', color: '#9AA9BC', x: -135, y: 215 },
+  { icon: 'bread', color: '#3CC2C2', x: -150, y: -15 },
+] as const;
+
+/** The splash's own colours, which no palette holds because it is navy whatever the theme. */
+export const splash = {
+  gradient: ['#17426F', '#0B2340', '#06172B'],
+  tile: '#0E2C50',
+  burst: 'rgba(232,206,132,.7)',
+  tag: 'rgba(255,255,255,.8)',
 } as const;
 
 /**
@@ -149,5 +186,12 @@ export const type = {
  * honour it and it is easy to forget, not because an artboard states it.
  */
 export const minTouch = 44;
+
+/**
+ * A duotone icon's fill. The canvas draws it as `.ic .f { fill: currentColor; opacity: .2 }`,
+ * so the fill is always the icon's own colour at a fifth — which in hex is the suffix 33. Pass the
+ * result as an Icon's `tint`; without it the fill comes out solid and the icon reads as a block.
+ */
+export const softFill = (color: string) => color + '33';
 
 export type Palette = (typeof palette)['light'];

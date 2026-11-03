@@ -13,3 +13,4 @@ dist
 
 # Supabase CLI scratch (created by `supabase gen types`)
 supabase/.temp
+apps/mobile/design/

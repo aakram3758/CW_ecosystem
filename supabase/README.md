@@ -85,6 +85,11 @@ Driver app: `driver_record_outcome`. Everyone: `mark_notifications_read`, `compl
 
 Errors come back as UPPER_SNAKE codes in the message (e.g. `DUPLICATE_OPEN_REQUEST`, `REASON_REQUIRED`) for the apps to translate.
 
+The branch RPCs raise: `NOT_ALLOWED`, `LOCATION_REQUIRED`, `LOCATION_ALREADY_SET` (a branch confirms its pin once —
+after that only the dashboard moves it), `INVALID_LOCATION`, `KG_REQUIRED`, `KG_TOO_LARGE` (the ceiling is 5,000 kg,
+enforced in both create and update), `CONTACT_REQUIRED`, `INVALID_PHONE`, `SUBTYPE_REQUIRED`,
+`DUPLICATE_OPEN_REQUEST` (with the open request's number in `detail`) and `INVALID_STATUS`.
+
 ## Running the tests again
 
 Paste `tests/lifecycle.sql` into the SQL editor (or `psql -f`). It creates temporary accounts, runs every flow and rolls

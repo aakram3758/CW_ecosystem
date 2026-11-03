@@ -25,6 +25,59 @@
  */
 
 export const ar = {
+  shared: {
+    // Main's material/subtype hints and map label live outside its T dictionary; the screens still need them.
+    materialHintCard: 'صناديق وكراتين مفرودة',
+    materialHintPlas: 'مكس أو استرتش',
+    materialHintPaper: 'ورق مكتبي ومطبوعات',
+    materialHintMetal: 'حديد أو نحاس أو ألمنيوم',
+    materialHintBread: 'خبز يابس وفائض المخبز',
+    subtypeHintMix: 'عبوات وأغراض بلاستيك مختلطة',
+    subtypeHintStretch: 'نايلون تغليف الطبليات والشحنات',
+    subtypeHintIron: 'رفوف وقطع حديد وخردة',
+    subtypeHintCopper: 'أسلاك ومواسير نحاس',
+    subtypeHintAluminium: 'علب مشروبات وصواني ألمنيوم',
+    mapStreet: 'شارع الأمير ماجد',
+    roleBranch: 'فرع',
+    roleDriver: 'سائق',
+    wrongSideBranch: 'هذا الحساب حساب سائق. بدّل إلى «سائق» وسجّل الدخول من هناك.',
+    wrongSideDriver: 'هذا الحساب حساب فرع. بدّل إلى «فرع» وسجّل الدخول من هناك.',
+    accountInactive: 'هذا الحساب موقوف. تواصل مع فريق التشغيل.',
+    samePassword: 'اختر كلمة مرور مختلفة عن المؤقتة.',
+    // Two sentences the designs never drew, because neither drew the voluntary change — Main has
+    // the screen (`pwdChangeT` with its `curPass` field and the `r0` rule) but no state for either
+    // of the two ways it can be refused. Worded off the pair above them; confirm both at the
+    // design review.
+    wrongPassword: 'كلمة المرور الحالية غير صحيحة.',
+    // `samePassword` names the temporary password, which is right in the forced flow and wrong in
+    // the voluntary one — by then there is no temporary password to be different from.
+    samePasswordNow: 'اختر كلمة مرور مختلفة عن الحالية.',
+    loading: 'جارٍ التحميل…',
+    arabic: 'العربية',
+    english: 'الإنجليزية',
+    phonePrefix: '+966',
+    phonePlaceholder: '5X XXX XXXX',
+    noChains: 'لا توجد سلاسل متاحة. تواصل مع فريق التشغيل.',
+    unsupportedRole: 'هذا الحساب غير مخصّص لتطبيق الفرع أو السائق.',
+    forgotNoPhone: 'تواصل مع فريق التشغيل لإعادة تعيين كلمة المرور.',
+    // Neither design drew a "hide" label for a single password field: the branch pairs the singular
+    // `showPass` with the plural `hidePw` from its two-field screen. This is that pair's missing
+    // singular half, worded off `showPass` — confirm it at the design review.
+    hidePassword: 'إخفاء كلمة المرور',
+    modeLabel: 'نوع الحساب',
+    // The three onboarding slides. Their text is written into the canvas's markup rather than its
+    // `T` dictionary, which is why the phase 0 extraction missed them — lifted verbatim here.
+    onbNext: 'التالي', startNow: 'ابدأ الآن', skip: 'تخطي', onbStep: '{n} من 3',
+    onb1T: 'اطلب الاستلام في دقيقة', onb1B: 'اختر المادة واكتب الوزن، والتشغيل يحدد يوم الزيارة.',
+    onb2T: 'نبلغك بيوم الزيارة', onb2B: 'يوصلك إشعار بيوم الزيارة، وتذكير صباح نفس اليوم.',
+    onb3T: 'كل طلباتك في مكان واحد', onb3B: 'تابع حالة كل طلب ونتيجة كل زيارة.',
+    // Neither canvas drew a refused permission — it had no real camera or GPS to refuse. These are
+    // written to match the voice around them and are flagged for design review.
+    camDenied: 'لم نحصل على إذن الكاميرا. فعّله من إعدادات الهاتف، أو اختر صورة من المعرض.',
+    galDenied: 'لم نحصل على إذن الصور. فعّله من إعدادات الهاتف.',
+    locDenied: 'لم نحصل على إذن الموقع. فعّله من إعدادات الهاتف، أو حرّك الدبوس على الخريطة يدويًا.',
+    locFailed: 'تعذّر تحديد موقعك. حرّك الدبوس على الخريطة يدويًا.',
+  },
   branch: {
     next: 'متابعة', splashA: 'استلام أسهل لمواد فرعك', splashB: 'ماء الغيوم للفروع',
     loginTitle: 'أهلًا بفرعك', loginSub: 'سجّل الدخول بحساب الفرع الذي أرسله لك فريق التشغيل.',
@@ -80,7 +133,10 @@ export const ar = {
 
   driver: {
     appName: 'تطبيق السائق', tagline: 'خطة يومك في مكان واحد', 'continue': 'متابعة', back: 'رجوع', close: 'إغلاق',
-    loginHello: 'أهلًا بك', loginSub: 'سجّل الدخول لعرض خطة يومك', mobile: 'رقم الجوال',
+    // [changed] sign-in is one screen for both roles now, redrawn in the branch canvas
+    // (Main.dc.html 171–247), and its driver wording replaces what the driver canvas's own
+    // sign-in screen said. loginSub was: 'سجّل الدخول لعرض خطة يومك'
+    loginHello: 'أهلًا بك', loginSub: 'سجّل الدخول برقم جوالك وكلمة المرور التي أرسلها لك فريق التشغيل.', mobile: 'رقم الجوال',
     // [changed] PIN -> password, here and in every string below that mentioned it
     password: 'كلمة المرور', showPw: 'إظهار كلمة المرور',
     login: 'تسجيل الدخول', signingIn: 'جارٍ الدخول…', forgot: 'نسيت كلمة المرور؟', loginErr: 'رقم الجوال أو كلمة المرور غير صحيحة', accountsNote: 'الحسابات يُنشئها فريق العمليات',
@@ -103,6 +159,8 @@ export const ar = {
     declared: 'الوزن المعلن من الفرع', branchPhoto: 'صورة الميزان من الفرع', tapEnlarge: 'اضغط للتكبير', branchNote: 'ملاحظة الفرع',
     requestedOn: 'طُلب في', record: 'تسجيل نتيجة الزيارة', continueDraft: 'متابعة التسجيل', recordedAs: 'تم التسجيل',
     wrongEntry: 'سجّلت نتيجة خاطئة؟ تواصل مع العمليات',
+    // [added] The decision on a recorded stop; the canvas never draws one. Wording approved in chat, 3 November 2026.
+    decisionPending: 'بانتظار قرار العمليات', decisionRescheduled: 'أُعيدت جدولتها ليوم {date}', decisionClosed: 'مغلقة', decisionCancelled: 'ملغاة',
     outcomeTitle: 'نتيجة الزيارة', step1: '1 · النتيجة', step2: '2 · التوثيق', step3: '3 · الإرسال', question: 'هل استلمت الكمية المكتوبة؟',
     oFull: 'نعم، استلمتها كاملة', oFullSub: 'صوّر الميزان وأرسل – يُغلق الطلب', oPartial: 'لا، الكمية مختلفة', oPartialSub: 'صورة الميزان + ملاحظة – يحتاج قرار',
     oFailed: 'تعذّر الاستلام', oFailedSub: 'اختر السبب – بدون صورة',
@@ -120,10 +178,12 @@ export const ar = {
     todayProgress: 'تقدّم اليوم', next: 'الزيارة التالية', toPlan: 'العودة للخطة', backHome: 'الرئيسية', lastDone: 'كانت هذه آخر زيارة اليوم',
     upTitle: 'الخطة القادمة', viewOnly: 'للعرض فقط', approved: 'معتمدة', upEmpty: 'لم تُعتمد الخطة القادمة بعد', upEmptySub: 'سيصلك إشعار فور اعتمادها من العمليات.',
     approvedAt: 'يوم العمل التالي · اعتُمدت {when}',
-    contactLabel: 'صاحب الطلب', callContact: 'اتصال بصاحب الطلب', noBranchPhoto: 'لم يرفق الفرع صورة للميزان', noBranchPhotoSub: 'اعتمد على الوزن المكتوب، وصوّر الميزان عند الاستلام.',
+    // [added] adminLabel, adminNote, noAdminPhoto: a dashboard request's creator card and note label. Approved in chat, 3 November 2026.
+    contactLabel: 'صاحب الطلب', adminLabel: 'طلب من الإدارة', adminNote: 'ملاحظة الإدارة', noAdminPhoto: 'لا توجد صورة للميزان — الطلب من الإدارة', callContact: 'اتصال بصاحب الطلب', noBranchPhoto: 'لم يرفق الفرع صورة للميزان', noBranchPhotoSub: 'اعتمد على الوزن المكتوب، وصوّر الميزان عند الاستلام.',
     lockedTitle: 'تم إيقاف الدخول مؤقتًا', lockedBody: '5 محاولات خاطئة. حاول بعد 15 دقيقة، أو تواصل مع العمليات لفتح الحساب.',
-    // [changed] was: 'الرقم السري غير صحيح – تبقّى {n}'
-    loginErrN: 'كلمة المرور غير صحيحة – تبقّى {n}',
+    // [changed] twice: PIN -> password, then the redrawn sign-in screen's own wording, which
+    // names the field that was wrong and counts out of five. Was: 'الرقم السري غير صحيح – تبقّى {n}'
+    loginErrN: 'رقم الجوال أو كلمة المرور غير صحيحة. باقي {n} من 5 محاولات.',
     left: 'زيارات باقية', left1: 'زيارة باقية', leftShort: 'باقية',
     period: 'الفترة', changePeriod: 'تغيير الفترة', rangeTitle: 'اختر الفترة', from: 'من', to: 'إلى', qToday: 'اليوم', qYesterday: 'أمس', q7: 'آخر 7 أيام', qMonth: 'هذا الشهر',
     apply: 'عرض النتائج', f_all: 'الكل', rangeEmpty: 'لا توجد زيارات في هذه الفترة', rangeEmptySub: 'جرّب فترة أخرى أو غيّر الفلتر.',

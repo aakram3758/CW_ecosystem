@@ -7,15 +7,41 @@ Written in English to match the rest of the repo and because Codex reads it.
 
 ## How we work
 
-Claude plans and reviews, Codex implements, Ahmed decides. For each bite below: Claude writes a brief into
-`apps/mobile/briefs/` → Codex implements → Claude reviews the diff → local commit on `feat/mobile-app`.
-**Nothing is pushed** until the whole app has been tried on a real device and Ahmed says go. A local commit is
-not a push; it never leaves the machine.
+**Claude thinks and writes the structure; Codex fills it in; Ahmed decides.** That is the division of
+labour for every bite below, and it is deliberate — each side does the part it is actually better at.
+
+Claude, for each piece of work:
+
+1. **Reads the source** — the approved canvas, the live schema, the code already there — and settles
+   everything that needs judgement: what the screen is, which value comes from where, what the edge cases
+   are, where the new code belongs in the tree.
+2. **Writes the structure** into the repo: the files, the component and function signatures, the types, the
+   props, the state shape, and a comment in each empty body saying what it has to do. Enough that the shape
+   of the change is already decided and visible in a diff, with the bodies left to write.
+3. **Writes the brief** into `apps/mobile/briefs/` — the ticket: what to build, from which lines of which
+   canvas, with the literal values, and what "done" means.
+
+Codex then implements: it fills the bodies in, follows the brief, and runs `tsc --noEmit` and
+`npm run bundle` until both pass.
+
+Claude then reviews the diff against the brief — **re-verifying, never trusting the self-report** — fixes
+what is wrong, and makes the local commit on `feat/mobile-app`.
+
+Why this split: the decisions that are expensive to get wrong are the structural ones, and they are cheap to
+write down. Typing out four hundred lines of styled JSX off a canvas is the opposite — slow to produce, cheap
+to check against the design once it exists. So Claude spends its tokens on the decisions and the review, and
+Codex spends its on the typing.
 
 The brief is the ticket. It is committed so that reviewing a diff means comparing it against something written
 down beforehand, rather than against memory.
 
-`main` deploys the dashboard to Vercel, so the mobile branch stays off `main` for the whole phase.
+`feat/mobile-app` is pushed as a backup branch. **The app does not merge into `main`** — which is what
+deploys the dashboard to Vercel — until the whole thing has been tried on a real device and Ahmed says go.
+
+One exception already happened, and it is recorded here so nobody reads the line above and assumes the
+branch is untouched: **PR #5 merged phase 0 into `main`** — the generated types, the lifted copy, icons and
+tokens, the Expo skeleton, the `chains` Edge Function and brief 01. None of the app's screens went with it.
+Everything from bite 1 onwards is on this branch only.
 
 No over-engineering. The app is small; the plan is three phases, not eight milestones.
 
@@ -183,19 +209,114 @@ row is only written once the file is there. Reading one back needs `createSigned
 
 Scale photo: upload to `request-photos` at `request/<request_id>/<name>`, then the RPC.
 
-**One thing to confirm in phase B — driver history.** `visit_attempts` is readable by the driver who recorded
-it, but the branch and request labels come from `requests`, which a driver may read only while
-`driver_id = <me>`. Direct reassignment is safe: `staff_change_plan_driver` only moves rows still
-`scheduled`, so a recorded visit never moves. But a *reschedule* decision sends the request back to
-`waiting`, and the next approved plan may give it to a different driver — after which the first driver's
-history row survives while its branch name does not. Build the history screen so a row renders without the
-joined request, see whether it actually happens, and only then decide whether it needs a small
-`security definer` function. Not worth a migration on a hunch.
+**Driver history — confirmed, it does happen.** This was written as a hunch to test in phase B. It was
+checked against the live database instead, and it is real and deterministic, not a maybe.
+
+`visit_attempts_read` matches on `driver_id = private.my_driver_id()`, so a driver keeps their own
+recorded visit for good. The branch label does not come with it: `branches_read` admits a driver through
+`private.my_driver_branch_ids()`, which is exactly
+
+```sql
+select distinct r.branch_id from public.requests r where r.driver_id = private.my_driver_id()
+```
+
+and `requests_read` admits them on the same `driver_id = <me>`. Both therefore hang on `requests.driver_id`
+*still pointing at that driver right now*. Direct reassignment is safe — `staff_change_plan_driver` only
+moves rows still `scheduled`, so a recorded visit never moves. The reschedule decision is not:
+`staff_decide` with `p_decision = 'reschedule'` runs
+
+```sql
+set status = 'waiting', visit_day = null, driver_id = null, decision_since = null
+```
+
+It **nulls `driver_id`**. The moment ops reschedules a visit a driver already attempted, that driver loses
+the request and — if it was their only one for that branch — the branch too, while the `visit_attempts` row
+stays readable. Their history shows a row with no branch, no material and no request number. This follows
+the most ordinary action ops takes after a failed visit, so it is the normal case, not an edge one.
+
+Fixed by migration 21 (`20261102000100_driver_history.sql`): the driver's read is widened to what they
+have a `visit_attempts` row for, rather than only what they are assigned right now, through a
+`security definer` helper so the `requests` ↔ `visit_attempts` policies do not recurse. The history
+screen still renders a row without its joined request, because ops can reschedule at any moment. And
+because the widened read reaches requests now assigned to another driver, every plan read in the app
+filters on `driver_id = me` itself.
 
 ## Phase A — the shell
 
 All screens of both roles, both languages, both themes, on mock data in the real shape. Five bites; Claude reviews
 each one before the next starts.
+
+### Where the branch app stands — 29 October 2026
+
+**Development on the branch app is closed.** Bites 1, 2, 2.5, 3a and 3b are done and the app runs
+entirely on the live project — `src/data/mock/` is deleted. It has been walked end to end on a real
+phone across three rounds, but every one of those rounds was on mock data: **nothing below has been
+tried against the real backend from a device yet.** The driver app is built — see *Bites 4 and 5*
+below — and not yet tried on a phone either.
+
+#### What the app does, all of it on the real backend
+
+Sign-in for both roles through the `sign-in` Edge Function, with the attempt count and the lock-out
+rendered as the design's text · the forced change after a temporary password · role routing from
+`profiles.role` · the session in `expo-secure-store` · splash · onboarding · set branch location,
+including a branch that has no coordinates at all · home · my requests, active and past, with the
+material filter · create a request in three steps, with the subtype sheet, the open-request lock, a
+real camera and gallery, and the photo uploaded before the row is written · request sent · request
+details with its outcomes and full history and its stored photo through a signed URL ·
+notifications · account · the contact sheet · «تغيير كلمة المرور» · the cancel confirmation · the
+toast. Arabic and English, light, dark and system, right-to-left throughout.
+
+States done: the material lock · a refused or failed camera · a refused location, and the map's
+locating, my-location and no-pin states · the create form's input errors · the cancel
+confirmation · the contact sheet · «لم يُحدَّد يوم الزيارة بعد» and «لا توجد طلبات حالية» on home ·
+sign-in's wrong credentials, lock-out and offline · home loading and home error with retry · the
+requests list empty, with the action that matches why · the offline bar at its three heights · a
+send that failed, with the photo and the typed values kept · «تُعاد جدولته بعد تعذّر الاستلام».
+
+#### What is left — none of it in the app's code
+
+1. **The fixes from the first real-backend test are not tried on a phone yet.** Ahmed ran
+   `testserious 201` on 29 October and found four things: the photo was not on the dashboard, a
+   visit day set from the dashboard did not reach the open app, the glass manager's number appeared
+   only after a restart, and no pop-up came. The first three are fixed in `704dcff` (below); the
+   pop-up is the deferred push work. To confirm: upload a new photo and check its size in
+   `storage.objects` is no longer 14 bytes, then change a request from the dashboard with the app
+   open. The dashboard's photo view only appears once it is merged to `main`.
+2. **Three things to fill from the dashboard.** `app_settings.ops_phone` is empty and five of six
+   materials have no `contact_phone`, so the contact button correctly hides in most places; all 23
+   branches have a null `name_en`, so the English label falls back to the district; and the
+   `testserious` and `danbue` chains are still active and show in the picker. The two branches with
+   no confirmed pin are both on `testserious`, and migration 17 allows one confirmation ever — so
+   those two are the only way left to reach the location screen at all. **Do not deactivate that
+   chain until the location screen has been tested.**
+3. **Copy that does not exist.** Nothing is drawn for the clipboard, the dialer or WhatsApp
+   refusing to open, so those fail silently. The canvas never dialled, so it never had to say so.
+   It gets written if Ahmed meets it on a real phone.
+4. **Two sentences written outside the design**, both kept as drafted after Ahmed read them:
+   `shared.wrongPassword` and `shared.samePasswordNow`. The second exists because the approved
+   `samePassword` names the temporary password, which is wrong once there is none.
+5. **The forced password screen is still phase 0's shared shell**, not this canvas's drawing — no
+   lock tile, no rule circles, a plain card for both roles. The voluntary screen built in bite 3b
+   *is* the canvas's. Redrawing the forced one touches the driver's flow too, so it is a decision of
+   its own and not a bug.
+6. **A deferred decision.** The branch is a single route, so a notification cannot deep-link to one
+   request. Decided when notifications are built.
+
+**The one bug a device found that review could not:** the app reloaded itself forever at launch,
+because boot asked native for a right-to-left direction and then reloaded to apply it, while a JS
+reload cannot change the native constant it was testing. Fixed in `e07afca`.
+
+**The bug only the real backend could show:** every photo the app uploaded was 14 bytes.
+`fetch(uri).arrayBuffer()` — which the wiring brief specified — does not return a local file's
+contents in React Native. The row and the path were right and the object existed, and nothing on
+the phone showed it, because a thumbnail that fails to load falls back to the drawn placeholder,
+which looks like a photo. Found by reading object sizes in `storage.objects`; fixed by reading the
+file with `expo-file-system`'s `File`. The two broken files on `testserious` are still in the bucket.
+
+**The bug review found that no device could have:** the location screen defaulted its pin to the
+middle of Jeddah for a branch with no coordinates, so «تأكيد الموقع» would have saved a position
+nobody chose — and migration 17 would then have made it permanent. No mock branch had a null `lat`,
+so only reading the real rows showed it.
 
 ### Bite 1 — foundation, sign-in, password change
 
@@ -209,21 +330,21 @@ Auth is **real from day one**. A fake sign-in proves nothing — the temporary p
       `tsc --noEmit` clean, `npm run bundle` produces a 2.6 MB Hermes bundle with the fonts resolved from
       the hoisted root — which is the actual proof the workspace wiring works — and `npm run build` for the
       dashboard still passes. Not checked by Claude: it running on a real phone. That is Ahmed with Expo Go.
-- [ ] Theme provider and language provider over the lifted tokens and copy.
+- [x] Theme provider and language provider over the lifted tokens and copy.
       RTL note: React Native reads the direction once at startup, so switching language needs a reload —
       the provider owns that, `_layout.tsx` only sets the Arabic-first default.
-- [ ] Supabase client with secure session storage; TanStack Query; online/offline detection
-- [ ] Shared loading / error / empty / offline components
-- [ ] Splash
-- [ ] Sign-in: **Branch | Driver** segmented switch above the fields — remembered on the device, opens on the last
+- [x] Supabase client with secure session storage; TanStack Query; online/offline detection
+- [x] Shared loading / error / empty / offline components
+- [x] Splash
+- [x] Sign-in: **Branch | Driver** segmented switch above the fields — remembered on the device, opens on the last
       side used; switching clears the typed fields and any error. Branch → chain picker + branch number + password.
       Driver → mobile number + password.
-- [ ] Sign-in through the `sign-in` Edge Function: `401 INVALID_CREDENTIALS { attempts_left }`,
+- [x] Sign-in through the `sign-in` Edge Function: `401 INVALID_CREDENTIALS { attempts_left }`,
       `429 LOCKED { retry_after }` — both rendered as the designs' text
-- [ ] Forced password change: `auth.updateUser({ password })` → `rpc('complete_password_change')`,
+- [x] Forced password change: `auth.updateUser({ password })` → `rpc('complete_password_change')`,
       `PASSWORD_NOT_CHANGED` handled. Rule: 8+ characters with at least one Latin letter and one digit
-- [ ] Role routing from `profiles.role`; if the account belongs to the other side, sign out and say so
-- [ ] Error-code → message map covering every UPPER_SNAKE code in `supabase/README.md`
+- [x] Role routing from `profiles.role`; if the account belongs to the other side, sign out and say so
+- [x] Error-code → message map covering every UPPER_SNAKE code in `supabase/README.md`
 
 **Done when** a real branch account and a real driver account each sign in on a phone, change the temporary
 password, and land on their own role's home.
@@ -234,11 +355,126 @@ Set branch location · home · create request (material → weight + photo → r
 open-request locking · request sent · request details before and after the visit day is set · my requests ·
 notifications · account.
 
+**One decision to revisit in phase B — the branch is a single route.** All eight screens live under
+`/branch` and switch on state in `src/branch/app.tsx`, the way the prototype itself works, with the
+Android back button handled per screen. Nothing is wrong with it and it keeps the screens close to the
+approved design, but it means there is no route per screen. A push notification that should open one
+request therefore cannot deep-link to it — it has to land on `/branch` and set state. Notifications are
+deferred, so decide this when they are built, not before: either give the branch nested routes then, or
+accept an app that opens on home and selects the request itself.
+
+### Bite 2.5 — the first design round
+
+Ahmed tried bites 1 and 2 on his phone on 28 October 2026 and sent six comments. Five are work; the sixth he
+withdrew himself. This bite is those five, in two stages so each gets reviewed on its own.
+
+The canvas grew while we were building — from 6 files to 28 — and now holds three things that did not exist
+when bite 1 was written: a redesigned sign-in screen, a splash screen and a three-slide onboarding. It is
+cached at `apps/mobile/design/branch-v2/project/` (gitignored, so read it by path).
+
+**Stage 1 — sign-in and direction**
+
+- [x] Rebuild the sign-in screen for both roles from `Main.dc.html` lines 171–247: the navy hero with the logo
+      lockup and its two decorative circles, then the card with the **Branch | Driver** switch *inside* it at
+      the top, the chain picker and branch number side by side (3fr / 2fr), the `+966` prefix box joined to the
+      driver's phone field, the eye button inside the password field, 52px fields at radius 14, and the errors
+      inline with an 18px icon on a soft danger background. Ours has the right fields in the wrong frame, so
+      this is a layout rebuild, not a tweak. No copy changes: every string is already lifted and approved.
+- [x] **Fix the direction once, at the top.** Today `direction: 'rtl'` is set in `src/branch/app.tsx` and
+      `src/driver/shared.tsx` and nowhere else, so everything under `src/app/` — sign-in, the password change,
+      both role homes — falls back to the native `I18nManager.isRTL`, which is `false` in Expo Go because
+      config plugins do not apply there. That is exactly why the branch screens read right-to-left on the phone
+      and sign-in does not. One wrapper high up, and the two per-feature copies deleted.
+
+**Decided while building stage 1.** The canvas draws no language or theme controls on sign-in,
+and ours did. Ahmed said to match the canvas, so they are gone: they live on the Account screen
+now, and a phone that opens in Arabic signs in in Arabic. The forced password-change screen still
+has its own pair — it is a bite 1 screen with no artboard of its own yet, so leave it until it gets
+one.
+
+**Stage 2 — splash, onboarding, camera, location, the lock**
+
+- [x] The splash: option **ب** «المواد بتتجمع», the one marked «المعتمد» in `SplashOptions.dc.html` — material
+      icons fly in from the edges and merge into the logo, about 1.8s. Needs Reanimated.
+- [x] Onboarding: the three slides of `Onboarding.dc.html` (اطلب الاستلام · يوم الزيارة · كل طلباتك), shown
+      once per install, skippable.
+- [x] The five uploaded images come into the repo as real files — React Native cannot fetch the canvas's
+      `/_blob/` paths.
+- [x] Make the camera real (`expo-image-picker`) and the location real (`expo-location`), with real permission
+      prompts and the designed denied-permission state. **Nothing is uploaded or persisted** — the photo and
+      the pin stay in memory. Persistence is phase B.
+- [x] The material lock, for a material that already has an open request: simpler and cleaner than what we
+      ship now. The canvas draws only a 16px muted lock beside the material name; ours adds a band reading
+      «لديك طلب مفتوح لهذه المادة / عرضه». Ahmed's call is to improve on the canvas but go simpler and cleaner
+      than our band — the lock and the way in, without a sentence explaining itself.
+
+**Two places where Ahmed asked to go past the canvas**, both after reading them on a phone, and
+both recorded here so the difference does not look like drift later: the material lock (above),
+and the request-details rows, where the canvas puts the label on one side and the value on the
+other. On a 390pt screen that leaves them at opposite edges with nothing between, so each row is
+now its icon, the label, and the value under it — the shape the create screen already used for
+its review step.
+
+**Not a bug.** The branch name on the phone does not match the canvas because the screen is still on mock
+data; Ahmed said to ignore it. It goes away in phase B.
+
+**What stage 2 cost us to learn: `react-native-reanimated` cannot be used in this app.** It is in
+`package.json` — expo-router brought it — and it had simply never been imported, so nobody had
+found out. Importing it fails the export: it resolves its own nested `semver@7`, the root has
+`semver@6`, and `metro.config.js` sets `disableHierarchicalLookup`, which is exactly what refuses
+to look inside a package for its own dependencies — and that setting is the one keeping a single
+React in the bundle. `react-native-gesture-handler` is in the same position. So animation is
+React Native's own `Animated` and gestures are `PanResponder`, and the reason is written into
+`metro.config.js` where the next person will meet it.
+
 ### Bite 3 — branch states
 
-Home loading / error / new branch with no requests · offline retry bar · location permission denied ·
-create-request input errors · send failed while offline · details being rescheduled after a failed pickup ·
-details with the manager · cancel confirmation · contact-manager sheet · no requests.
+Split in two after the second device test, and the line between the halves is what the state is
+*about*. Four of these are design — they exist whether or not there is a network — and Ahmed sees
+them before the wiring. The rest are states of data, and building them on mock data would mean
+inventing a delay and a failure to look at, then writing them again against a real one. So they
+move to phase B, where they come out of the wiring rather than being staged for it.
+
+**3a — design, before the wiring** (brief `briefs/05-branch-states-design.md`)
+
+- [x] Cancel confirmation — the sheet the details screen's cancel button has been waiting for since
+      bite 2, when it was drawn `disabled` because this state had not been reviewed
+- [x] The contact-the-manager sheet — until now a native `Alert.alert` printing the number as text,
+      because the prototype could not dial and we copied its apology instead of its button
+- [x] Create-request input errors — the canvas does not disable its own button and leave you to work
+      out why; the press is what reveals the errors
+- [x] Location permission denied — one grey line where the canvas has a card
+
+Three things came with them, each because the four above need it:
+
+- `Toast` (`src/ui/components.tsx`) — the canvas announces a cancelled request and a saved location
+  this way, and the app had nowhere to say so. Mounted in `branch/app.tsx` above the pages, so it
+  survives the page changing under it.
+- `expo-clipboard` — the contact sheet's copy-the-number button. The one dependency added in this
+  bite; the two React copies were checked afterwards and are unchanged (19.3.0 nested, 19.3.1
+  hoisted).
+- `ErrorLine` takes `icon={null}`, for the create form's summary line, which the canvas draws
+  without one because the fields it points at carry the icons.
+
+**3b — data, with the wiring** (moved into phase B)
+
+Home loading / error / new branch with no requests · offline retry bar · send failed while offline ·
+details being rescheduled after a failed pickup · no requests. «قيد المتابعة مع المسؤول» already
+works — it is the `needs_decision` branch of the details screen, built in bite 2.
+
+### Two more places where the app goes past the canvas
+
+Both in bite 3a, both for the same reason: the sheet now does the thing the prototype could only
+describe.
+
+- **WhatsApp shows only for a mobile.** `materials.contact_phone` accepts a unified `9200XXXXX`
+  number, which has no WhatsApp account. The canvas draws both buttons unconditionally because
+  neither of its buttons did anything. The standing rule wins: no button that cannot work.
+- **`dialToast` is now unused** — «في التطبيق يفتح هذا الزر الاتصال مباشرة» was the prototype
+  apologising for not being an app. The buttons open the dialer and WhatsApp through `Linking`.
+
+`placePin` is also still unused: it belongs to a branch with no coordinates at all, which the mock
+branch is not. It stays for whoever builds that state.
 
 ### Bite 4 — driver screens
 
@@ -253,6 +489,40 @@ stop couldn't load · stop with no branch photo · plan loading / couldn't load 
 while sending (the photo and the choice stay on screen) · next plan not approved yet · notifications empty ·
 history empty.
 
+### Bites 4 and 5 — where they stand, 2 November 2026
+
+**Built in one pass on the live backend, not on mock data** — Ahmed's call: the backend exists, and
+building the data states on a mock means drawing them twice. Brief `briefs/08-driver-app.md`; Codex
+wrote it, Claude reviewed every file and fixed what is listed in the commit. Every screen and every
+state above is in `src/driver/`. **Not tried on a phone yet.** To test: from the dashboard, assign
+requests for today to the driver «احمد اكرم» (glass), then sign in on the Driver side.
+
+Decided on the way, each because the database or the phone says otherwise than the canvas:
+
+- **The phone's own camera**, as the branch uses it; the canvas's viewfinder screen is not built.
+  Camera only, no gallery — the photo is proof of the visit.
+- **Reasons come from `reasons`.** The failed tiles are the database's `failed` reasons plus «سبب
+  آخر» (free text); the partial chips are its `partial` reasons, and with none picked a 3+
+  character note is required. That is the RPC's own rule. The canvas's fixed six and its three chip
+  sentences are unused.
+- **A stop's state is today's attempt only** (`last_attempt_day = today`), so a visit rescheduled
+  after yesterday's failure reads «لم تُزر», not «تعذّرت». Today's plan is `visit_day = today` and
+  either still `scheduled` or recorded today, so a request ops cancelled this morning drops off.
+- **«جديدة» is dropped** — no column says a stop was added after approval. **The plan-changed
+  banner** shows the notification's own text. **«اعتُمدت …»** appears only when a `plan_approvals`
+  row exists. **Ops contact** hides while `ops_phone` is empty.
+- The offline state is the shared `OfflineBar`, not the canvas's toast — one visual language.
+
+**Copy gaps a driver can meet**, all falling to the generic «تعذّر التحميل»: the RPC's
+`INVALID_STATUS` and `NOT_VISIT_DAY` (the stop changed under them; the day is refetched),
+`NOT_ALLOWED`, `INVALID_OUTCOME`, `PHOTO_REQUIRED`, `INVALID_REASON`; a refused dialer or maps app;
+a camera failure. Written if Ahmed meets one on a phone.
+
+Moved rather than copied, so neither role imports the other: notifications and signed photo URLs
+into `src/data/shared-api.ts`; `Muted`, `Tile`, `Pill`, `IconButton`, `Footer`, `useSignedPhoto` into
+`src/ui/role-shared.tsx`; the date formatter and Riyadh's today into `src/ui/date.ts`.
+`src/ui/role-home.tsx` is deleted. Eight icons drawn in the branch's hand.
+
 ### Checkpoint
 
 Expo Go on Ahmed's phone. Both journeys end to end, both languages, both themes. **Phase B does not start until
@@ -262,14 +532,26 @@ Ahmed says the design is right.**
 
 Mock data out, Supabase in. Reads go through RLS, every write goes through an RPC.
 
-- [ ] Branch reads: `request_list`, `branches`, `notifications`, reference tables
-- [ ] Branch writes: `branch_set_location`, `branch_create_request`, `branch_update_request`, `branch_cancel_request`
-- [ ] Driver reads: assigned requests, `visit_attempts`, `notifications`
-- [ ] Driver writes: `driver_record_outcome`
-- [ ] Everyone: `mark_notifications_read`
-- [ ] Photo upload — private bucket `request-photos`: branch → `branch/<branch_id>/…`, driver → `request/<request_id>/…`
-- [ ] The four migrations below
-- [ ] Every error code from the README mapped to its designed message
+- [x] Branch reads: `request_list`, `branches`, `notifications`, reference tables
+- [x] Branch writes: `branch_set_location`, `branch_create_request`, `branch_update_request`, `branch_cancel_request`
+- [x] Driver reads: today's plan, the next plan with its approval time, `visit_attempts` for
+      history, `driver_days_off`, `reasons`, `notifications` — `src/data/driver-api.ts`
+- [x] Driver writes: `driver_record_outcome`
+- [x] Everyone: `mark_notifications_read`
+- [x] Photo upload, both halves — private bucket `request-photos`, uploaded before the row is
+      written: the branch's `branch/<branch_id>/…`, the driver's `request/<request_id>/…`. Both read
+      the file with `expo-file-system`'s `File`.
+- [x] Migrations 17–21, applied to the live project and verified in it.
+- [x] Live updates — migration 20 publishes the nine tables the branch app reads to
+      `supabase_realtime`, and `branch/state.tsx` subscribes and refetches the matching query on any
+      change. RLS filters each change per subscriber, so a branch hears only about its own rows.
+- [x] Delete the device-side location memory in `branch/state.tsx` — it exists only so phase A
+      stops asking a branch to place its pin on every launch; `branches.location_confirmed_at`
+      is the real answer
+- [x] Every error code from the README mapped to its designed message
+- [x] Bite **3b** — the branch's data states, which are states of this wiring and not of a mock:
+      home loading / error / no requests, the offline retry bar, send failed while offline, and a
+      request being rescheduled after a failed pickup
 
 ## Phase C — device testing, then one push
 
@@ -289,8 +571,21 @@ continuing after the applied 01–16.
 | 17 | `branch_set_location` refuses once `location_confirmed_at` is set; only the dashboard can change it after | phase B |
 | 18 | Maximum 5,000 kg, enforced in `branch_create_request` **and** `branch_update_request` | phase B |
 | 19 | `branches.name_en` + a field on the dashboard's branches screen + **fix `private.request_label(…, 'en')`**, which today falls back to the Arabic `b.name` so English notifications show Arabic branch names | phase B |
+| 20 | Publish `requests`, `request_events`, `visit_attempts`, `notifications`, `branches`, `materials`, `material_subtypes`, `reasons` and `app_settings` to `supabase_realtime`, so the branch app hears changes while it is open | phase B, applied |
+| 21 | A driver may read the branch, request and photos behind any `visit_attempts` row of their own, not only what they are assigned right now — see *Driver history* above. Also: a driver reads their own `plan_approvals` rows, and `driver_days_off` and `plan_approvals` join `supabase_realtime` | phase B, applied 2 November |
+| 22 | `reasons.icon`: the Phosphor name the driver canvas draws on a failed reason's tile, set for the four failed reasons; null falls back to the app's default icon (`20261103000100_reason_icons.sql`) | phase B, applied 3 November |
+| 23 | `request_list` gains `creator_name`, `creator_name_en` and `creator_phone` for a dashboard request, through the `security definer` helper `private.request_creator`, which returns a staff profile only to a driver or staff; the driver's stop screen shows that person in place of a contact (`20261103000200_request_creator.sql`) | phase B, applied 3 November |
 
-Three, not the four first written here. The fourth was going to add `materials.contact_phone` — see below.
+All four premises were checked against the live database on 2026-10-27, not assumed:
+
+- `branch_set_location` runs `update … location_confirmed_at = now()` with no guard at all, so a branch
+  can move its pin after ops has verified it, any number of times. → 17
+- `branch_create_request` and `branch_update_request` both check only `p_kg is null or p_kg <= 0`. There
+  is no upper bound anywhere, so five million kilograms is accepted. Both need the cap, not one. → 18
+- `public.branches` has a single `name` column and no `name_en`. → 19
+- `staff_decide`'s reschedule branch nulls `driver_id`. → 21
+
+The migration first written here as the fourth was going to add `materials.contact_phone` — see below.
 
 ### Checked, needs nothing
 
@@ -320,7 +615,7 @@ Found while reading both against each other. The database wins every time.
 | --- | --- | --- |
 | Mobile number | `^5\d{8}$`, shown as `+966 55 …` | `^05[0-9]{8}$` |
 | Weight ceiling | 5,000 kg in the form | no ceiling yet — migration 18 |
-| Branch location | treated as locked after confirming | can be re-confirmed — migration 17 |
+| Branch location | treated as locked after confirming | can be re-confirmed, no guard — migration 17 |
 | English branch name | shown | column doesn't exist — migration 19 |
 | Material codes | `cardboard`, `plastic`, `paper`, `metal`, `bread` | `card`, `plas`, `paper`, `metal`, `bread` |
 | Aluminium subtype | code `alu`, label «ألمنيوم» | code `aluminium`, label «ألومنيوم» |

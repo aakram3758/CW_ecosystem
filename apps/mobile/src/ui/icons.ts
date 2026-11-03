@@ -9,11 +9,8 @@
  *           strokeLinejoin="round" fill="none" />
  *   </Svg>
  *
- * OPEN DECISION — the driver canvas does not use these. It uses the Phosphor icon font
- * (duotone / bold / fill, ~80 glyphs, declared in its `cw.css`), which cannot be extracted as paths
- * because the glyphs live inside woff2 files. So the app needs either `phosphor-react-native` for
- * the driver side alongside this set, or Phosphor for both roles — which would change the branch
- * icons slightly. Not decided yet; see PLAN.md.
+ * Both roles use this hand. The driver's eight missing functional icons below are drawn with
+ * the same 24×24 viewBox, 1.6 stroke and round caps; no Phosphor font is shipped.
  */
 
 export interface IconPath {
@@ -24,6 +21,14 @@ export interface IconPath {
 }
 
 export const icons: Record<string, IconPath> = {
+  'map-trifold': { s: 'M3 5l6-2 6 2 6-2v16l-6 2-6-2-6 2z M9 3v16 M15 5v16', f: '' },
+  'navigation-arrow': { s: 'M21 3l-6 18-4-8-8-4z M11 13L21 3', f: '' },
+  'x-circle': { s: 'M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0 M8.5 8.5l7 7 M15.5 8.5l-7 7', f: '' },
+  'calendar-check': { s: 'M5 4h14a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z M7 2v4 M17 2v4 M3 9h18 M8 15l3 3 5-6', f: '' },
+  'calendar-x': { s: 'M5 4h14a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z M7 2v4 M17 2v4 M3 9h18 M9 12l6 6 M15 12l-6 6', f: '' },
+  'magnifying-glass-plus': { s: 'M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0 M15 15l6 6 M7 10h6 M10 7v6', f: '' },
+  'device-mobile': { s: 'M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z M10 5h4 M11 19h2', f: '' },
+  'circle-notch': { s: 'M8.5 3.7a9 9 0 1 0 7 0', f: '' },
   bell: {
     s: 'M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z M10 20.5a2 2 0 0 0 4 0',
     f: 'M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z',
@@ -46,6 +51,9 @@ export const icons: Record<string, IconPath> = {
   caretL: { s: 'M15 5l-7 7 7 7', f: '' },
   caretD: { s: 'M6 9l6 6 6-6', f: '' },
   check: { s: 'M5 12.5l4.5 4.5L19 7.5', f: '' },
+  // The canvas's unmet password rule — the `check`'s pair, drawn in the same 22px circle: a plain
+  // dash, so a rule that is not satisfied yet reads as waiting rather than as failing.
+  dash: { s: 'M8 12h8', f: '' },
   checks: { s: 'M2.5 12.5l4 4L15 8 M10.5 15.5l1 1L21 7', f: '' },
   x: { s: 'M6 6l12 12 M18 6L6 18', f: '' },
   box: {
