@@ -81,10 +81,11 @@ export function DetailsScreen() {
     row.cancel_note].filter(Boolean).join(' — ');
   const rescheduled = isRescheduled(row);
   const lastAttempt = attempts[attempts.length - 1];
-  const subtitle = rescheduled ? interpolate(t.sub_resched, { o: outcome(lastAttempt ?? {
+  // The canvas fills {o} with the last visit's date, then its outcome (Main.dc.html:1482).
+  const subtitle = rescheduled ? interpolate(t.sub_resched, { o: `${f.date(lastAttempt?.visit_day ?? row.last_attempt_day)} – ${outcome(lastAttempt ?? {
     outcome: row.last_outcome, reason_id: null,
     reason_text: f.language === 'ar' ? row.last_reason_ar : row.last_reason_en, note: row.last_attempt_note,
-  }) }) : row.status === 'scheduled' ? t.sub_sched : row.status === 'needs_decision' ? t.sub_dec
+  })}` }) : row.status === 'scheduled' ? t.sub_sched : row.status === 'needs_decision' ? t.sub_dec
     : row.status === 'completed' ? interpolate(t.sub_done, { d: f.date(row.visit_day) })
       : row.status === 'closed' ? interpolate(t.sub_closed, { r: row.closed_reason ?? '' })
         : row.status === 'cancelled' ? opsCancel ? interpolate(t.sub_cancel_ops, { r: opsReason }) : t.sub_cancel : t.sub_await;
