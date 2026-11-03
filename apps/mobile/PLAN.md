@@ -574,6 +574,7 @@ continuing after the applied 01–16.
 | 20 | Publish `requests`, `request_events`, `visit_attempts`, `notifications`, `branches`, `materials`, `material_subtypes`, `reasons` and `app_settings` to `supabase_realtime`, so the branch app hears changes while it is open | phase B, applied |
 | 21 | A driver may read the branch, request and photos behind any `visit_attempts` row of their own, not only what they are assigned right now — see *Driver history* above. Also: a driver reads their own `plan_approvals` rows, and `driver_days_off` and `plan_approvals` join `supabase_realtime` | phase B, applied 2 November |
 | 22 | `reasons.icon`: the Phosphor name the driver canvas draws on a failed reason's tile, set for the four failed reasons; null falls back to the app's default icon (`20261103000100_reason_icons.sql`) | phase B, applied 3 November |
+| 23 | `request_list` gains `creator_name`, `creator_name_en` and `creator_phone` for a dashboard request, through the `security definer` helper `private.request_creator`, which returns a staff profile only to a driver or staff; the driver's stop screen shows that person in place of a contact (`20261103000200_request_creator.sql`) | phase B, applied 3 November |
 
 All four premises were checked against the live database on 2026-10-27, not assumed:
 
