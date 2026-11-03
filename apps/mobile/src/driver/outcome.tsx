@@ -6,7 +6,7 @@ import { interpolate } from '@/i18n/copy';
 import { usePreferences } from '@/providers/preferences';
 import { useOnline } from '@/providers/query';
 import { Button, Card, ErrorLine, Field, Label, Title, Motion, press } from './visual';
-import { Icon } from './icons';
+import { Icon, reasonIcon } from './icons';
 import { useDriver } from './state';
 import { emptyDraft, stopState, validDraft, type Outcome } from './model';
 import { ErrorState, Footer, LoadingCards, Muted, PageFrame, Pill, Tile, styles, useDriverFormat } from './shared';
@@ -70,8 +70,8 @@ export function OutcomeScreen() {
           <View style={[styles.row, { justifyContent: 'space-between' }]}><Title style={{ fontSize: 17 }}>{d.kind === 'partial' ? t.noteLabel : t.reasonLabel}</Title>{d.kind === 'partial' ? <Pill height={24} padding={8} radius={7} fontSize={12} weight={800}>{t.required}</Pill> : null}</View>
           <View onLayout={event => setReasonWidth((event.nativeEvent.layout.width - 10) / 2)} style={{ gap: d.kind === 'partial' ? 8 : 10, flexDirection: 'row', flexWrap: 'wrap' }}>
             {(data.reasons.data ?? []).filter(reason => reason.kind === d.kind).map(reason => d.kind === 'partial' ? <Button key={reason.id} tone="outline" selected={d.reasonId === reason.id} label={f.local(reason.label_ar, reason.label_en)} fontSize={14} weight={700} style={{ borderRadius: 12, minHeight: 44, paddingHorizontal: 14, borderColor: d.reasonId === reason.id ? colors.primary : colors.line, backgroundColor: d.reasonId === reason.id ? colors.primarySoft : colors.surface }} onPress={() => patch({ reasonId: d.reasonId === reason.id ? null : reason.id, other: false })} />
-              : <ReasonTile key={reason.id} width={reasonWidth} label={f.local(reason.label_ar, reason.label_en)} selected={d.reasonId === reason.id} onPress={() => patch({ reasonId: reason.id, other: false })} />)}
-            {d.kind === 'failed' ? <ReasonTile width={reasonWidth} label={t.r_other} selected={d.other} other onPress={() => patch({ other: true, reasonId: null })} /> : null}
+              : <ReasonTile key={reason.id} width={reasonWidth} icon={reasonIcon(reason.icon)} label={f.local(reason.label_ar, reason.label_en)} selected={d.reasonId === reason.id} onPress={() => patch({ reasonId: reason.id, other: false })} />)}
+            {d.kind === 'failed' ? <ReasonTile width={reasonWidth} icon="dots-three-circle" label={t.r_other} selected={d.other} onPress={() => patch({ other: true, reasonId: null })} /> : null}
           </View>
           {d.kind === 'partial' ? <Field accessibilityLabel={t.noteLabel} placeholder={t.notePh} value={d.note} onChangeText={note => patch({ note })} multiline numberOfLines={3} style={{ height: 99 }} /> : null}
           {d.kind === 'failed' && d.other ? <><Title style={{ fontSize: 15 }}>{t.otherLabel}</Title><Field accessibilityLabel={t.otherLabel} placeholder={t.otherPh} value={d.reasonText} onChangeText={reasonText => patch({ reasonText })} multiline numberOfLines={2} style={{ height: 75 }} /></> : null}
@@ -81,11 +81,10 @@ export function OutcomeScreen() {
     </View>
   </PageFrame>;
 }
-function ReasonTile({ label, selected, other, onPress, width }: { label: string; selected: boolean; other?: boolean; onPress: () => void; width: number }) {
+function ReasonTile({ label, icon, selected, onPress, width }: { label: string; icon: string; selected: boolean; onPress: () => void; width: number }) {
   const { colors } = useDriverFormat();
   return <Pressable accessibilityRole="radio" accessibilityState={{ checked: selected }} onPress={onPress} style={{ width, minHeight: 92, borderRadius: 16, borderWidth: 2, borderColor: selected ? colors.primary : colors.line, backgroundColor: selected ? colors.primarySoft : colors.surface, alignItems: 'center', justifyContent: 'center', gap: 6, padding: 10 }}>
-    {/* reasons has no icon column. Only the canvas's local Other choice has an icon. */}
-    {other ? <Icon name="dots-three-circle" size={30} color={selected ? colors.primary : colors.muted} /> : null}<Title style={{ fontSize: 15, lineHeight: 19.5, textAlign: 'center' }}>{label}</Title>
+    <Icon name={icon} size={30} color={selected ? colors.primary : colors.muted} /><Title style={{ fontSize: 15, lineHeight: 19.5, textAlign: 'center' }}>{label}</Title>
     {selected ? <View style={{ position: 'absolute', top: 8, right: 8 }}><Tile icon="check" size={22} radius={11} iconSize={13} background={colors.primary} color={colors.onPrimary} /></View> : null}
   </Pressable>;
 }

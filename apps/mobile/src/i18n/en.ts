@@ -142,6 +142,7 @@ export const en = {
     declared: 'Weight declared by branch', branchPhoto: 'Branch’s scale photo', tapEnlarge: 'Tap to enlarge', branchNote: 'Branch note',
     requestedOn: 'Requested on', record: 'Record visit outcome', continueDraft: 'Continue recording', recordedAs: 'Recorded',
     wrongEntry: 'Recorded the wrong outcome? Contact Operations',
+    decisionPending: 'Waiting for Operations to decide', decisionRescheduled: 'Rescheduled to {date}', decisionClosed: 'Closed', decisionCancelled: 'Cancelled',
     outcomeTitle: 'Visit outcome', step1: '1 · Outcome', step2: '2 · Proof', step3: '3 · Send', question: 'Did you collect the stated quantity?',
     oFull: 'Yes, all of it', oFullSub: 'Photo of the scale, then send – closes the request', oPartial: 'No, the quantity differs', oPartialSub: 'Scale photo + a note – needs a decision',
     oFailed: 'Pickup failed', oFailedSub: 'Pick a reason – no photo',

@@ -33,6 +33,9 @@ import { ScalesIcon } from 'phosphor-react-native/src/icons/Scales';
 import { NotePencilIcon } from 'phosphor-react-native/src/icons/NotePencil';
 import { InfoIcon } from 'phosphor-react-native/src/icons/Info';
 import { DotsThreeCircleIcon } from 'phosphor-react-native/src/icons/DotsThreeCircle';
+import { UserMinusIcon } from 'phosphor-react-native/src/icons/UserMinus';
+import { PackageIcon } from 'phosphor-react-native/src/icons/Package';
+import { PathIcon } from 'phosphor-react-native/src/icons/Path';
 import { MagnifyingGlassPlusIcon } from 'phosphor-react-native/src/icons/MagnifyingGlassPlus';
 import { ChatCircleTextIcon } from 'phosphor-react-native/src/icons/ChatCircleText';
 import { CoffeeIcon } from 'phosphor-react-native/src/icons/Coffee';
@@ -88,6 +91,9 @@ export const icons = {
   'note-pencil': NotePencilIcon,
   'info': InfoIcon,
   'dots-three-circle': DotsThreeCircleIcon,
+  'user-minus': UserMinusIcon,
+  'package': PackageIcon,
+  'path': PathIcon,
   'magnifying-glass-plus': MagnifyingGlassPlusIcon,
   'chat-circle-text': ChatCircleTextIcon,
   'coffee': CoffeeIcon,
@@ -108,6 +114,8 @@ export const icons = {
   'arrows-clockwise': ArrowsClockwiseIcon,
   'arrow-counter-clockwise': ArrowCounterClockwiseIcon,
 };
+/** A reason's stored icon when this module draws it; otherwise one fallback, since Icon throws on a name it lacks. */
+export const reasonIcon = (name: string | null) => name && name in icons ? name : 'warning-circle';
 export function Icon({ name, size = 24, color, weight }: { name: string; size?: number; color?: string; weight?: 'regular' | 'bold' | 'fill' | 'duotone' }) {
   const { colors, language } = usePreferences();
   const key = name === 'fwd' ? (language === 'ar' ? 'caret-left' : 'caret-right') : name === 'back' ? (language === 'ar' ? 'arrow-right' : 'arrow-left') : name;

@@ -584,6 +584,7 @@ export type Database = {
         Row: {
           active: boolean
           created_at: string
+          icon: string | null
           id: string
           kind: Database["public"]["Enums"]["reason_kind"]
           label_ar: string
@@ -593,6 +594,7 @@ export type Database = {
         Insert: {
           active?: boolean
           created_at?: string
+          icon?: string | null
           id?: string
           kind: Database["public"]["Enums"]["reason_kind"]
           label_ar: string
@@ -602,6 +604,7 @@ export type Database = {
         Update: {
           active?: boolean
           created_at?: string
+          icon?: string | null
           id?: string
           kind?: Database["public"]["Enums"]["reason_kind"]
           label_ar?: string

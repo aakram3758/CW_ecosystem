@@ -6,10 +6,10 @@ import { usePreferences } from '@/providers/preferences';
 import { Skeleton } from './visual';
 import { useSignedPhoto } from '@/ui/role-shared';
 import { useDateFormat } from '@/ui/date';
-import { ltr } from '@/i18n/copy';
+import { interpolate, ltr } from '@/i18n/copy';
 import { materialSoft, outcomeRing } from '@/ui/tokens';
 import type { RequestListRow } from '@/data/rows';
-import { stopState, type Outcome } from './model';
+import { decision, stopState, type Outcome } from './model';
 import { useDriver, type Tab } from './state';
 import { Icon } from './icons';
 import { Button, Card, Label, Muted, Motion, Screen, Title, press, useShadows } from './visual';
@@ -117,11 +117,20 @@ export function MaterialPill({ row, height = 28, fontSize = 13, radius = 9, padd
   const f = useDriverFormat(); return <Pill {...f.materialStyle(row)} dot height={height} fontSize={fontSize} radius={radius} padding={padding}>{f.material(row)}</Pill>;
 }
 export function Weight({ row }: { row: RequestListRow }) { const f = useDriverFormat(); return <View style={[styles.row, { gap: 4 }]}><Icon name="scales" size={18} color={f.colors.muted} /><Muted style={[styles.bold, { fontSize: 14 }]}>{f.kg(row.kg)}</Muted></View>; }
+/** Operations' decision on a stop recorded today, under its outcome; nothing while there is none to tell. */
+export function DecisionLine({ row, fontSize = 13 }: { row: RequestListRow; fontSize?: number }) {
+  const data = useDriver(); const f = useDriverFormat(); const d = decision(row, data.today);
+  if (!d) return null;
+  const icon = d.kind === 'pending' ? 'clock-counter-clockwise' : d.kind === 'rescheduled' ? 'calendar-check' : d.kind === 'closed' ? 'lock-simple' : 'x-circle';
+  const text = d.kind === 'pending' ? f.t.decisionPending : d.kind === 'rescheduled' ? interpolate(f.t.decisionRescheduled, { date: f.date(d.day, true) })
+    : d.kind === 'closed' ? f.t.decisionClosed : f.t.decisionCancelled;
+  return <View style={[styles.row, { gap: 5 }]}><Icon name={icon} size={fontSize + 3} color={f.colors.muted} /><Muted style={[styles.bold, { fontSize, flexShrink: 1 }]}>{text}</Muted></View>;
+}
 export function StopCard({ row, readOnly = false }: { row: RequestListRow; readOnly?: boolean }) {
   const data = useDriver(); const f = useDriverFormat(); const kind = stopState(row, data.today); const st = f.status(kind); const { shadow } = useShadows();
   const suggested = !readOnly && data.suggestion?.row.id === row.id; const done = !readOnly && kind !== 'todo';
   if (done) return <Pressable onPress={() => row.id && data.openStop(row.id)} accessibilityRole="button" style={[styles.row, { gap: 10, paddingVertical: 10, paddingHorizontal: 14, minHeight: 60, borderWidth: 1, borderColor: f.colors.line, borderRadius: 14, backgroundColor: f.colors.surface2 }]}>
-    <Icon name={st.icon} weight="fill" size={26} color={st.color} /><View style={styles.grow}><Label style={[styles.bold, { fontSize: 15 }]}>{f.title(row)}</Label><Muted style={{ fontSize: 13 }}>{f.material(row)} · {f.time(row.last_attempt_at)}</Muted></View><Pill {...st} padding={9} weight={800}>{st.label}</Pill></Pressable>;
+    <Icon name={st.icon} weight="fill" size={26} color={st.color} /><View style={styles.grow}><Label style={[styles.bold, { fontSize: 15 }]}>{f.title(row)}</Label><Muted style={{ fontSize: 13 }}>{f.material(row)} · {f.time(row.last_attempt_at)}</Muted><DecisionLine row={row} /></View><Pill {...st} padding={9} weight={800}>{st.label}</Pill></Pressable>;
   const content = <><Tile icon="storefront" size={readOnly ? 48 : 52} radius={readOnly ? 15 : 16} iconSize={readOnly ? 26 : 28} {...f.materialStyle(row)} />
     <View style={[styles.grow, { gap: readOnly ? 6 : 7 }]}><View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}><Label style={[styles.heavy, { fontSize: readOnly ? 16 : 17, lineHeight: (readOnly ? 16 : 17) * 1.3 }]}>{f.title(row)}</Label>
       {suggested ? <Pill color={f.colors.accentText} background={f.colors.accentSoft} height={24} radius={7} padding={8} fontSize={12} weight={800}>{f.t.suggestedTag}</Pill> : null}</View>

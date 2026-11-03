@@ -15,6 +15,16 @@ export function stopState(row: RequestListRow, today: string): Outcome | 'todo' 
   return row.last_attempt_day === today && ['full', 'partial', 'failed'].includes(row.last_outcome ?? '')
     ? row.last_outcome as Outcome : 'todo';
 }
+export type Decision = { kind: 'pending' | 'closed' | 'cancelled' } | { kind: 'rescheduled'; day: string };
+/** What Operations made of a stop recorded today; null while there is nothing to tell (still todo, or completed). */
+export function decision(row: RequestListRow, today: string): Decision | null {
+  if (stopState(row, today) === 'todo') return null;
+  if (row.status === 'needs_decision') return { kind: 'pending' };
+  if (row.status === 'closed') return { kind: 'closed' };
+  if (row.status === 'cancelled') return { kind: 'cancelled' };
+  if (row.status === 'scheduled' && row.visit_day && row.visit_day !== today) return { kind: 'rescheduled', day: row.visit_day };
+  return null;
+}
 export function suggest(rows: RequestListRow[], today: string) {
   const todo = rows.filter(r => stopState(r, today) === 'todo');
   const last = rows.filter(r => stopState(r, today) !== 'todo' && r.last_attempt_at)

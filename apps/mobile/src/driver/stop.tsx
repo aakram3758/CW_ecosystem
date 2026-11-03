@@ -3,7 +3,7 @@ import { Button, Card, Label, Title } from './visual';
 import { Icon } from './icons';
 import { useDriver } from './state';
 import { stopState } from './model';
-import { ErrorState, Footer, LoadingCards, MaterialPill, Muted, OpsButton, PageFrame, Pill, StoredPhoto, Tile, openDeviceUrl, styles, useDriverFormat } from './shared';
+import { DecisionLine, ErrorState, Footer, LoadingCards, MaterialPill, Muted, OpsButton, PageFrame, Pill, StoredPhoto, Tile, openDeviceUrl, styles, useDriverFormat } from './shared';
 const navy = '#0B2340', white = '#FFFFFF', gold = '#E8CE84';
 export function StopScreen() {
   const data = useDriver(); const f = useDriverFormat(); const { t, colors } = f; const row = data.selected;
@@ -28,7 +28,7 @@ export function StopScreen() {
         {row.note ? <View style={[styles.row, { gap: 10, alignItems: 'flex-start', padding: 12, borderRadius: 14, backgroundColor: colors.surface2 }]}><Icon name="chat-circle-text" /><View style={styles.grow}><Muted style={[styles.bold, { fontSize: 13 }]}>{t.branchNote}</Muted><Label style={[styles.bold, { fontSize: 15, lineHeight: 21.75 }]}>{row.note}</Label></View></View> : null}
         {row.created_at ? <Muted style={{ fontSize: 14 }}>{t.requestedOn} {f.date(row.created_at)}</Muted> : null}
       </Card>
-      {kind !== 'todo' ? <Card style={{ gap: 10, borderWidth: 1.5, borderColor: st.color }}><View style={[styles.row, { gap: 10 }]}><Icon name={st.icon} weight="fill" size={28} color={st.color} /><View style={styles.grow}><Muted style={[styles.bold, { fontSize: 13 }]}>{t.recordedAs} · {f.time(row.last_attempt_at)}</Muted><Title style={{ fontSize: 17 }}>{kind === 'full' ? t.rFull : kind === 'partial' ? t.rPartial : t.rFailed}</Title></View></View>
+      {kind !== 'todo' ? <Card style={{ gap: 10, borderWidth: 1.5, borderColor: st.color }}><View style={[styles.row, { gap: 10 }]}><Icon name={st.icon} weight="fill" size={28} color={st.color} /><View style={styles.grow}><Muted style={[styles.bold, { fontSize: 13 }]}>{t.recordedAs} · {f.time(row.last_attempt_at)}</Muted><Title style={{ fontSize: 17 }}>{kind === 'full' ? t.rFull : kind === 'partial' ? t.rPartial : t.rFailed}</Title><DecisionLine row={row} fontSize={14} /></View></View>
         {detail ? <Label style={{ fontSize: 15, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12, backgroundColor: colors.surface2 }}>{detail}</Label> : null}<OpsButton wrong /></Card> : null}
     </>}
   </PageFrame>;

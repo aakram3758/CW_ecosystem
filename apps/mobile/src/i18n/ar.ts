@@ -159,6 +159,8 @@ export const ar = {
     declared: 'الوزن المعلن من الفرع', branchPhoto: 'صورة الميزان من الفرع', tapEnlarge: 'اضغط للتكبير', branchNote: 'ملاحظة الفرع',
     requestedOn: 'طُلب في', record: 'تسجيل نتيجة الزيارة', continueDraft: 'متابعة التسجيل', recordedAs: 'تم التسجيل',
     wrongEntry: 'سجّلت نتيجة خاطئة؟ تواصل مع العمليات',
+    // [added] The decision on a recorded stop; the canvas never draws one. Wording approved in chat, 3 November 2026.
+    decisionPending: 'بانتظار قرار العمليات', decisionRescheduled: 'أُعيدت جدولتها ليوم {date}', decisionClosed: 'مغلقة', decisionCancelled: 'ملغاة',
     outcomeTitle: 'نتيجة الزيارة', step1: '1 · النتيجة', step2: '2 · التوثيق', step3: '3 · الإرسال', question: 'هل استلمت الكمية المكتوبة؟',
     oFull: 'نعم، استلمتها كاملة', oFullSub: 'صوّر الميزان وأرسل – يُغلق الطلب', oPartial: 'لا، الكمية مختلفة', oPartialSub: 'صورة الميزان + ملاحظة – يحتاج قرار',
     oFailed: 'تعذّر الاستلام', oFailedSub: 'اختر السبب – بدون صورة',
