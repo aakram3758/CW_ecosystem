@@ -58,6 +58,7 @@ export const en = {
     // written to match the voice around them and are flagged for design review.
     camDenied: 'Camera permission was not granted. Turn it on in your phone settings, or pick a photo from the gallery.',
     galDenied: 'Photo permission was not granted. Turn it on in your phone settings.',
+    openSettings: 'Open settings', camDeniedDriver: 'Camera permission was not granted. Turn it on in your phone settings.',
     locDenied: 'Location permission was not granted. Turn it on in your phone settings, or drag the pin on the map yourself.',
     locFailed: 'Couldn’t find your location. Drag the pin on the map yourself.',
   },

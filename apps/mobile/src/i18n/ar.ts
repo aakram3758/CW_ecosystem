@@ -75,6 +75,8 @@ export const ar = {
     // written to match the voice around them and are flagged for design review.
     camDenied: 'لم نحصل على إذن الكاميرا. فعّله من إعدادات الهاتف، أو اختر صورة من المعرض.',
     galDenied: 'لم نحصل على إذن الصور. فعّله من إعدادات الهاتف.',
+    // [added] audit v2: the button beside a refused camera or photos permission, and the driver's own line (no gallery). 3 November 2026.
+    openSettings: 'فتح الإعدادات', camDeniedDriver: 'لم نحصل على إذن الكاميرا. فعّله من إعدادات الهاتف.',
     locDenied: 'لم نحصل على إذن الموقع. فعّله من إعدادات الهاتف، أو حرّك الدبوس على الخريطة يدويًا.',
     locFailed: 'تعذّر تحديد موقعك. حرّك الدبوس على الخريطة يدويًا.',
   },

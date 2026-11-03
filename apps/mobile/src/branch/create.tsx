@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, BackHandler, Image, Pressable, TextInput, View } from 'react-native';
+import { ActivityIndicator, BackHandler, Image, Linking, Pressable, TextInput, View } from 'react-native';
 import { digits } from '@/data/auth-api';
 import { errorCode, errorMessage } from '@/data/errors';
 import { takePhoto, pickPhoto, type Photo as DevicePhoto } from '@/data/device';
@@ -33,6 +33,7 @@ export function CreateScreen() {
   const [photo, setPhoto] = useState<'none' | 'uploading' | 'chosen'>(editing?.branch_photo_path ? 'chosen' : 'none');
   const [chosenPhoto, setChosenPhoto] = useState<DevicePhoto | null>(null);
   const [photoError, setPhotoError] = useState('');
+  const [photoDenied, setPhotoDenied] = useState(false);
   const picking = useRef(false);
   const [sheetMaterial, setSheetMaterial] = useState<MaterialRow | null>(null);
   const material = data.materials.find(m => m.id === materialId);
@@ -72,13 +73,13 @@ export function CreateScreen() {
     picking.current = true;
     // A retake that is cancelled or refused keeps the photo already on screen.
     const before = photo;
-    setPhoto('uploading'); setPhotoError('');
+    setPhoto('uploading'); setPhotoError(''); setPhotoDenied(false);
     const result = await (camera ? takePhoto() : pickPhoto());
     picking.current = false;
     if (result.ok) { setChosenPhoto(result.photo); setPhoto('chosen'); }
     else {
       setPhoto(before);
-      if (result.reason === 'denied') setPhotoError(camera ? copy.shared.camDenied : copy.shared.galDenied);
+      if (result.reason === 'denied') { setPhotoError(camera ? copy.shared.camDenied : copy.shared.galDenied); setPhotoDenied(true); }
       else if (result.reason === 'failed') setPhotoError(t.photoFail);
     }
   }
@@ -260,6 +261,8 @@ export function CreateScreen() {
             </View>
           </View>}
           {photoError ? <ErrorLine>{photoError}</ErrorLine> : null}
+          {/* The OS asks only once: after a refusal the only way back is the app's page in Settings. */}
+          {photoDenied ? <TextLink label={copy.shared.openSettings} onPress={() => void Linking.openSettings().catch(() => {})} /> : null}
         </Card>
         <Card style={styles.card}>
           <View style={[styles.row, { justifyContent: 'space-between' }]}><Label style={[styles.heavy, { fontSize: 16 }]}>{t.note}</Label><Pill>{t.optional}</Pill></View>

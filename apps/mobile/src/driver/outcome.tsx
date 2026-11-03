@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Image, Pressable, View } from 'react-native';
+import { Image, Linking, Pressable, View } from 'react-native';
 import { takePhoto } from '@/data/device';
 import { errorCode, errorMessage } from '@/data/errors';
 import { interpolate } from '@/i18n/copy';
@@ -16,7 +16,7 @@ export function OutcomeScreen() {
   const data = useDriver(); const f = useDriverFormat(); const { copy } = usePreferences(); const online = useOnline();
   const { t, colors } = f; const row = data.selected; const id = data.selectedId;
   const d = id ? data.drafts[id] ?? emptyDraft() : emptyDraft();
-  const [cameraBusy, setCameraBusy] = useState(false); const [cameraError, setCameraError] = useState(false);
+  const [cameraBusy, setCameraBusy] = useState(false); const [cameraError, setCameraError] = useState<false | 'failed' | 'denied'>(false);
   const [reasonWidth, setReasonWidth] = useState(0);
   const busy = data.sending || cameraBusy;
   const patch = (value: Parameters<typeof data.patchDraft>[1]) => { if (id && !busy) { data.patchDraft(id, value); data.clearSendError(); } };
@@ -25,7 +25,7 @@ export function OutcomeScreen() {
     setCameraBusy(true); setCameraError(false);
     const result = await takePhoto();
     if (result.ok) { data.patchDraft(id, { photo: result.photo, photoPath: null }); data.clearSendError(); }
-    else if (result.reason !== 'cancelled') setCameraError(true);
+    else if (result.reason !== 'cancelled') setCameraError(result.reason);
     setCameraBusy(false);
   }
   const reasonValid = !!d.reasonId && (data.reasons.data ?? []).some(r => r.id === d.reasonId && r.kind === d.kind);
@@ -68,7 +68,10 @@ export function OutcomeScreen() {
           {d.photo ? <><View style={{ height: 180, borderRadius: 18, overflow: 'hidden' }}><Image source={{ uri: d.photo.uri }} accessibilityLabel={t.scalePhoto} style={{ width: '100%', height: 180 }} /><View style={{ position: 'absolute', bottom: 10, left: 10 }}><Pill icon="check" height={32} radius={10} weight={800} color={white} background={photoGreen}>{t.photoOk}</Pill></View></View><Button tone="outline" label={t.retake} icon="arrow-counter-clockwise" iconSize={15} fontSize={15} disabled={busy} style={{ minHeight: 50, borderRadius: 14 }} onPress={() => void camera()} /></>
             : <Pressable accessibilityRole="button" accessibilityLabel={`${t.takePhoto}. ${t.photoHint}`} disabled={busy} onPress={() => void camera()} style={state => [{ height: 180, borderWidth: 2, borderStyle: 'dashed', borderColor: colors.primary, borderRadius: 20, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center', gap: 8 }, press(state)]}>
               <Tile icon="camera" weight="bold" size={72} radius={36} iconSize={36} color={colors.onPrimary} background={colors.primary} /><Title style={{ fontSize: 19, color: colors.primary }}>{t.takePhoto}</Title><Label style={[styles.bold, { fontSize: 14 }]}>{t.photoHint}</Label></Pressable>}
-          {cameraError ? <ErrorLine>{t.errBody}</ErrorLine> : null}
+          {cameraError === 'failed' ? <ErrorLine>{t.errBody}</ErrorLine> : null}
+          {/* The OS asks only once: after a refusal the only way back is the app's page in Settings. */}
+          {cameraError === 'denied' ? <><ErrorLine>{copy.shared.camDeniedDriver}</ErrorLine>
+            <Button tone="outline" label={copy.shared.openSettings} fontSize={15} style={{ minHeight: 50, borderRadius: 14 }} onPress={() => void Linking.openSettings().catch(() => {})} /></> : null}
         </View> : null}
         {reasonNeeded ? data.reasons.isPending ? <LoadingCards /> : data.reasons.isError ? <ErrorState onRetry={() => void data.reasons.refetch()} /> : <View style={{ gap: 10 }}>
           <View style={[styles.row, { justifyContent: 'space-between' }]}><Title style={{ fontSize: 17 }}>{d.kind === 'partial' ? t.noteLabel : t.reasonLabel}</Title>{d.kind === 'partial' ? <Pill height={24} padding={8} radius={7} fontSize={12} weight={800}>{t.required}</Pill> : null}</View>
