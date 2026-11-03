@@ -913,6 +913,9 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           created_via: string | null
+          creator_name: string | null
+          creator_name_en: string | null
+          creator_phone: string | null
           decision_since: string | null
           district_id: string | null
           district_name_ar: string | null

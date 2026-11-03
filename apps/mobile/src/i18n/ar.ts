@@ -178,7 +178,8 @@ export const ar = {
     todayProgress: 'تقدّم اليوم', next: 'الزيارة التالية', toPlan: 'العودة للخطة', backHome: 'الرئيسية', lastDone: 'كانت هذه آخر زيارة اليوم',
     upTitle: 'الخطة القادمة', viewOnly: 'للعرض فقط', approved: 'معتمدة', upEmpty: 'لم تُعتمد الخطة القادمة بعد', upEmptySub: 'سيصلك إشعار فور اعتمادها من العمليات.',
     approvedAt: 'يوم العمل التالي · اعتُمدت {when}',
-    contactLabel: 'صاحب الطلب', callContact: 'اتصال بصاحب الطلب', noBranchPhoto: 'لم يرفق الفرع صورة للميزان', noBranchPhotoSub: 'اعتمد على الوزن المكتوب، وصوّر الميزان عند الاستلام.',
+    // [added] adminLabel, adminNote: a dashboard request's creator card and note label. Approved in chat, 3 November 2026.
+    contactLabel: 'صاحب الطلب', adminLabel: 'طلب من الإدارة', adminNote: 'ملاحظة الإدارة', callContact: 'اتصال بصاحب الطلب', noBranchPhoto: 'لم يرفق الفرع صورة للميزان', noBranchPhotoSub: 'اعتمد على الوزن المكتوب، وصوّر الميزان عند الاستلام.',
     lockedTitle: 'تم إيقاف الدخول مؤقتًا', lockedBody: '5 محاولات خاطئة. حاول بعد 15 دقيقة، أو تواصل مع العمليات لفتح الحساب.',
     // [changed] twice: PIN -> password, then the redrawn sign-in screen's own wording, which
     // names the field that was wrong and counts out of five. Was: 'الرقم السري غير صحيح – تبقّى {n}'

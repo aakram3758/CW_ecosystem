@@ -160,7 +160,7 @@ export const en = {
     todayProgress: 'Today’s progress', next: 'Next visit', toPlan: 'Back to plan', backHome: 'Home', lastDone: 'That was today’s last visit',
     upTitle: 'Next plan', viewOnly: 'View only', approved: 'Approved', upEmpty: 'Your next plan isn’t approved yet', upEmptySub: 'You’ll be notified as soon as Operations approves it.',
     approvedAt: 'Next working day · approved {when}',
-    contactLabel: 'Requested by', callContact: 'Call requester', noBranchPhoto: 'The branch didn’t attach a scale photo', noBranchPhotoSub: 'Go by the stated weight and photograph the scale at pickup.',
+    contactLabel: 'Requested by', adminLabel: 'Requested by Operations', adminNote: 'Operations note', callContact: 'Call requester', noBranchPhoto: 'The branch didn’t attach a scale photo', noBranchPhotoSub: 'Go by the stated weight and photograph the scale at pickup.',
     lockedTitle: 'Sign-in paused', lockedBody: '5 wrong attempts. Try again in 15 minutes, or contact Operations to unlock.',
     // [changed] twice: PIN -> password, then the redrawn sign-in screen's own wording, which
     // names the field that was wrong and counts out of five. Was: 'Wrong PIN – {n} left'
