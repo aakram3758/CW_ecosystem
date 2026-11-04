@@ -30,6 +30,7 @@ export function ListsPage() {
   const [kind, setKind] = useState<ReasonKind>('failed');
   const [edit, setEdit] = useState<{ id: string; ar: string; en: string; err: string } | null>(null);
   const [add, setAdd] = useState('');
+  const [addEn, setAddEn] = useState('');
   const [addErr, setAddErr] = useState('');
 
   const rows = catalog.data;
@@ -57,15 +58,19 @@ export function ListsPage() {
     const ar = norm(edit.ar);
     const en = norm(edit.en);
     if (!ar) return setEdit({ ...edit, err: s.errText });
-    if (dupe(ar, edit.id) || (en && dupe(en, edit.id))) return setEdit({ ...edit, err: s.errDupe });
-    if (await run(() => updateReason(edit.id, { ar, en: en || ar }), s.saved)) setEdit(null);
+    if (!en) return setEdit({ ...edit, err: s.errTextEn });
+    if (dupe(ar, edit.id) || dupe(en, edit.id)) return setEdit({ ...edit, err: s.errDupe });
+    if (await run(() => updateReason(edit.id, { ar, en }), s.saved)) setEdit(null);
   };
 
   const submitAdd = async () => {
+    // Both names are required (B23), so a reason never shows in Arabic on the English screens.
     const v = norm(add);
+    const ve = norm(addEn);
     if (!v) return setAddErr(s.errText);
-    if (dupe(v)) return setAddErr(s.errDupe);
-    if (await run(() => addReason(kind, { ar: v, en: v }), s.added(v))) setAdd('');
+    if (!ve) return setAddErr(s.errTextEn);
+    if (dupe(v) || dupe(ve)) return setAddErr(s.errDupe);
+    if (await run(() => addReason(kind, { ar: v, en: ve }), s.added(lang === 'ar' ? v : ve))) (setAdd(''), setAddEn(''));
   };
 
   let pos = 0;
@@ -78,7 +83,7 @@ export function ListsPage() {
             tone="dark"
             label={s.tabsLabel}
             value={kind}
-            onChange={(k) => (setKind(k), setEdit(null), setAdd(''), setAddErr(''))}
+            onChange={(k) => (setKind(k), setEdit(null), setAdd(''), setAddEn(''), setAddErr(''))}
             options={KINDS.map((k) => ({ value: k, label: s.meta[k].tab, count: (rows?.reasons ?? []).filter((r) => r.kind === k && r.active).length }))}
           />
         </div>
@@ -158,7 +163,10 @@ export function ListsPage() {
                 }}
               >
                 <span className="flex gap-2">
-                  <Input aria-label={s.addLabel} placeholder={s.addPh} value={add} aria-invalid={!!addErr} onChange={(e) => (setAdd(e.target.value), setAddErr(''))} />
+                  <span className="grid flex-1 gap-2 sm:grid-cols-2">
+                    <Input aria-label={s.addLabel} placeholder={s.addPh} value={add} aria-invalid={!!addErr} onChange={(e) => (setAdd(e.target.value), setAddErr(''))} />
+                    <Input aria-label={s.newTextEn} dir="ltr" placeholder={s.newTextEn} value={addEn} aria-invalid={!!addErr} onChange={(e) => (setAddEn(e.target.value), setAddErr(''))} />
+                  </span>
                   <Button type="submit" variant="primary" disabled={busy}>
                     {a.add}
                   </Button>

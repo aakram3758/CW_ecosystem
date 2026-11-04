@@ -6,24 +6,38 @@
     "orientation": "portrait",
     "scheme": "cloudswater",
     "userInterfaceStyle": "automatic",
+    "icon": "./assets/icon.png",
     "locales": {
       "en": "./locales/en.json"
     },
     "android": {
       "package": "co.cloudswater.app",
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0B2340"
+      }
     },
     "ios": {
       "bundleIdentifier": "co.cloudswater.app",
-      "supportsTablet": false
+      "supportsTablet": false,
+      "buildNumber": "1",
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
+          "image": "./assets/cw-logo.png",
+          "imageWidth": 150,
+          "resizeMode": "contain",
           "backgroundColor": "#0B2340",
           "dark": {
+            "image": "./assets/cw-logo.png",
             "backgroundColor": "#071322"
           }
         }

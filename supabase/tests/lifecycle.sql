@@ -182,6 +182,10 @@ select pg_temp.err(format('select public.branch_cancel_request(%L)', (select v f
 select pg_temp.ok(private.photo_access('branch/' || (select b207 from ids) || '/x.jpg', true), 'branch can upload to its own photo folder');
 select pg_temp.ok(not private.photo_access('branch/' || (select b212 from ids) || '/x.jpg', true), 'branch cannot upload to another branch folder');
 select pg_temp.ok((select count(*) from public.notifications) > 0, 'branch got notifications (visit scheduled)');
+select set_config('t.n1', (select id::text from public.notifications where read_at is null order by created_at limit 1), true);
+select public.mark_notification_read(current_setting('t.n1')::bigint);
+select pg_temp.ok((select read_at is not null from public.notifications where id = current_setting('t.n1')::bigint)
+  and (select count(*) from public.notifications where read_at is null) = (select count(*) from public.notifications) - 1, 'opening one notification reads only that one (24, S9)');
 select public.mark_notifications_read();
 select pg_temp.ok(not exists (select 1 from public.notifications where read_at is null), 'mark all read');
 select pg_temp.err(format('select public.branch_set_location(%s, %s)', 100, 39), 'INVALID_LOCATION', 'location bounds checked');
@@ -274,6 +278,8 @@ select pg_temp.ok(not has_function_privilege('anon', 'private.my_attempted_reque
   and not has_function_privilege('anon', 'private.request_creator(uuid)', 'EXECUTE')
   and has_function_privilege('authenticated', 'private.my_attempted_request_ids()', 'EXECUTE')
   and has_function_privilege('authenticated', 'private.request_creator(uuid)', 'EXECUTE'), 'the two driver helpers closed to anon, kept for authenticated (24)');
+select pg_temp.ok(not has_function_privilege('anon', 'public.mark_notification_read(bigint)', 'EXECUTE')
+  and has_function_privilege('authenticated', 'public.mark_notification_read(bigint)', 'EXECUTE'), 'mark_notification_read closed to anon (24, S9)');
 
 \echo 'ALL CHECKS PASSED'
 rollback;

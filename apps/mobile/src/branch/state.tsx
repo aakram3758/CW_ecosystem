@@ -1,5 +1,5 @@
 import { opsToday } from '@/ui/date';
-import { fetchNotifications, markNotificationsRead } from '@/data/shared-api';
+import { fetchNotifications, markNotificationRead, markNotificationsRead } from '@/data/shared-api';
 import { createContext, useContext, useEffect, useState, type PropsWithChildren } from 'react';
 import { supabase } from '@/data/supabase';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -172,6 +172,9 @@ function useBranchState() {
   const readAll = useMutation({ mutationFn: markNotificationsRead,
     onSuccess: () => client.invalidateQueries({ queryKey: KEYS.notifications }),
   });
+  const readOne = useMutation({ mutationFn: markNotificationRead,
+    onSuccess: () => client.invalidateQueries({ queryKey: KEYS.notifications }),
+  });
 
   // ---------------------------------------------------------------- derived
   const rows = requests.data ?? [];
@@ -256,6 +259,11 @@ function useBranchState() {
     edit: (args: Omit<EditRequestArgs, 'p_photo_path'>, photo: Photo | null) => edit.mutate({ args, photo }),
     cancelRequest: (requestId: string) => cancel.mutate(requestId),
     markAllRead: () => readAll.mutate(),
+    /** Opening a notification reads it (S9) and opens its request, when it has one. */
+    openNotification: (n: { id: number; read_at: string | null; request_id: string | null }) => {
+      if (!n.read_at) readOne.mutate(n.id);
+      if (n.request_id) openRequest(n.request_id);
+    },
   };
 }
 

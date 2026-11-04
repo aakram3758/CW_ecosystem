@@ -172,7 +172,7 @@ these reads; phase B swaps the source.
 | Change password | `auth.updateUser({ password })` then `rpc('complete_password_change')` |
 | Verify the current password (Account → change password) | `auth.signInWithPassword` with the same email before `updateUser` (brief 07:41; it skips the sign-in lock, see supabase/README.md) |
 | Notifications | `notifications` → `id, kind, title_ar, title_en, body_ar, body_en, link, request_id, read_at, created_at`, newest first |
-| Mark them read | `rpc('mark_notifications_read')` |
+| Mark them read | `rpc('mark_notifications_read')`; one, when the branch opens it: `rpc('mark_notification_read', { p_id })` |
 | Ops phone | `app_settings` → `value` where `key = 'ops_phone'` |
 
 Notification text is already written in both languages by the database; the app picks the column, it never
@@ -538,7 +538,7 @@ Mock data out, Supabase in. Reads go through RLS, every write goes through an RP
 - [x] Driver reads: today's plan, the next plan with its approval time, `visit_attempts` for
       history, `driver_days_off`, `reasons`, `notifications` — `src/data/driver-api.ts`
 - [x] Driver writes: `driver_record_outcome`
-- [x] Everyone: `mark_notifications_read`
+- [x] Everyone: `mark_notifications_read`; the branch also `mark_notification_read` on open (migration 24, S9)
 - [x] Photo upload, both halves — private bucket `request-photos`, uploaded before the row is
       written: the branch's `branch/<branch_id>/…`, the driver's `request/<request_id>/…`. Both read
       the file with `expo-file-system`'s `File`.
@@ -661,3 +661,25 @@ their absence: the contact button hides rather than showing a number that isn't 
 - **Sign-in preferences.** The globe and moon stay in the sign-in hero; the moon toggles dark / light (see stage 1 above).
 - **Cancelled by Ops.** A request Ops cancelled says so, with the reason: «ألغاه فريق التشغيل. السبب: …» (new copy, no artboard).
 - **English branch name.** `name_en`, falling back to the district; the dashboard edits it on Branches.
+- **Opening a notification reads it** (branch). Only that one; "mark all" stays for the rest (migration 24).
+- **Reasons have both names.** The dashboard's Lists page needs the Arabic and the English text, so the apps never show
+  an Arabic reason on an English screen.
+
+## Store builds (prepared Nov 2026, not run)
+
+`eas.json` has two profiles: `preview` (internal; Android as an APK for side-loading) and `production` (store). Build
+numbers come from EAS (`appVersionSource: remote`, `autoIncrement` on production), starting from `buildNumber` 1 /
+`versionCode` 1 in app.json. `version` (1.0.0) is the one shown in the stores; raise it by hand per release.
+
+- **Icon:** `assets/icon.png` (1024², navy with the gold mark) and `assets/adaptive-icon.png` (Android foreground on
+  `#0B2340`). Both are built from `cw-mark.png`; replace them if the client sends a higher-resolution artwork.
+- **Native splash:** `cw-logo.png` at 150 wide on navy (dark `#071322`), small enough to stay inside Android 12's
+  round mask. The animated JS splash follows it.
+- **Export compliance:** `ios.config.usesNonExemptEncryption: false` (the app only uses HTTPS).
+- **Still to do, under the client's Expo account** (not done here, it writes to expo.dev):
+  1. `npx eas-cli@latest login`, then `npx eas-cli@latest init` from `apps/mobile` (adds `extra.eas.projectId` and `owner`
+     to app.json; commit that).
+  2. The two build variables, for the `preview` and `production` environments, plain text (both are public keys):
+     `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY`, with `npx eas-cli@latest env:create`. A build without
+     them crashes at launch (`data/supabase.ts`).
+  3. `npx eas-cli@latest build --profile preview --platform android` for a device test, then `--profile production`.

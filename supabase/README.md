@@ -13,7 +13,7 @@ so the two apps can never disagree.
 | `migrations/` | The schema, applied in order (01 → 24). File versions match the live migration history 1:1. 01–23 are applied to the live project; 24 (`20261104000000_audit_fixes.sql`) is applied once you run it, then renamed to the version the live project gives it. |
 | `functions/` | Edge Functions `create-account` and `reset-password` (JWT required, staff only), and `sign-in` and `chains` (no JWT — the branch + driver apps call them before there is a session). `chains` returns the active chains and `app_settings.ops_phone` for «نسيت كلمة المرور؟». |
 | `seed/demo.sql` | Demo branches, drivers and 40 requests in every state, dated relative to the day it runs. Already loaded. |
-| `tests/lifecycle.sql` | 96 end-to-end checks as GM / supervisor / branch / driver, including the rules of migrations 21, 23 and 24. Runs in one transaction and rolls back. Expects the demo seed data. Run with `psql -f` (it uses psql meta-commands). |
+| `tests/lifecycle.sql` | 98 end-to-end checks as GM / supervisor / branch / driver, including the rules of migrations 21, 23 and 24. Runs in one transaction and rolls back. Expects the demo seed data. Run with `psql -f` (it uses psql meta-commands). |
 | `tests/phase2.sql` | Checks for 13–16 (morning notice, sign-in lock, temporary passwords) and 24 (a reset ends every session). Ends with a deliberate error that rolls back; the message says `ALL CHECKS PASSED`. |
 
 ## Rules enforced by the database
@@ -92,7 +92,7 @@ Staff: `staff_late_branches`, `staff_report_v2`, `staff_create_request`, `staff_
 `staff_list_staff`, `staff_update_staff`, `staff_set_account_active`, `staff_branch_overview`,
 `staff_driver_overview`, `staff_reason_usage`, `staff_set_driver_day`, `staff_set_material_manager`.
 Branch app: `branch_set_location`, `branch_create_request`, `branch_update_request`, `branch_cancel_request`.
-Driver app: `driver_record_outcome`. Everyone: `mark_notifications_read`, `complete_password_change`.
+Driver app: `driver_record_outcome`. Everyone: `mark_notifications_read`, `mark_notification_read` (one notification, when it is opened), `complete_password_change`.
 
 Errors come back as UPPER_SNAKE codes in the message (e.g. `DUPLICATE_OPEN_REQUEST`, `REASON_REQUIRED`) for the apps to translate.
 

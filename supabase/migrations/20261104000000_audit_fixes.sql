@@ -1,5 +1,5 @@
 -- 24 — audit fixes (docs/audit-report.md and audit-report-v2.md, kept local): B1, B3, B4, B16, B17, B18, B20, B32,
--- B36, S2, S3, and from v2 N3 and N4 (the two helpers migrations 21 and 23 added also kept PUBLIC EXECUTE).
+-- B36, S2, S3, S9, and from v2 N3 and N4 (the two helpers migrations 21 and 23 added also kept PUBLIC EXECUTE).
 --
 -- B1  An account still on its temporary password can do nothing but change it: the role helpers return null while
 --     `must_change_password` is true. Its own profile stays readable (`profiles_read` checks `auth.uid()`, not a
@@ -18,6 +18,7 @@
 -- B36 A reset signs the account out everywhere. The Auth admin API can only sign out a token it is handed, and
 --     `reset-password` has the user id, not the user's token, so `set_temp_password` deletes the sessions itself.
 --     Their refresh tokens go with them (cascade); an access token already issued lasts until it expires (≤ 1 h).
+-- S9  Opening one notification in the branch app reads just that one (`mark_notification_read`); only "mark all" existed.
 
 -- ---------------------------------------------------------------- B36: a reset ends every session
 
@@ -298,3 +299,12 @@ begin
       private.request_label(p_request_id, 'ar'), private.request_label(p_request_id, 'en'), null, p_request_id, v_req.material_id);
   end if;
 end $$;
+
+-- ---------------------------------------------------------------- S9: opening one notification reads it
+
+create or replace function public.mark_notification_read(p_id bigint) returns void
+language sql security definer set search_path = '' as $$
+  update public.notifications set read_at = now() where id = p_id and user_id = auth.uid() and read_at is null
+$$;
+revoke execute on function public.mark_notification_read(bigint) from public, anon;
+grant execute on function public.mark_notification_read(bigint) to authenticated;

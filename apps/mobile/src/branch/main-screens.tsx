@@ -217,7 +217,7 @@ export function NotificationsScreen() {
       const warning = n.kind === 'request_follow_up';
       const done = n.kind === 'request_completed';
       return <Card key={n.id} style={{ borderRadius: 18, padding: 14, gap: 10, backgroundColor: n.read_at ? colors.surface : colors.primarySoft }}>
-        <Pressable accessibilityRole="button" onPress={() => n.request_id && data.openRequest(n.request_id)} style={[styles.row, { alignItems: 'flex-start', minHeight: 44 }]}>
+        <Pressable accessibilityRole="button" onPress={() => data.openNotification(n)} style={[styles.row, { alignItems: 'flex-start', minHeight: 44 }]}>
           <Tile icon={icons[n.kind] ?? 'bell'} color={warning ? colors.warning : done ? colors.success : colors.link}
             background={warning ? colors.warningSoft : done ? colors.successSoft : colors.primarySoft} />
           <View style={[styles.grow, { gap: 3 }]}>
