@@ -565,7 +565,7 @@ word — `feat/mobile-app` is pushed and a PR opened.
 
 Each one is a **new** migration; nothing already applied is ever edited. File versions match the live migration
 history (renamed in the audit, Nov 2026), so a new file takes the version the live project gives it when applied.
-01–23 are live; 24 is `20261104000000_audit_fixes.sql` (it takes the version the live project gives it when applied).
+01–24 are live; 24 is `20261122181353_audit_fixes.sql` (applied 22 Nov 2026).
 
 | # | What | When |
 | --- | --- | --- |
@@ -577,7 +577,7 @@ history (renamed in the audit, Nov 2026), so a new file takes the version the li
 | 21 | A driver may read the branch, request and photos behind any `visit_attempts` row of their own, not only what they are assigned right now — see *Driver history* above. Also: a driver reads their own `plan_approvals` rows, and `driver_days_off` and `plan_approvals` join `supabase_realtime` | phase B, applied 2 November |
 | 22 | `reasons.icon`: the Phosphor name the driver canvas draws on a failed reason's tile, set for the four failed reasons; null falls back to the app's default icon (`20261103153545_reason_icons.sql`) | phase B, applied 3 November |
 | 23 | `request_list` gains `creator_name`, `creator_name_en` and `creator_phone` for a dashboard request, through the `security definer` helper `private.request_creator`, which returns a staff profile only to a driver or staff; the driver's stop screen shows that person in place of a contact (`20261103154719_request_creator.sql`) | phase B, applied 3 November |
-| 24 | The audit's fixes (temporary password = no role, photo paths, races, inactive materials, closed private functions, a reset ends every session) and from the second audit: the sweep's `no_result` gives a driver no lasting read, and the two helpers from 21 and 23 lose PUBLIC EXECUTE (`20261104000000_audit_fixes.sql`) | audit, **not applied yet** |
+| 24 | The audit's fixes (temporary password = no role, photo paths, races, inactive materials, closed private functions, a reset ends every session) and from the second audit: the sweep's `no_result` gives a driver no lasting read, and the two helpers from 21 and 23 lose PUBLIC EXECUTE (`20261122181353_audit_fixes.sql`) | audit, live 22 Nov 2026 |
 
 All four premises were checked against the live database on 2026-10-27, not assumed:
 

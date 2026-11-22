@@ -10,7 +10,7 @@ so the two apps can never disagree.
 
 | Folder | What |
 | --- | --- |
-| `migrations/` | The schema, applied in order (01 → 24). File versions match the live migration history 1:1. 01–23 are applied to the live project; 24 (`20261104000000_audit_fixes.sql`) is applied once you run it, then renamed to the version the live project gives it. |
+| `migrations/` | The schema, applied in order (01 → 24). File versions match the live migration history 1:1. 01–24 are applied to the live project (24, `20261122181353_audit_fixes.sql`, on 22 Nov 2026). |
 | `functions/` | Edge Functions `create-account` and `reset-password` (JWT required, staff only), and `sign-in` and `chains` (no JWT — the branch + driver apps call them before there is a session). `chains` returns the active chains and `app_settings.ops_phone` for «نسيت كلمة المرور؟». |
 | `seed/demo.sql` | Demo branches, drivers and 40 requests in every state, dated relative to the day it runs. Already loaded. |
 | `tests/lifecycle.sql` | 98 end-to-end checks as GM / supervisor / branch / driver, including the rules of migrations 21, 23 and 24. Runs in one transaction and rolls back. Expects the demo seed data. Run with `psql -f` (it uses psql meta-commands). |
