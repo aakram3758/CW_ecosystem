@@ -69,6 +69,12 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "6522f029-5afe-46db-aa53-05c3ddf4ebf2"
+      }
+    },
+    "owner": "ahmedakram12"
   }
 }

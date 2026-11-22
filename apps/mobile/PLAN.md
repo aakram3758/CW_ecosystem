@@ -677,8 +677,8 @@ numbers come from EAS (`appVersionSource: remote`, `autoIncrement` on production
   round mask. The animated JS splash follows it.
 - **Export compliance:** `ios.config.usesNonExemptEncryption: false` (the app only uses HTTPS).
 - **Still to do, under the client's Expo account** (not done here, it writes to expo.dev):
-  1. `npx eas-cli@latest login`, then `npx eas-cli@latest init` from `apps/mobile` (adds `extra.eas.projectId` and `owner`
-     to app.json; commit that).
+  1. Done (Nov 2026): `eas init` linked the project; app.json keeps only `extra.eas.projectId` and `owner` from it. Move
+     the project to the client's account before the store builds if it should not stay under this one.
   2. The two build variables, for the `preview` and `production` environments, plain text (both are public keys):
      `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY`, with `npx eas-cli@latest env:create`. A build without
      them crashes at launch (`data/supabase.ts`).
