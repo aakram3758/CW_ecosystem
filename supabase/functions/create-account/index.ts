@@ -39,7 +39,14 @@ Deno.serve(async (req) => {
     }
     email = givenEmail || `s-${phone}@${STAFF_DOMAIN}`;
     profile = { role: 'staff', display_name: name, display_name_en: (body.display_name_en as string | undefined)?.trim() || null, phone: phone || null };
-    materialIds = Array.isArray(body.material_ids) ? (body.material_ids as unknown as string[]) : [];
+    materialIds = Array.isArray(body.material_ids) ? (body.material_ids as unknown as string[]).map(String) : [];
+    // Checked before the account exists: a bad id would otherwise leave a manager without their materials.
+    if (materialIds.length) {
+      if (materialIds.some((id) => !/^[0-9a-f-]{36}$/i.test(id))) return json({ error: 'INVALID_MATERIAL' }, 400);
+      const { data: found, error: findError } = await db.from('materials').select('id').in('id', materialIds);
+      if (findError) return json({ error: 'SERVER_ERROR' }, 500);
+      if ((found ?? []).length !== new Set(materialIds).size) return json({ error: 'INVALID_MATERIAL' }, 400);
+    }
   } else if (body.kind === 'branch') {
     const { data: b } = await db
       .from('branches')
@@ -90,7 +97,13 @@ Deno.serve(async (req) => {
     await db.auth.admin.deleteUser(userId); // profile cascades; the branch/driver link is set back to null
     return json({ error: 'AUTH_ERROR', detail: passwordError.message }, 500);
   }
-  if (materialIds.length) await db.from('materials').update({ manager_id: userId }).in('id', materialIds);
+  if (materialIds.length) {
+    const { error: assignError } = await db.from('materials').update({ manager_id: userId }).in('id', materialIds);
+    if (assignError) {
+      await db.auth.admin.deleteUser(userId); // no account that silently manages nothing
+      return json({ error: 'ASSIGN_FAILED', detail: assignError.message }, 500);
+    }
+  }
 
   return json({ user_id: userId, login: email, temp_password: password });
 });
