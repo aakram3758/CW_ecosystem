@@ -16,7 +16,7 @@ import type {
   SubtypeCode,
   VisitOutcome,
 } from './types';
-import { CODES, DISTRICTS, IDS, MATERIALS, REASONS, setCatalog, type CatalogRows } from './catalog';
+import { CHAINS, CITIES, CODES, DISTRICTS, IDS, MATERIALS, REASONS, SUBTYPES, setCatalog, type CatalogRows } from './catalog';
 import { ApiError, supabase, toApiError } from '../lib/supabase';
 import { addDays, nextWorkingDay, opsToday } from '../lib/dates';
 import { initials } from '../lib/format';
@@ -327,6 +327,12 @@ export async function fetchRequests(): Promise<RequestRow[]> {
   ]);
   const byRequest = new Map<string, Attempt[]>();
   attempts.forEach((a) => byRequest.set(a.request_id, [...(byRequest.get(a.request_id) ?? []), toAttempt(a)]));
+  // A request can name a material, subtype, chain, city or district added since this tab loaded the catalog
+  // (another staff member's work). The screens look those up without a fallback, so reload the catalog first.
+  const unknown = (r: ListRow) =>
+    !MATERIALS[r.material_code] || (r.subtype_code !== null && !SUBTYPES[r.subtype_code]) ||
+    !CHAINS[r.chain_code] || !CITIES[r.city_code] || !DISTRICTS[r.district_id];
+  if (list.some(unknown)) await loadCatalog();
   return list.map((r) => {
     uuids.set(ref(r.number), r.id);
     return toRow(r, byRequest.get(r.id) ?? []);

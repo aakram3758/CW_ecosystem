@@ -233,8 +233,10 @@ export async function createMaterial(v: { nameAr: string; nameEn: string; light:
 
 export async function addSubtype(material: MaterialCode, v: LocalizedText) {
   const rows = REF.rows!;
-  const base = `${material}_${slug(v.en || '', '_', 12)}`.replace(/_$/, '');
-  const code = uniqueCode(base.length > material.length + 1 ? base : `${material}_t`, rows.subtypes.map((s) => s.code), `${material}_t`);
+  // Codes are at most 20 characters (`^[a-z0-9_]{2,20}$` in the database), and a material code can already be 20.
+  const fallback = `${material.slice(0, 18)}_t`;
+  const base = `${material}_${slug(v.en || '', '_', 12)}`.slice(0, 20).replace(/_+$/, '');
+  const code = uniqueCode(base.length > material.length + 1 ? base : fallback, rows.subtypes.map((s) => s.code), fallback);
   await run(supabase.from('material_subtypes').insert({ material_id: IDS.material[material], code, name_ar: v.ar.trim(), name_en: (v.en || v.ar).trim() }));
 }
 
