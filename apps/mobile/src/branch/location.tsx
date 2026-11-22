@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View, type GestureResponderEvent } from 'react-native';
 import Svg, { Circle, Path, Rect, Text as SvgText } from 'react-native-svg';
 import { errorMessage } from '@/data/errors';
@@ -10,6 +10,13 @@ import { branchArtwork, softFill } from '@/ui/tokens';
 import { useBranch } from './state';
 import { Footer, Muted, PageFrame, Pill, styles, Tile } from './shared';
 
+/**
+ * Where to centre the map when the phone gives no fix. `cities` has no coordinates, so these are
+ * the three seeded city codes (migration 07); anything else falls back to Jeddah.
+ */
+const cityCentres: Record<string, { lat: number; lng: number }> = {
+  jed: { lat: 21.5812, lng: 39.1689 }, mak: { lat: 21.4225, lng: 39.8262 }, ruh: { lat: 24.7136, lng: 46.6753 },
+};
 export const pointToCoords = (x: number, y: number) => ({ lat: 21.5812 - (y - 156) * .00004, lng: 39.1689 + (x - 182) * .00004 });
 export function BranchMap({ lat, lng, onMove, small = false, center = { lat: 21.5812, lng: 39.1689 },
   dot = null, locating = false, hasPin = true }: {
@@ -109,7 +116,7 @@ export function BranchMap({ lat, lng, onMove, small = false, center = { lat: 21.
 }
 export function LocationScreen() {
   const data = useBranch();
-  const { branch, confirmLocation } = data;
+  const { branch, city, confirmLocation } = data;
   const { colors, copy } = usePreferences();
   const t = copy.branch;
   // The pin — or null for a branch whose row has no coordinates at all, which two of them have.
@@ -119,7 +126,9 @@ export function LocationScreen() {
   // branch taps it or the phone answers.
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
     branch.lat !== null && branch.lng !== null ? { lat: branch.lat, lng: branch.lng } : null);
-  const [center, setCenter] = useState({ lat: 21.5812, lng: 39.1689 });
+  // The saved pin if staff entered one, otherwise the branch's own city — never another city's
+  // centre, which is what turned a hand-placed pin into coordinates in the wrong city.
+  const [center, setCenter] = useState(coords ?? cityCentres[city.code] ?? cityCentres.jed);
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState('');
   // A refused permission is a state of the screen, not a passing message: the canvas keeps the
@@ -141,6 +150,10 @@ export function LocationScreen() {
     } else if (result.reason === 'denied') setDenied(true);
     else setLocationError(copy.shared.locFailed);
   }
+  // GPS first: ask once on arrival. The map takes a hand-placed pin only after the phone has
+  // answered — a fix (then the pin can be nudged around it), a refusal, or a failure or timeout.
+  useEffect(() => { void locate(); }, []);
+  const manual = device !== null || denied || locationError !== '';
   const [confirming, setConfirming] = useState(false);
   return <>
     <PageFrame title={t.locT} trailing={<Pill>{t.locOnce}</Pill>} footer={<Footer>
@@ -171,7 +184,7 @@ export function LocationScreen() {
         </View>
       </View> : null}
       <BranchMap {...(coords ?? center)} hasPin={coords !== null} center={center} dot={device} locating={locating}
-        onMove={(lat, lng) => setCoords({ lat, lng })} />
+        onMove={manual ? (lat, lng) => setCoords({ lat, lng }) : undefined} />
       {locationError ? <ErrorLine>{locationError}</ErrorLine> : null}
       <View style={{ gap: 8 }}><Muted style={{ fontSize: 12.5 }}>{t.locHint}</Muted>
         {/* The canvas's own em dash while there is nothing to read out. */}

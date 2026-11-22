@@ -120,9 +120,10 @@ export function DriversPage() {
           <div className="text-[13px] text-muted">{s.note(nextName)}</div>
         </section>
 
-        {drivers.isError ? (
-          <ErrorState title={s.loadError} body={a.loadBody} onRetry={() => drivers.refetch()} />
-        ) : !drivers.data ? (
+        {/* The activity read too: without it every driver would show as working with switches on. */}
+        {drivers.isError || activity.isError ? (
+          <ErrorState title={s.loadError} body={a.loadBody} onRetry={() => { void drivers.refetch(); void activity.refetch(); }} />
+        ) : !drivers.data || !activity.data ? (
           <LoadingBlock>
             <div className={clsx(cardClass, 'flex flex-col gap-3 p-5')}>
               {[0, 1, 2, 3].map((i) => (
@@ -306,7 +307,7 @@ function DriverDialog({
     }
     let id = '';
     if (!(await run(async () => (id = await createDriver(input))))) return;
-    const created: Driver = { id, name: { ar: v.name.trim(), en: v.nameEn.trim() || v.name.trim() }, phone, city: v.city, material: v.material, active: true, availableNextDay: true };
+    const created: Driver = { id, name: { ar: v.name.trim(), en: v.nameEn.trim() || v.name.trim() }, phone, city: v.city, material: v.material, active: true, availableNextDay: true, availableToday: true };
     let issued: { user_id?: string; temp_password: string } | null = null;
     if (!(await run(async () => (issued = await createDriverLogin(id))))) toast.error(s.createdNoLogin, { duration: 8000 });
     onCreated(created, issued);

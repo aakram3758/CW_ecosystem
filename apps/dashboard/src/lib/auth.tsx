@@ -35,8 +35,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const load = useCallback(async (userId: string, email: string | undefined) => {
     loadedFor.current = userId;
     setState({ status: 'loading' });
+    // A SIGNED_OUT that lands while this is awaiting clears `loadedFor`; every step re-checks it so a
+    // late answer never restores a session that has already ended.
+    const current = () => loadedFor.current === userId;
     try {
       const profile = await fetchProfile(userId);
+      if (!current()) return;
       if (!profile || profile.role !== 'staff' || !profile.active) {
         intentionalSignOut.current = true;
         await apiSignOut();
@@ -45,9 +49,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
       await loadCatalog();
+      if (!current()) return;
       const user = toDashboardUser({ ...profile, email });
       setState(profile.must_change_password ? { status: 'changePassword', user } : { status: 'ready', user });
     } catch (e) {
+      if (!current()) return;
       loadedFor.current = null;
       setState({ status: 'error', code: e instanceof ApiError ? e.code : 'UNKNOWN', retry: () => void load(userId, email) });
     }

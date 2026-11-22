@@ -15,6 +15,12 @@ export async function markNotificationsRead(): Promise<void> {
   if (error) throw error;
 }
 
+/** Mark one notification of this user read (opening it from the list, S9). Someone else's id changes nothing. */
+export async function markNotificationRead(id: number): Promise<void> {
+  const { error } = await supabase.rpc('mark_notification_read', { p_id: id });
+  if (error) throw error;
+}
+
 /**
  * A signed URL for a stored photo, or null when it cannot be read.
  *

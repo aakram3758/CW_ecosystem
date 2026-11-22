@@ -1,5 +1,4 @@
-﻿import { useState } from 'react';
-import { Image, Pressable, View } from 'react-native';
+﻿import { Image, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Skeleton } from './visual';
 import { Button, Card, Label, Screen, Segmented, Title, press, useShadows } from './visual';
@@ -64,7 +63,7 @@ export function HomeScreen() {
 }
 
 export function PlanScreen() {
-  const data = useDriver(); const f = useDriverFormat(); const [filter, setFilter] = useState<'all' | 'remaining'>('all');
+  const data = useDriver(); const f = useDriverFormat(); const { planFilter: filter, setPlanFilter: setFilter } = data;
   const kinds = [...data.rows].sort((a, b) => (a.last_attempt_day === data.today ? a.last_attempt_at ?? '' : 'z').localeCompare(b.last_attempt_day === data.today ? b.last_attempt_at ?? '' : 'z')).map(r => stopState(r, data.today));
   const remaining = kinds.filter(k => k === 'todo').length;
   return <PageFrame title={f.t.planTitle} onBack={data.back} subtitle={`${f.date(data.today)} · ${interpolate(f.t.doneOf, { x: data.rows.length - remaining, n: data.rows.length })}`} trailing={<ProgressRing kinds={kinds} size={54} />} footer={<BottomNav />} contentStyle={data.day.isPending || data.day.isError || !data.rows.length ? { padding: 16, gap: 12 } : { paddingTop: 14, paddingBottom: 32, gap: 16 }}>

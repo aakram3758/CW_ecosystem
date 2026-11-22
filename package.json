@@ -13,5 +13,9 @@
     "preview": "npm run preview -w apps/dashboard",
     "mobile": "npm run start -w apps/mobile",
     "typecheck": "npm run typecheck -w apps/dashboard && npm run typecheck -w apps/mobile"
+  },
+  "overrides": {
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
   }
 }

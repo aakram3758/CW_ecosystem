@@ -14,7 +14,6 @@ type Tables = Database['public']['Tables'];
 export type BranchRow = Tables['branches']['Row'];
 export type MaterialRow = Tables['materials']['Row'];
 export type SubtypeRow = Tables['material_subtypes']['Row'];
-export type RequestRow = Tables['requests']['Row'];
 export type RequestListRow = Database['public']['Views']['request_list']['Row'];
 export type EventRow = Tables['request_events']['Row'];
 export type AttemptRow = Tables['visit_attempts']['Row'];

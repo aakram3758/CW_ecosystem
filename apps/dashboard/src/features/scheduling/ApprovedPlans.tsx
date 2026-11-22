@@ -70,8 +70,8 @@ export function ApprovedPlans({
         const name = driver ? l(driver.name) : '—';
         const pending = plan.items.filter((r) => r.status === 'scheduled');
         const isChanging = changing === plan.driverId;
-        // A driver can be swapped for visits not made yet. For the next day only drivers available that day.
-        const alternatives = keyDrivers.filter((d) => d.id !== plan.driverId && d.active && (day !== planDay || d.availableNextDay));
+        // A driver can be swapped for visits not made yet, only for one who is not off on that plan's day.
+        const alternatives = keyDrivers.filter((d) => d.id !== plan.driverId && d.active && (day === planDay ? d.availableNextDay : d.availableToday));
         const who = approvals
           .filter((a) => a.day === day && a.driverId === plan.driverId)
           .sort((a, b) => a.at.localeCompare(b.at))

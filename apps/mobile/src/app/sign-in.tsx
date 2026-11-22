@@ -4,11 +4,12 @@ import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery } from '@tanstack/react-query';
 import { z } from 'zod';
-import { fetchChains, formatPhone, normalizePhone, signIn, SignInError, type Role } from '@/data/auth-api';
+import { digits, fetchChains, formatPhone, normalizePhone, signIn, SignInError, type Role } from '@/data/auth-api';
 import { errorMessage } from '@/data/errors';
 import { useAuth } from '@/providers/auth';
 import { usePreferences } from '@/providers/preferences';
 import { useOnline } from '@/providers/query';
+import { ContactSheet } from '@/branch/shared';
 import { AuthGate } from '@/ui/auth-gate';
 import { AuthCard, AuthField, AuthHero, AuthSelect } from '@/ui/auth-shell';
 import { Button, EmptyState, ErrorBanner, ErrorLine, ErrorState, Icon, Label, Loading,
@@ -30,7 +31,7 @@ function SignInForm() {
   }).superRefine((values, context) => {
     if (branch) {
       if (!values.chain) context.addIssue({ code: 'custom', path: ['chain'], message: copy.branch.errChain });
-      if (!values.branchNumber.trim()) context.addIssue({ code: 'custom', path: ['branchNumber'], message: copy.branch.errBranch });
+      if (!digits(values.branchNumber)) context.addIssue({ code: 'custom', path: ['branchNumber'], message: copy.branch.errBranch });
     } else if (!normalizePhone(values.mobile)) {
       context.addIssue({ code: 'custom', path: ['mobile'], message: copy.branch.errPhone });
     }
@@ -38,6 +39,8 @@ function SignInForm() {
   const form = useForm({ resolver: zodResolver(schema),
     defaultValues: { chain: '', branchNumber: '', mobile: '', password: '' } });
   const chains = useQuery({ queryKey: ['chains'], queryFn: ({ signal }) => fetchChains(signal), enabled: branch });
+  const opsPhone = chains.data?.opsPhone ?? null;
+  const [forgot, setForgot] = useState(false);
   const busy = form.formState.isSubmitting || switching;
   const locked = lockedUntil > Date.now();
   // The canvas turns every identity field red together and prints one message under them all,
@@ -64,7 +67,7 @@ function SignInForm() {
   const submit = form.handleSubmit(async values => {
     if (!online || locked) return;
     setError(null); auth.clearNotice();
-    const email = branch ? `b-${values.chain}-${values.branchNumber.trim()}@branches.cloudswater.co`
+    const email = branch ? `b-${values.chain}-${digits(values.branchNumber)}@branches.cloudswater.co`
       : `d-${normalizePhone(values.mobile)}@drivers.cloudswater.co`;
     try {
       await signIn(email, values.password);
@@ -91,7 +94,7 @@ function SignInForm() {
       {branch
         ? chains.isError ? <ErrorState onRetry={() => void chains.refetch()} />
           : chains.isPending ? <Loading />
-          : !chains.data.length ? <EmptyState title={copy.shared.noChains} />
+          : !chains.data.chains.length ? <EmptyState title={copy.shared.noChains} />
           // 3fr / 2fr: the chain is a name, the branch number is three digits. Aligned to the top
           // so the message under one of them never shifts the other.
           : <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
@@ -99,7 +102,7 @@ function SignInForm() {
               <Controller control={form.control} name="chain" render={({ field, fieldState }) =>
                 <AuthSelect label={copy.branch.chain} placeholder={copy.branch.chainPh}
                   value={field.value || null} invalid={!!fieldState.error} disabled={busy}
-                  options={chains.data.map(chain => ({ value: chain.code,
+                  options={chains.data.chains.map(chain => ({ value: chain.code,
                     label: chain[language === 'ar' ? 'name_ar' : 'name_en'] }))}
                   onChange={value => form.setValue('chain', value, { shouldValidate: true })} />} />
             </View>
@@ -134,19 +137,24 @@ function SignInForm() {
       <Button variant="branch" busy={form.formState.isSubmitting}
         label={form.formState.isSubmitting ? branch ? copy.branch.loggingIn : copy.driver.signingIn
           : branch ? copy.branch.login : copy.driver.login}
-        disabled={busy || !online || locked || (branch && (!chains.data?.length || chains.isError))}
+        disabled={busy || !online || locked || (branch && (!chains.data?.chains.length || chains.isError))}
         onPress={() => void submit()} />
+      {/* The canvas's forgot sheet (branch `Main.dc.html:1562`) is its contact sheet with the
+          forgot title and body over the ops number. No number yet (or the driver side, which has
+          no chains call): the old one-line answer. */}
       <TextLink label={branch ? copy.branch.forgot : copy.driver.forgot} disabled={busy}
-        onPress={() => Alert.alert(branch ? copy.branch.forgotT : copy.driver.forgot,
+        onPress={() => branch && opsPhone ? setForgot(true) : Alert.alert(branch ? copy.branch.forgotT : copy.driver.forgot,
           copy.shared.forgotNoPhone, [{ text: copy.branch.close }])} />
     </AuthCard>
+    {forgot && opsPhone ? <ContactSheet onClose={() => setForgot(false)}
+      target={{ title: copy.branch.forgotT, body: copy.branch.forgotB, phone: opsPhone, icon: 'headset' }} /> : null}
     {branch ? <View style={{ marginTop: 18, marginHorizontal: 24, flexDirection: 'row', gap: 8,
       alignItems: 'center', justifyContent: 'center' }}>
       <Icon name="store" size={18} color={colors.muted} tint={softFill(colors.muted)} />
       <Label style={{ fontSize: 13, color: colors.muted }}>{copy.branch.sharedNote}</Label>
     </View> : null}
-    {/* No language or theme controls here, as the canvas has none: Ahmed's call. They live on the
-        Account screen. A phone that opens in Arabic therefore signs in in Arabic. */}
+    {/* The language and theme icons sit in the hero (`AuthHero`), not here: a phone that opens in
+        Arabic needs a way to English before it has an account. Decision in PLAN.md, stage 1. */}
   </Screen>;
 }
 

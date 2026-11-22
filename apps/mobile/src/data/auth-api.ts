@@ -5,13 +5,16 @@ export type Role = 'branch' | 'driver';
 
 const chainsResponse = z.object({
   chains: z.array(z.object({ code: z.string(), name_ar: z.string(), name_en: z.string() })),
+  // `app_settings.ops_phone`, for «نسيت كلمة المرور؟» before there is a session (migration 24's
+  // companion change to the function). Optional, so a `chains` deployed before it still parses.
+  ops_phone: z.string().nullable().optional(),
 });
 const sessionResponse = z.object({
   session: z.object({ access_token: z.string(), refresh_token: z.string() }),
 });
 
 export class SignInError extends Error {
-  constructor(public code: 'INVALID_CREDENTIALS' | 'LOCKED', public attemptsLeft?: number,
+  constructor(public code: 'INVALID_CREDENTIALS' | 'LOCKED' | 'ACCOUNT_INACTIVE', public attemptsLeft?: number,
     public retryAfter?: number) {
     super(code);
   }
@@ -22,11 +25,16 @@ export async function fetchChains(signal?: AbortSignal) {
     headers: { 'Content-Type': 'application/json' }, signal,
   });
   if (!response.ok) throw new Error('chains');
-  return chainsResponse.parse(await response.json()).chains;
+  const body = chainsResponse.parse(await response.json());
+  return { chains: body.chains, opsPhone: body.ops_phone || null };
 }
 
+/** Latin digits only: Arabic-Indic ٠-٩ become 0-9 (a phone keyboard may type either), the rest is dropped. */
+export const digits = (value: string) =>
+  value.replace(/[٠-٩]/g, digit => String(digit.charCodeAt(0) - 1632)).replace(/\D/g, '');
+
 export function phoneDigits(value: string): string {
-  return value.replace(/\D/g, '').replace(/^966/, '').replace(/^0/, '');
+  return digits(value).replace(/^966/, '').replace(/^0/, '');
 }
 
 export function normalizePhone(value: string): string | null {
@@ -105,12 +113,17 @@ export async function signIn(email: string, password: string) {
   });
   const body: unknown = await response.json();
   if (response.status === 401) {
-    const error = z.object({ error: z.literal('INVALID_CREDENTIALS'), attempts_left: z.number().int().min(0).max(5) }).parse(body);
+    // `attempts_left` is absent when the function refuses before counting (an empty or over-long password).
+    const error = z.object({ error: z.literal('INVALID_CREDENTIALS'), attempts_left: z.number().int().min(0).max(5).optional() }).parse(body);
     throw new SignInError(error.error, error.attempts_left);
   }
   if (response.status === 429) {
     const error = z.object({ error: z.literal('LOCKED'), retry_after: z.number().nonnegative() }).parse(body);
     throw new SignInError(error.error, undefined, error.retry_after);
+  }
+  if (response.status === 403) {
+    const error = z.object({ error: z.literal('ACCOUNT_INACTIVE') }).parse(body);
+    throw new SignInError(error.error);
   }
   if (response.status !== 200) throw new Error('sign-in');
   const { error } = await supabase.auth.setSession(sessionResponse.parse(body).session);

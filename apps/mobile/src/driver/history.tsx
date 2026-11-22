@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Button, Card, Label, Segmented, Sheet, Title, press } from './visual';
-import { Icon } from './icons';
 import { interpolate } from '@/i18n/copy';
 import type { HistoryVisit } from '@/data/driver-api';
 import { useDriver } from './state';
@@ -10,7 +9,7 @@ import { EmptyState, ErrorState, BottomNav, IconButton, Legend, LoadingCards, Ma
 
 export function HistoryScreen() {
   const data = useDriver(); const f = useDriverFormat(); const { t } = f;
-  const [filter, setFilter] = useState<'all' | Outcome>('all');
+  const { historyFilter: filter, setHistoryFilter: setFilter } = data;
   const [rangeOpen, setRangeOpen] = useState(false); const [visit, setVisit] = useState<HistoryVisit | null>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({ [data.today]: true });
   const rows = data.history.data ?? [];
@@ -56,12 +55,13 @@ export function HistoryScreen() {
           body={data.historyExists.data ? t.rangeEmptySub : t.histEmptySub}
           action={data.historyExists.data ? { label: t.changePeriod, icon: 'calendar-blank', onPress: () => setRangeOpen(true) } : undefined} /> : null}
     <OpsButton wrong centered />
-    {rangeOpen ? <RangeSheet onClose={() => setRangeOpen(false)} /> : null}
+    {rangeOpen ? <RangeSheet onClose={() => setRangeOpen(false)} onApply={to => setExpanded({ [to]: true })} /> : null}
     {visit ? <VisitSheet visit={visit} onClose={() => setVisit(null)} /> : null}
   </PageFrame>;
 }
 
-function RangeSheet({ onClose }: { onClose: () => void }) {
+// Apply opens the chosen end day, as the canvas's applyRange does (hOpen).
+function RangeSheet({ onClose, onApply }: { onClose: () => void; onApply: (to: string) => void }) {
   const data = useDriver(); const f = useDriverFormat(); const { t, colors } = f;
   const [range, setRange] = useState(data.range); const [step, setStep] = useState<'from' | 'to'>('from');
   const [month, setMonth] = useState(data.range.to.slice(0, 7));
@@ -108,7 +108,7 @@ function RangeSheet({ onClose }: { onClose: () => void }) {
         </Pressable>;
       })}
     </View>
-    <Button cwPress fontSize={17} style={{ height: 56, borderRadius: 16 }} label={t.apply} onPress={() => { data.setRange(range); onClose(); }} />
+    <Button cwPress fontSize={17} style={{ height: 56, borderRadius: 16 }} label={t.apply} onPress={() => { data.setRange(range); onApply(range.to); onClose(); }} />
   </Sheet>;
 }
 

@@ -27,7 +27,9 @@ const schema = z.object({
   number: z.string().trim().min(1),
   material: z.string().min(1),
   subtype: z.string(),
-  kg: z.string().refine((v) => v.trim() === '' || (/^\d+$/.test(v.trim()) && Number(v) > 0), 'kg'),
+  kg: z.string().refine((v) => v.trim() === '' || (/^\d+$/.test(v.trim()) && Number(v) > 0), 'kg')
+    // The same ceiling as the branch app and staff_create_request (migrations 18, 21).
+    .refine((v) => v.trim() === '' || Number(v) <= 5000, 'kgMax'),
   note: z.string(),
 });
 type FormValues = z.infer<typeof schema>;
@@ -66,7 +68,8 @@ export function AddRequestDialog({
   const branch = useMemo(() => {
     const no = number.trim();
     if (!chain || !no) return undefined;
-    return branches.find((b) => b.chain === chain && (b.number === no || Number(b.number) === Number(no)));
+    const inChain = branches.filter((b) => b.chain === chain);
+    return inChain.find((b) => b.number === no) ?? inChain.find((b) => Number(b.number) === Number(no));
   }, [branches, chain, number]);
 
   const subtypes = material ? MATERIALS[material as MaterialCode].subtypes : [];
@@ -195,9 +198,9 @@ export function AddRequestDialog({
           </div>
         )}
 
-        <Field label={s.kg} error={formState.errors.kg ? s.errKg : undefined}>
+        <Field label={s.kg} error={formState.errors.kg ? (formState.errors.kg.message === 'kgMax' ? s.errKgMax : s.errKg) : undefined}>
           {({ id, invalid, describedBy }) => (
-            <Input id={id} type="number" min={1} inputMode="numeric" placeholder={s.kgPh} dir="ltr" className="rtl:text-right" aria-invalid={invalid} aria-describedby={describedBy} {...register('kg')} />
+            <Input id={id} type="number" min={1} max={5000} inputMode="numeric" placeholder={s.kgPh} dir="ltr" className="rtl:text-right" aria-invalid={invalid} aria-describedby={describedBy} {...register('kg')} />
           )}
         </Field>
         <Field label={s.note}>{({ id }) => <Textarea id={id} rows={3} placeholder={s.notePh} {...register('note')} />}</Field>

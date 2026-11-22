@@ -241,7 +241,7 @@ function DecisionForm({ r, initialKind, onDone }: { r: RequestRow; initialKind: 
   const label = branchLabel(r.branch, lang);
 
   const onSubmit = form.handleSubmit(async (v) => {
-    const why = v.kind === 'close' ? (v.reason === OTHER ? v.text.trim() : CLOSE_REASONS[Number(v.reason)]) : '';
+    const why = v.kind === 'close' ? (v.reason === OTHER ? v.text.trim() : (CLOSE_REASONS.find((c) => c.id === v.reason) ?? '')) : '';
     try {
       if (v.kind === 'close') {
         await decide.mutateAsync({ id: r.id, decision: { kind: 'close', reason: why } });
@@ -253,7 +253,16 @@ function DecisionForm({ r, initialKind, onDone }: { r: RequestRow; initialKind: 
           duration: 8000,
           action: {
             label: s.undo,
-            onClick: () => undo.mutate(r.id, { onSuccess: () => toast(s.undone), onError: (e) => toast.error(errorText(e, t)) }),
+            // Awaited here, not per-call callbacks: the form has unmounted by the time the toast is
+            // clicked, and React Query drops a per-call callback whose component is gone.
+            onClick: async () => {
+              try {
+                await undo.mutateAsync(r.id);
+                toast(s.undone);
+              } catch (e) {
+                toast.error(errorText(e, t));
+              }
+            },
           },
         });
       }
@@ -295,8 +304,8 @@ function DecisionForm({ r, initialKind, onDone }: { r: RequestRow; initialKind: 
           {({ id, invalid, describedBy }) => (
             <Select id={id} aria-invalid={invalid} aria-describedby={describedBy} {...form.register('reason')}>
               <option value="">{t.chooseReason}</option>
-              {CLOSE_REASONS.map((c, i) => (
-                <option key={i} value={String(i)}>
+              {CLOSE_REASONS.map((c) => (
+                <option key={c.id} value={c.id}>
                   {l(c)}
                 </option>
               ))}

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, BackHandler, Image, Pressable, TextInput, View } from 'react-native';
+import { ActivityIndicator, BackHandler, Image, Linking, Pressable, TextInput, View } from 'react-native';
+import { digits } from '@/data/auth-api';
 import { errorCode, errorMessage } from '@/data/errors';
 import { takePhoto, pickPhoto, type Photo as DevicePhoto } from '@/data/device';
 import type { MaterialRow, SubtypeRow } from '@/data/rows';
@@ -14,7 +15,6 @@ const materialHints = { card: 'materialHintCard', plas: 'materialHintPlas', pape
   metal: 'materialHintMetal', bread: 'materialHintBread' } as const;
 const subtypeHints = { mix: 'subtypeHintMix', stretch: 'subtypeHintStretch', iron: 'subtypeHintIron',
   copper: 'subtypeHintCopper', aluminium: 'subtypeHintAluminium' } as const;
-const digits = (value: string) => value.replace(/[٠-٩]/g, digit => String(digit.charCodeAt(0) - 1632)).replace(/\D/g, '');
 
 export function CreateScreen() {
   const data = useBranch();
@@ -33,6 +33,7 @@ export function CreateScreen() {
   const [photo, setPhoto] = useState<'none' | 'uploading' | 'chosen'>(editing?.branch_photo_path ? 'chosen' : 'none');
   const [chosenPhoto, setChosenPhoto] = useState<DevicePhoto | null>(null);
   const [photoError, setPhotoError] = useState('');
+  const [photoDenied, setPhotoDenied] = useState(false);
   const picking = useRef(false);
   const [sheetMaterial, setSheetMaterial] = useState<MaterialRow | null>(null);
   const material = data.materials.find(m => m.id === materialId);
@@ -56,6 +57,8 @@ export function CreateScreen() {
   const open = data.requests.filter(r => isOpen(r) && r.id !== data.editId);
   const lockedRequest = (mid: string, sid: string | null) => open.find(r => r.material_id === mid && r.subtype_id === sid);
   const back = useCallback(() => {
+    // Not while sending: the write's success would otherwise land on whatever screen was opened next.
+    if (data.sending) return;
     if (sheetMaterial) setSheetMaterial(null);
     else if (editing?.id) data.openRequest(editing.id);
     else if (step > 1) setStep(n => n - 1);
@@ -68,13 +71,15 @@ export function CreateScreen() {
   async function choosePhoto(camera: boolean) {
     if (picking.current) return;
     picking.current = true;
-    setPhoto('uploading'); setPhotoError(''); setChosenPhoto(null);
+    // A retake that is cancelled or refused keeps the photo already on screen.
+    const before = photo;
+    setPhoto('uploading'); setPhotoError(''); setPhotoDenied(false);
     const result = await (camera ? takePhoto() : pickPhoto());
     picking.current = false;
     if (result.ok) { setChosenPhoto(result.photo); setPhoto('chosen'); }
     else {
-      setPhoto('none');
-      if (result.reason === 'denied') setPhotoError(camera ? copy.shared.camDenied : copy.shared.galDenied);
+      setPhoto(before);
+      if (result.reason === 'denied') { setPhotoError(camera ? copy.shared.camDenied : copy.shared.galDenied); setPhotoDenied(true); }
       else if (result.reason === 'failed') setPhotoError(t.photoFail);
     }
   }
@@ -90,7 +95,9 @@ export function CreateScreen() {
     if (editing || step === 3) submit(); else setStep(3);
   }
   function submit() {
-    if (!valid || !material || lockedRequest(material.id, subtypeId)) return;
+    if (!valid || !material) return;
+    // Another phone on this account opened the same material meanwhile: say so instead of nothing.
+    if (lockedRequest(material.id, subtypeId)) { data.showToast(t.subOpen); return; }
     const args = { p_kg: weight, p_note: note.trim() || null, p_contact_name: contactName.trim(),
       p_contact_phone: `0${contactPhone}` };
     if (editing?.id) data.edit({ ...args, p_request_id: editing.id }, chosenPhoto);
@@ -246,12 +253,16 @@ export function CreateScreen() {
                   48px targets beside a photo read faster than two short links. */}
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 <IconButton icon="retry" label={t.retake} onPress={() => void choosePhoto(true)} />
-                <IconButton icon="x" label={t.remove}
-                  onPress={() => { setPhoto('none'); setChosenPhoto(null); setPhotoError(''); }} />
+                {/* Not on a request that already has a stored photo: `branch_update_request` keeps
+                    the stored path when it is sent none, so removing it here would only look done. */}
+                {editing?.branch_photo_path ? null : <IconButton icon="x" label={t.remove}
+                  onPress={() => { setPhoto('none'); setChosenPhoto(null); setPhotoError(''); }} />}
               </View>
             </View>
           </View>}
           {photoError ? <ErrorLine>{photoError}</ErrorLine> : null}
+          {/* The OS asks only once: after a refusal the only way back is the app's page in Settings. */}
+          {photoDenied ? <TextLink label={copy.shared.openSettings} onPress={() => void Linking.openSettings().catch(() => {})} /> : null}
         </Card>
         <Card style={styles.card}>
           <View style={[styles.row, { justifyContent: 'space-between' }]}><Label style={[styles.heavy, { fontSize: 16 }]}>{t.note}</Label><Pill>{t.optional}</Pill></View>

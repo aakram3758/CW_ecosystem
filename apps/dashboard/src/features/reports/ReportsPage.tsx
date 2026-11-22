@@ -7,7 +7,7 @@ import type { ReportCounts, ReportData, ReportFilters } from '../../data/admin';
 import { CHAINS, CHAIN_ORDER, CITIES, CITY_ORDER, DISTRICTS, MATERIAL_ORDER, districtsOf, materialInfo } from '../../data/catalog';
 import type { Lang } from '../../data/types';
 import { branchLabel, districtName } from '../../lib/format';
-import { LOCALE, addDays, daysBetween, formatNumber, opsToday } from '../../lib/dates';
+import { LOCALE, OPS_TIMEZONE, addDays, daysBetween, formatNumber, opsToday } from '../../lib/dates';
 import { HeroTitle, PageBody, PageHero } from '../../components/layout/PageHero';
 import { Button } from '../../components/ui/Button';
 import { Field, Input, Select } from '../../components/ui/Field';
@@ -123,7 +123,7 @@ export function ReportsPage() {
         [bold(t.nav.reports), ''],
         [s.periodRow, `${filters.from} → ${filters.to} (${periodLabel})`],
         [s.filtersRow, parts.join(' · ') || '—'],
-        [s.generated, new Date().toLocaleString(LOCALE[lang])],
+        [s.generated, new Date().toLocaleString(LOCALE[lang], { timeZone: OPS_TIMEZONE })],
         ['', ''],
         [s.kpi.requests, data.totals.requests],
         [s.kpi.completed, data.totals.completed],
@@ -178,7 +178,8 @@ export function ReportsPage() {
       <PageHero crumb={t.nav.reports} parent={t.nav.adminSection}>
         <div className="flex flex-wrap items-end justify-between gap-4">
           <HeroTitle title={t.nav.reports} line={data ? [periodLabel, kg(total.kg), ...parts].join(' · ') : ' '} />
-          <Button variant="gold" size="lg" onClick={doExport} disabled={!data || exporting}>
+          {/* Not while the numbers on screen belong to the previous filters, or the range is invalid. */}
+          <Button variant="gold" size="lg" onClick={doExport} disabled={!data || exporting || report.isPlaceholderData || badRange}>
             <Icon name="download" size={18} />
             {exporting ? s.exporting : s.export}
           </Button>

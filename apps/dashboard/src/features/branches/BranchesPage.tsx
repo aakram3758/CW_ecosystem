@@ -384,6 +384,7 @@ function BranchDrawer({
   const [v, setV] = useState(() => ({
     number: branch?.number ?? '',
     name: branch?.name ?? '',
+    nameEn: branch?.nameEn ?? '',
     city: (branch ? (DISTRICTS[branch.district]?.city ?? '') : '') as CityCode,
     district: branch?.district ?? '',
     address: branch?.address ?? '',
@@ -395,7 +396,7 @@ function BranchDrawer({
 
   const chainName = l(CHAINS[chain]);
   const no = v.number.trim();
-  const errNo = !no ? s.errNo : !/^[A-Za-z0-9]{1,10}$/.test(no) ? s.errNoFormat : taken.includes(no.toLowerCase()) ? s.errNoTaken(no, chainName) : '';
+  const errNo = !no ? s.errNo : !/^[0-9]{1,6}$/.test(no) ? s.errNoFormat : taken.includes(no.toLowerCase()) ? s.errNoTaken(no, chainName) : '';
   const errName = !v.name.trim() ? s.errName : '';
   const errCity = !v.city ? s.errCity : '';
   const errDistrict = v.city && !v.district ? s.errDistrict : '';
@@ -409,7 +410,7 @@ function BranchDrawer({
 
   const save = async () => {
     if (!valid) return setTried(true);
-    const input: BranchInput = { chain, number: no, name: v.name, districtId: v.district, address: v.address, phone: v.phone, accessNotes: v.accessNotes };
+    const input: BranchInput = { chain, number: no, name: v.name, nameEn: v.nameEn, districtId: v.district, address: v.address, phone: v.phone, accessNotes: v.accessNotes };
     if (branch) {
       if (await run(() => updateBranch(branch.id, input), s.saved(`${chainName} #${no}`))) onClose();
       return;
@@ -419,7 +420,7 @@ function BranchDrawer({
       id = await createBranch(input);
     });
     if (!ok) return;
-    const created: Branch = { id, chain, number: no, name: v.name.trim(), city: v.city, district: v.district, active: true, phone: v.phone.trim() || null, hasLogin: false, address: v.address, accessNotes: v.accessNotes, lat: null, lng: null };
+    const created: Branch = { id, chain, number: no, name: v.name.trim(), nameEn: v.nameEn.trim() || null, city: v.city, district: v.district, active: true, phone: v.phone.trim() || null, hasLogin: false, address: v.address, accessNotes: v.accessNotes, lat: null, lng: null };
     let issued: { user_id?: string; temp_password: string } | null = null;
     const loginOk = await run(async () => {
       issued = await createBranchLogin(id);
@@ -454,6 +455,9 @@ function BranchDrawer({
             {({ id, describedBy, invalid }) => <Input id={id} value={v.name} onChange={set('name')} placeholder={s.namePh} aria-describedby={describedBy} aria-invalid={invalid} />}
           </Field>
         </div>
+        <Field label={s.nameEn}>
+          {({ id, describedBy }) => <Input id={id} dir="ltr" value={v.nameEn} onChange={set('nameEn')} placeholder={s.nameEnPh} aria-describedby={describedBy} />}
+        </Field>
         <div className="flex flex-col gap-1 rounded-2xl bg-surface-2 px-4 py-3 text-[13px] text-muted">
           <span>
             {s.preview}

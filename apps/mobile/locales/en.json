@@ -1,0 +1,5 @@
+{
+  "NSCameraUsageDescription": "Clouds Water uses the camera to photograph the scale: with a branch's pickup request, and as a driver's proof of the visit.",
+  "NSPhotoLibraryUsageDescription": "Clouds Water needs your photos to attach the scale photo to a pickup request.",
+  "NSLocationWhenInUseUsageDescription": "Clouds Water uses your location once to set the branch's location on the map."
+}

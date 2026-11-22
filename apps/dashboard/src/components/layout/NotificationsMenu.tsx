@@ -22,10 +22,11 @@ const KIND_STYLE: Record<NotificationKind, { icon: IconName; tone: string }> = {
 export function NotificationsMenu() {
   const { t, l, lang, dir, user } = useApp();
   const [open, setOpen] = useState(false);
-  const { data } = useNotifications(user);
+  const notifications = useNotifications(user);
   const markAll = useMarkAllRead(user);
-  const items = data ?? [];
+  const items = notifications.data ?? [];
   const unread = items.filter((n) => !n.read).length;
+  const mats = user.materials?.length ? user.materials : user.material ? [user.material] : [];
 
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
@@ -56,8 +57,15 @@ export function NotificationsMenu() {
               </button>
             )}
           </div>
-          <div className="px-2.5 pb-2 text-xs text-muted">{user.material ? t.notifScopeOne(l(materialInfo(user.material).name)) : t.notifScopeAll}</div>
-          {items.length === 0 ? (
+          <div className="px-2.5 pb-2 text-xs text-muted">{mats.length ? t.notifScopeOne(mats.map((m) => l(materialInfo(m).name)).join(lang === 'ar' ? '، ' : ', ')) : t.notifScopeAll}</div>
+          {notifications.isError && !notifications.data ? (
+            <p className="m-0 px-3 pb-4 pt-1 text-sm text-muted">
+              {t.loadError} ·{' '}
+              <button type="button" onClick={() => void notifications.refetch()} className="cursor-pointer border-0 bg-transparent p-0 font-bold text-primary">
+                {t.retry}
+              </button>
+            </p>
+          ) : items.length === 0 ? (
             <p className="m-0 px-3 pb-4 pt-1 text-sm text-muted">{t.noNotifications}</p>
           ) : (
             <ul className="m-0 flex max-h-[60vh] list-none flex-col gap-0.5 overflow-y-auto p-0">

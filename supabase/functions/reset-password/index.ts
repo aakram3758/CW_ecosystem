@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
   if (!profile) return json({ error: 'NOT_FOUND' }, 404);
 
   // Written by the database: the Auth admin API would reject 6 digits under the 8-char letters+digits rule.
-  // Also flags must_change_password and lifts a sign-in lock.
+  // Also flags must_change_password, lifts a sign-in lock and signs the account out of every session.
   const password = tempPassword();
   const { error } = await db.rpc('set_temp_password', { p_user_id: userId, p_password: password });
   if (error) return json({ error: 'AUTH_ERROR', detail: error.message }, 500);

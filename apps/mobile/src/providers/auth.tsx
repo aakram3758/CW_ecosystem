@@ -42,7 +42,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
       if (!live) return;
       eventReceived = true;
       setSession(nextSession);
-      if (event === 'SIGNED_OUT') queryClient.removeQueries({ queryKey: ['profile'] });
+      // Every cached query, not just the profile: a session that ends without the logout button
+      // (refresh failure, revocation) must not leave this branch's rows for the next account.
+      if (event === 'SIGNED_OUT') queryClient.clear();
       if (event === 'USER_UPDATED') void queryClient.invalidateQueries({ queryKey: ['profile'] });
     });
     void supabase.auth.getSession().then(({ data, error }) => {

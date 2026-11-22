@@ -42,7 +42,8 @@ export function Pill({ children, color, background, icon }: PropsWithChildren<{ 
 
 export function useSignedPhoto(path: string | null) {
   return useQuery({ queryKey: ['photo', path], queryFn: () => api.signedPhotoUrl(path!),
-    staleTime: 50 * 60_000, enabled: path !== null });
+    // A failed signing is cached as null: keep that stale so the next mount or retry asks again.
+    staleTime: query => query.state.data === null ? 0 : 50 * 60_000, enabled: path !== null });
 }
 
 export function Footer({ children }: PropsWithChildren) {

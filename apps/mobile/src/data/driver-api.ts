@@ -32,12 +32,13 @@ export async function fetchDriverContext(today: string): Promise<DriverContext> 
 // Explicit columns keep the view contract reviewable. Shared by the plan and history reads below.
 const REQUEST_COLUMNS = 'branch_access_notes, branch_address, branch_id, branch_name, branch_number, branch_phone, branch_photo_path, cancel_note, cancel_reason_id, cancelled_by, chain_code, chain_id, chain_name_ar, chain_name_en, city_code, city_id, city_name_ar, city_name_en, closed_by, closed_reason, contact_name, contact_phone, created_at, created_by, created_via, creator_name, creator_name_en, creator_phone, decision_since, district_id, district_name_ar, district_name_en, draft_cancelled, driver_id, driver_name, driver_name_en, driver_phone, id, kg, last_attempt_at, last_attempt_day, last_attempt_driver_id, last_attempt_note, last_attempt_photo, last_outcome, last_reason_ar, last_reason_en, lat, lng, material_code, material_color_dark, material_color_light, material_id, material_name_ar, material_name_en, note, number, status, subtype_code, subtype_id, subtype_name_ar, subtype_name_en, updated_at, visit_day' as const;
 
-/** The day's stops: still scheduled for this driver, or recorded by this driver that day. A recorded stop stays after
+/** The day's stops: still scheduled for this driver, or recorded by this driver that day. The 20:00 sweep's `no_result`
+ *  is not a visit: those stops leave the day rather than offer an outcome the server refuses. A recorded stop stays after
  *  Operations decides it, though a reschedule moves its visit day and may move its driver. Migration 21 lets the driver
  *  read it, so the driver filters here are essential. */
 export async function fetchDay(driverId: string, day: string): Promise<RequestListRow[]> {
   const { data, error } = await supabase.from('request_list').select(REQUEST_COLUMNS)
-    .or(`and(driver_id.eq.${driverId},visit_day.eq.${day},status.eq.scheduled),and(last_attempt_driver_id.eq.${driverId},last_attempt_day.eq.${day})`)
+    .or(`and(driver_id.eq.${driverId},visit_day.eq.${day},status.eq.scheduled),and(last_attempt_driver_id.eq.${driverId},last_attempt_day.eq.${day},last_outcome.neq.no_result)`)
     .order('chain_code').order('branch_number');
   if (error) throw error;
   return data;

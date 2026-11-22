@@ -170,9 +170,9 @@ these reads; phase B swaps the source.
 | Sign in | `POST functions/v1/sign-in` `{ email, password }` → `auth.setSession(session)` |
 | Who am I | `profiles` → `role, display_name, display_name_en, must_change_password, active` where `id = auth.uid()` |
 | Change password | `auth.updateUser({ password })` then `rpc('complete_password_change')` |
-| Verify the current password (Account → change password) | `POST functions/v1/sign-in` with the same email before `updateUser` |
+| Verify the current password (Account → change password) | `auth.signInWithPassword` with the same email before `updateUser` (brief 07:41; it skips the sign-in lock, see supabase/README.md) |
 | Notifications | `notifications` → `id, kind, title_ar, title_en, body_ar, body_en, link, request_id, read_at, created_at`, newest first |
-| Mark them read | `rpc('mark_notifications_read')` |
+| Mark them read | `rpc('mark_notifications_read')`; one, when the branch opens it: `rpc('mark_notification_read', { p_id })` |
 | Ops phone | `app_settings` → `value` where `key = 'ops_phone'` |
 
 Notification text is already written in both languages by the database; the app picks the column, it never
@@ -234,7 +234,7 @@ the request and — if it was their only one for that branch — the branch too,
 stays readable. Their history shows a row with no branch, no material and no request number. This follows
 the most ordinary action ops takes after a failed visit, so it is the normal case, not an edge one.
 
-Fixed by migration 21 (`20261102000100_driver_history.sql`): the driver's read is widened to what they
+Fixed by migration 21 (`20261102122213_driver_history.sql`): the driver's read is widened to what they
 have a `visit_attempts` row for, rather than only what they are assigned right now, through a
 `security definer` helper so the `requests` ↔ `visit_attempts` policies do not recurse. The history
 screen still renders a row without its joined request, because ops can reschedule at any moment. And
@@ -344,7 +344,8 @@ Auth is **real from day one**. A fake sign-in proves nothing — the temporary p
 - [x] Forced password change: `auth.updateUser({ password })` → `rpc('complete_password_change')`,
       `PASSWORD_NOT_CHANGED` handled. Rule: 8+ characters with at least one Latin letter and one digit
 - [x] Role routing from `profiles.role`; if the account belongs to the other side, sign out and say so
-- [x] Error-code → message map covering every UPPER_SNAKE code in `supabase/README.md`
+- [x] Error-code → message map for the codes a person can meet; `NOT_ALLOWED`, `SUBTYPE_REQUIRED`, `LOCATION_REQUIRED`,
+      `INVALID_LOCATION` and `INVALID_PHOTO` are left to the generic message on purpose (`src/data/errors.ts`)
 
 **Done when** a real branch account and a real driver account each sign in on a phone, change the temporary
 password, and land on their own role's home.
@@ -386,11 +387,11 @@ cached at `apps/mobile/design/branch-v2/project/` (gitignored, so read it by pat
       config plugins do not apply there. That is exactly why the branch screens read right-to-left on the phone
       and sign-in does not. One wrapper high up, and the two per-feature copies deleted.
 
-**Decided while building stage 1.** The canvas draws no language or theme controls on sign-in,
-and ours did. Ahmed said to match the canvas, so they are gone: they live on the Account screen
-now, and a phone that opens in Arabic signs in in Arabic. The forced password-change screen still
-has its own pair — it is a bite 1 screen with no artboard of its own yet, so leave it until it gets
-one.
+**Decided while building stage 1, revised in the audit (Nov 2026).** The canvas draws no language or
+theme controls on sign-in. Ahmed's final call is to **keep** the two icons in the sign-in hero (and on
+the forced password-change screen), because a phone that opens in Arabic needs a way to English before
+it has an account. The globe flips the language; the moon flips dark ↔ light from the theme showing
+now, with no sheet. «حسب النظام» is chosen on the Account screen only.
 
 **Stage 2 — splash, onboarding, camera, location, the lock**
 
@@ -537,7 +538,7 @@ Mock data out, Supabase in. Reads go through RLS, every write goes through an RP
 - [x] Driver reads: today's plan, the next plan with its approval time, `visit_attempts` for
       history, `driver_days_off`, `reasons`, `notifications` — `src/data/driver-api.ts`
 - [x] Driver writes: `driver_record_outcome`
-- [x] Everyone: `mark_notifications_read`
+- [x] Everyone: `mark_notifications_read`; the branch also `mark_notification_read` on open (migration 24, S9)
 - [x] Photo upload, both halves — private bucket `request-photos`, uploaded before the row is
       written: the branch's `branch/<branch_id>/…`, the driver's `request/<request_id>/…`. Both read
       the file with `expo-file-system`'s `File`.
@@ -548,7 +549,7 @@ Mock data out, Supabase in. Reads go through RLS, every write goes through an RP
 - [x] Delete the device-side location memory in `branch/state.tsx` — it exists only so phase A
       stops asking a branch to place its pin on every launch; `branches.location_confirmed_at`
       is the real answer
-- [x] Every error code from the README mapped to its designed message
+- [x] Every error code a person can meet mapped to its designed message (the deliberate gaps are listed in `src/data/errors.ts`)
 - [x] Bite **3b** — the branch's data states, which are states of this wiring and not of a mock:
       home loading / error / no requests, the offline retry bar, send failed while offline, and a
       request being rescheduled after a failed pickup
@@ -562,8 +563,9 @@ word — `feat/mobile-app` is pushed and a PR opened.
 
 ## Backend changes
 
-Each one is a **new** migration; nothing already applied is ever edited. Convention: `2026MMDD000N00_name.sql`,
-continuing after the applied 01–16.
+Each one is a **new** migration; nothing already applied is ever edited. File versions match the live migration
+history (renamed in the audit, Nov 2026), so a new file takes the version the live project gives it when applied.
+01–24 are live; 24 is `20261122181353_audit_fixes.sql` (applied 22 Nov 2026).
 
 | # | What | When |
 | --- | --- | --- |
@@ -573,8 +575,9 @@ continuing after the applied 01–16.
 | 19 | `branches.name_en` + a field on the dashboard's branches screen + **fix `private.request_label(…, 'en')`**, which today falls back to the Arabic `b.name` so English notifications show Arabic branch names | phase B |
 | 20 | Publish `requests`, `request_events`, `visit_attempts`, `notifications`, `branches`, `materials`, `material_subtypes`, `reasons` and `app_settings` to `supabase_realtime`, so the branch app hears changes while it is open | phase B, applied |
 | 21 | A driver may read the branch, request and photos behind any `visit_attempts` row of their own, not only what they are assigned right now — see *Driver history* above. Also: a driver reads their own `plan_approvals` rows, and `driver_days_off` and `plan_approvals` join `supabase_realtime` | phase B, applied 2 November |
-| 22 | `reasons.icon`: the Phosphor name the driver canvas draws on a failed reason's tile, set for the four failed reasons; null falls back to the app's default icon (`20261103000100_reason_icons.sql`) | phase B, applied 3 November |
-| 23 | `request_list` gains `creator_name`, `creator_name_en` and `creator_phone` for a dashboard request, through the `security definer` helper `private.request_creator`, which returns a staff profile only to a driver or staff; the driver's stop screen shows that person in place of a contact (`20261103000200_request_creator.sql`) | phase B, applied 3 November |
+| 22 | `reasons.icon`: the Phosphor name the driver canvas draws on a failed reason's tile, set for the four failed reasons; null falls back to the app's default icon (`20261103153545_reason_icons.sql`) | phase B, applied 3 November |
+| 23 | `request_list` gains `creator_name`, `creator_name_en` and `creator_phone` for a dashboard request, through the `security definer` helper `private.request_creator`, which returns a staff profile only to a driver or staff; the driver's stop screen shows that person in place of a contact (`20261103154719_request_creator.sql`) | phase B, applied 3 November |
+| 24 | The audit's fixes (temporary password = no role, photo paths, races, inactive materials, closed private functions, a reset ends every session) and from the second audit: the sweep's `no_result` gives a driver no lasting read, and the two helpers from 21 and 23 lose PUBLIC EXECUTE (`20261122181353_audit_fixes.sql`) | audit, live 22 Nov 2026 |
 
 All four premises were checked against the live database on 2026-10-27, not assumed:
 
@@ -646,3 +649,37 @@ the Excel branch-import script.
 
 The unified ops number and the materials' contact numbers get filled from the dashboard later. Every screen handles
 their absence: the contact button hides rather than showing a number that isn't there.
+
+## Decided in the audit (Nov 2026)
+
+- **Temporary password = no access.** Until the forced change is done the database gives the account no role (migration 24);
+  the apps route on `profiles.role` and still reach the change-password screen. A staff reset signs the account out everywhere.
+- **Forgot password (branch).** The designed contact sheet: `forgotT` / `forgotB` over the ops number, Call / WhatsApp / Copy.
+  The number comes from the public `chains` function (`ops_phone`), so it works before sign-in; with none set, `forgotNoPhone`.
+- **Location: GPS first.** The screen asks for a fix on arrival; a hand-placed pin is allowed only after the phone has answered
+  (a fix, a refusal, a failure or the 15 s timeout), on a map centred on the branch's own city. Account's map is centred on the pin.
+- **Sign-in preferences.** The globe and moon stay in the sign-in hero; the moon toggles dark / light (see stage 1 above).
+- **Cancelled by Ops.** A request Ops cancelled says so, with the reason: «ألغاه فريق التشغيل. السبب: …» (new copy, no artboard).
+- **English branch name.** `name_en`, falling back to the district; the dashboard edits it on Branches.
+- **Opening a notification reads it** (branch). Only that one; "mark all" stays for the rest (migration 24).
+- **Reasons have both names.** The dashboard's Lists page needs the Arabic and the English text, so the apps never show
+  an Arabic reason on an English screen.
+
+## Store builds (prepared Nov 2026, not run)
+
+`eas.json` has two profiles: `preview` (internal; Android as an APK for side-loading) and `production` (store). Build
+numbers come from EAS (`appVersionSource: remote`, `autoIncrement` on production), starting from `buildNumber` 1 /
+`versionCode` 1 in app.json. `version` (1.0.0) is the one shown in the stores; raise it by hand per release.
+
+- **Icon:** `assets/icon.png` (1024², navy with the gold mark) and `assets/adaptive-icon.png` (Android foreground on
+  `#0B2340`). Both are built from `cw-mark.png`; replace them if the client sends a higher-resolution artwork.
+- **Native splash:** `cw-logo.png` at 150 wide on navy (dark `#071322`), small enough to stay inside Android 12's
+  round mask. The animated JS splash follows it.
+- **Export compliance:** `ios.config.usesNonExemptEncryption: false` (the app only uses HTTPS).
+- **Still to do, under the client's Expo account** (not done here, it writes to expo.dev):
+  1. Done (Nov 2026): `eas init` linked the project; app.json keeps only `extra.eas.projectId` and `owner` from it. Move
+     the project to the client's account before the store builds if it should not stay under this one.
+  2. The two build variables, for the `preview` and `production` environments, plain text (both are public keys):
+     `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY`, with `npx eas-cli@latest env:create`. A build without
+     them crashes at launch (`data/supabase.ts`).
+  3. `npx eas-cli@latest build --profile preview --platform android` for a device test, then `--profile production`.

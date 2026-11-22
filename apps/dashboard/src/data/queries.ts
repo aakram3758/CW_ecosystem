@@ -25,6 +25,7 @@ import type { DashboardUser, DayKey, Reason } from './types';
 import { fetchBranchActivity, fetchDriverActivity, fetchReasonUsage, fetchReport, type ReportFilters } from './admin';
 import { REF } from './catalog';
 import { ApiError } from '../lib/supabase';
+import { opsToday } from '../lib/dates';
 
 /** TanStack Query setup: cached reads, background refresh every minute and on tab focus. */
 export const queryClient = new QueryClient({
@@ -55,7 +56,9 @@ export const qk = {
 };
 
 export const useRequests = () => useQuery({ queryKey: qk.requests, queryFn: fetchRequests });
-export const useDrivers = () => useQuery({ queryKey: qk.drivers, queryFn: fetchDrivers, staleTime: 5 * 60_000, refetchInterval: false });
+// Keyed by the Riyadh day: days off are loaded for today and the next working day, so a tab left
+// open past midnight must not keep yesterday's answer.
+export const useDrivers = () => useQuery({ queryKey: [...qk.drivers, opsToday()], queryFn: fetchDrivers, staleTime: 5 * 60_000, refetchInterval: false });
 export const useBranches = () => useQuery({ queryKey: qk.branches, queryFn: fetchBranches, staleTime: 5 * 60_000, refetchInterval: false });
 export const useUsers = () => useQuery({ queryKey: qk.users, queryFn: fetchUsers, staleTime: 5 * 60_000, refetchInterval: false });
 export const useApprovals = () => useQuery({ queryKey: qk.approvals, queryFn: fetchApprovals });
@@ -63,11 +66,12 @@ export const useLateBranches = () => useQuery({ queryKey: qk.late, queryFn: fetc
 export const useHistory = (id: string, branchLabel: string, updatedAt: string) =>
   useQuery({ queryKey: [...qk.history(id), updatedAt], queryFn: () => fetchHistory(id, branchLabel), refetchInterval: false });
 export const useNotifications = (user: DashboardUser) => useQuery({ queryKey: qk.notifications(user.id), queryFn: fetchNotifications });
-/** The URL lasts an hour; refetch it at 50 minutes so an open drawer never holds a dead one. */
+/** The URL lasts an hour; refetch it at 50 minutes so an open drawer never holds a dead one. A failed signing is
+ *  cached as null, so it stays stale: the next focus or mount asks again. */
 export const usePhotoUrl = (path: string | undefined) => useQuery({ queryKey: ['photo', path], queryFn: () => signedPhotoUrl(path!),
-  enabled: !!path, staleTime: 50 * 60_000, refetchInterval: false });
+  enabled: !!path, staleTime: (query) => (query.state.data === null ? 0 : 50 * 60_000), refetchInterval: 50 * 60_000 });
 
-/** Every write changes requests; most also change plans, history and notifications. */
+/** Every write changes requests; most also change plans, history, notifications and the report numbers. */
 function useInvalidateAll() {
   const qc = useQueryClient();
   return () =>
@@ -77,6 +81,10 @@ function useInvalidateAll() {
       qc.invalidateQueries({ queryKey: qk.late }),
       qc.invalidateQueries({ queryKey: ['history'] }),
       qc.invalidateQueries({ queryKey: ['notifications'] }),
+      qc.invalidateQueries({ queryKey: ['report'] }),
+      qc.invalidateQueries({ queryKey: qk.branchActivity }),
+      qc.invalidateQueries({ queryKey: qk.driverActivity }),
+      qc.invalidateQueries({ queryKey: qk.reasonUsage }),
     ]);
 }
 
@@ -152,6 +160,7 @@ export function useAdminAction() {
         qc.invalidateQueries({ queryKey: qk.reasonUsage }),
         qc.invalidateQueries({ queryKey: qk.requests }),
         qc.invalidateQueries({ queryKey: qk.late }),
+        qc.invalidateQueries({ queryKey: ['report'] }),
       ]);
     },
   });

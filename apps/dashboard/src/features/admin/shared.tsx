@@ -20,7 +20,6 @@ const ar = {
   save: 'حفظ',
   saveChanges: 'حفظ التعديلات',
   add: '+ إضافة',
-  required: 'مطلوب',
   search: 'بحث',
   nameAr: 'الاسم بالعربي *',
   nameEn: 'الاسم بالإنجليزي',
@@ -29,10 +28,8 @@ const ar = {
   done: 'تم',
   loadBody: 'تحقق من الاتصال ثم أعد المحاولة.',
   never: 'لم يسجّل دخول',
-  noLogin: 'بدون حساب دخول',
   firstLogin: 'لم يغيّر الباسورد المؤقت',
   resetPw: 'تغيير الباسورد',
-  createLogin: 'إنشاء حساب دخول',
   pw: {
     confirmTitle: (name: string) => `تغيير باسورد ${name}؟`,
     confirmBody: 'يتوقف الباسورد الحالي فورًا، ويُطلب منه تغيير المؤقت عند أول دخول.',
@@ -45,6 +42,7 @@ const ar = {
     once: 'يظهر مرة واحدة فقط. انسخه أو أرسله الآن.',
     copy: 'نسخ البيانات',
     copied: 'تم النسخ ✓',
+    copyFailed: 'تعذّر النسخ. انسخ البيانات يدويًا.',
     whatsapp: 'إرسال عبر واتساب',
     noPhone: 'لا يوجد جوال مسجّل، لذلك زر واتساب غير متاح. انسخ البيانات وأرسلها.',
     message: (name: string, app: string, login: string, pass: string) =>
@@ -60,6 +58,8 @@ const ar = {
     INVALID_DAY: 'لا يمكن تغيير يوم مضى.',
     CANNOT_DEACTIVATE_SELF: 'لا يمكنك إيقاف حسابك أنت.',
     NAME_REQUIRED: 'الاسم مطلوب.',
+    PHONE_REQUIRED: 'رقم الجوال مطلوب.',
+    INVALID_EMAIL: 'البريد الإلكتروني غير صحيح.',
   } as Record<string, string>,
 };
 type Dict = typeof ar;
@@ -73,7 +73,6 @@ const en: Dict = {
   save: 'Save',
   saveChanges: 'Save changes',
   add: '+ Add',
-  required: 'Required',
   search: 'Search',
   nameAr: 'Arabic name *',
   nameEn: 'English name',
@@ -82,10 +81,8 @@ const en: Dict = {
   done: 'Done',
   loadBody: 'Check your connection, then try again.',
   never: 'Never signed in',
-  noLogin: 'No login',
   firstLogin: "Hasn't changed the temporary password",
   resetPw: 'Reset password',
-  createLogin: 'Create login',
   pw: {
     confirmTitle: (name) => `Reset ${name}'s password?`,
     confirmBody: 'The current password stops working now; they must change the temporary one at first sign-in.',
@@ -98,6 +95,7 @@ const en: Dict = {
     once: 'Shown once only. Copy or send it now.',
     copy: 'Copy details',
     copied: 'Copied ✓',
+    copyFailed: "Couldn't copy. Copy the details by hand.",
     whatsapp: 'Send on WhatsApp',
     noPhone: 'No mobile on file, so WhatsApp is unavailable. Copy the details and send them.',
     message: (name, app, login, pass) => `Hello ${name}, your ${app} login — Clouds Water: login "${login}" — temporary password: ${pass} (you will change it at first sign-in)`,
@@ -112,6 +110,8 @@ const en: Dict = {
     INVALID_DAY: "A past day can't be changed.",
     CANNOT_DEACTIVATE_SELF: "You can't deactivate your own account.",
     NAME_REQUIRED: 'The name is required.',
+    PHONE_REQUIRED: 'The mobile number is required.',
+    INVALID_EMAIL: 'Invalid email address.',
   },
 };
 export const ADMIN_STRINGS = { ar, en };
@@ -249,7 +249,7 @@ export function PasswordDialog({ target, onClose }: { target: PasswordTarget | n
   };
 
   return (
-    <Dialog open={!!target} onOpenChange={(o) => !o && close()} title={shown ? shown.title : target ? (target.userId ? a.confirmTitle(target.name) : a.createTitle(target.name)) : ''} kicker={target?.name} width={500}>
+    <Dialog open={!!target} onOpenChange={(o) => !o && !busy && close()} title={shown ? shown.title : target ? (target.userId ? a.confirmTitle(target.name) : a.createTitle(target.name)) : ''} kicker={target?.name} width={500}>
       {target && !shown && (
         <>
           <p className="m-0 text-[15px] leading-relaxed text-muted">{target.userId ? a.confirmBody : a.createBody}</p>
@@ -257,7 +257,7 @@ export function PasswordDialog({ target, onClose }: { target: PasswordTarget | n
             <Button variant="gold" size="lg" onClick={generate} disabled={busy}>
               {a.generate}
             </Button>
-            <Button size="lg" onClick={close}>
+            <Button size="lg" onClick={close} disabled={busy}>
               {t.cancel}
             </Button>
           </div>
@@ -288,12 +288,10 @@ export function PasswordDialog({ target, onClose }: { target: PasswordTarget | n
               size="lg"
               className="min-w-[140px] flex-1"
               onClick={() => {
-                try {
-                  void navigator.clipboard.writeText(a.copyText(target.login, shown.pass));
-                } catch {
-                  /* clipboard blocked */
-                }
-                setCopied(true);
+                // Only claim "Copied" once the browser confirms it (S20b); writeText rejects when blocked.
+                Promise.resolve()
+                  .then(() => navigator.clipboard.writeText(a.copyText(target.login, shown.pass)))
+                  .then(() => setCopied(true), () => toast.error(a.copyFailed));
               }}
             >
               <Icon name="copy" size={18} />

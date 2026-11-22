@@ -1,5 +1,5 @@
 import { opsToday } from '@/ui/date';
-import { fetchNotifications, markNotificationsRead } from '@/data/shared-api';
+import { fetchNotifications, markNotificationRead, markNotificationsRead } from '@/data/shared-api';
 import { createContext, useContext, useEffect, useState, type PropsWithChildren } from 'react';
 import { supabase } from '@/data/supabase';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -172,6 +172,9 @@ function useBranchState() {
   const readAll = useMutation({ mutationFn: markNotificationsRead,
     onSuccess: () => client.invalidateQueries({ queryKey: KEYS.notifications }),
   });
+  const readOne = useMutation({ mutationFn: markNotificationRead,
+    onSuccess: () => client.invalidateQueries({ queryKey: KEYS.notifications }),
+  });
 
   // ---------------------------------------------------------------- derived
   const rows = requests.data ?? [];
@@ -214,8 +217,15 @@ function useBranchState() {
     loading: requests.isPending || reference.isPending,
     /** Any of the three reads the home screen needs has failed. */
     error: requests.isError || reference.isError || timeline.isError,
+    /** My requests needs the list and the materials, not the timeline. */
+    requestsError: requests.isError || reference.isError,
+    notificationsLoading: notifications.isPending,
+    notificationsError: notifications.isError,
+    /** The details screen's history; home folds it into `error`. */
+    timelineError: timeline.isError,
+    cancelling: cancel.isPending,
     /** Refetch everything the home screen needs. The retry button and the offline bar share it. */
-    retry: () => Promise.all(Object.values(KEYS).map(queryKey => client.invalidateQueries({ queryKey }))),
+    retry: () => Promise.all([...Object.values(KEYS), ['photo']].map(queryKey => client.invalidateQueries({ queryKey }))),
     refreshing: context.isFetching || reference.isFetching || requests.isFetching || timeline.isFetching || notifications.isFetching,
 
     page: context.data!.branch.location_confirmed_at === null ? 'loc' as const : page, tab, selected, editId, initialMaterial, initialSubtype,
@@ -249,6 +259,11 @@ function useBranchState() {
     edit: (args: Omit<EditRequestArgs, 'p_photo_path'>, photo: Photo | null) => edit.mutate({ args, photo }),
     cancelRequest: (requestId: string) => cancel.mutate(requestId),
     markAllRead: () => readAll.mutate(),
+    /** Opening a notification reads it (S9) and opens its request, when it has one. */
+    openNotification: (n: { id: number; read_at: string | null; request_id: string | null }) => {
+      if (!n.read_at) readOne.mutate(n.id);
+      if (n.request_id) openRequest(n.request_id);
+    },
   };
 }
 

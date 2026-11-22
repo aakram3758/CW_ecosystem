@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState, type PropsWithChildren, type ReactNode } from 'react';
-import { Image, Linking, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { Muted, Tile, IconButton, Pill, useSignedPhoto, Footer } from '@/ui/role-shared';
+import { Image, Linking, Pressable, StyleSheet, View } from 'react-native';
+import { Muted, Tile, IconButton, Pill } from '@/ui/role-shared';
 export { Muted, Tile, IconButton, Pill, useSignedPhoto, Footer } from '@/ui/role-shared';
 import { useDateFormat } from '@/ui/date';
 import * as Clipboard from 'expo-clipboard';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Stop, Rect, Text as SvgText } from 'react-native-svg';
 import type { MaterialRow, RequestListRow } from '@/data/rows';
 import { interpolate, ltr } from '@/i18n/copy';

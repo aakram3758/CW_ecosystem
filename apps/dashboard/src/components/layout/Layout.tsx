@@ -4,6 +4,7 @@ import { Toaster } from 'sonner';
 import { useApp } from '../../lib/app-context';
 import { Sidebar } from './Sidebar';
 import { Icon } from '../ui/Icon';
+import { PageErrorBoundary } from '../ui/States';
 
 const MenuContext = createContext<{ open: () => void }>({ open: () => {} });
 export const useMenu = () => useContext(MenuContext);
@@ -50,7 +51,10 @@ export function Layout() {
         )}
 
         <main className="flex min-w-0 flex-1 flex-col">
-          <Outlet />
+          {/* Keyed by path, so moving to another page clears a caught error. */}
+          <PageErrorBoundary key={location.pathname}>
+            <Outlet />
+          </PageErrorBoundary>
         </main>
       </div>
 

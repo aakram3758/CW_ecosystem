@@ -3,7 +3,8 @@
 // and `anon` can't read anything in this database. Hence an Edge Function with the service role,
 // rather than a grant to `anon`: one place to change, and the "anon reads nothing" rule stays true.
 // GET (or POST, so a bare functions.invoke() works too)
-//   200 { chains: [{ code, name_ar, name_en }] }  — active chains only, by Arabic name
+//   200 { chains: [{ code, name_ar, name_en }], ops_phone }  — active chains only, by Arabic name
+//   ops_phone: `app_settings.ops_phone` (or null), for "forgot password" before there is a session.
 // Deployed with verify_jwt = false: the caller has no session yet.
 //
 // Deliberately NOT returned: chain ids, inactive chains, and anything about branches. The app needs
@@ -24,13 +25,13 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers });
   if (req.method !== 'GET' && req.method !== 'POST') return json({ error: 'METHOD_NOT_ALLOWED' }, 405);
 
-  const { data, error } = await admin()
-    .from('chains')
-    .select('code, name_ar, name_en')
-    .eq('active', true)
-    .order('name_ar');
+  const db = admin();
+  const [{ data, error }, { data: setting, error: settingError }] = await Promise.all([
+    db.from('chains').select('code, name_ar, name_en').eq('active', true).order('name_ar'),
+    db.from('app_settings').select('value').eq('key', 'ops_phone').maybeSingle(),
+  ]);
 
-  if (error) return json({ error: 'SERVER_ERROR' }, 500);
+  if (error || settingError) return json({ error: 'SERVER_ERROR' }, 500);
 
-  return new Response(JSON.stringify({ chains: data ?? [] }), { status: 200, headers });
+  return new Response(JSON.stringify({ chains: data ?? [], ops_phone: setting?.value ?? null }), { status: 200, headers });
 });

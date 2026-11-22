@@ -58,7 +58,8 @@ export function BuildPlan({ rows, drivers, city, material, planDay, onApproved, 
   const { t, l, lang, theme } = useApp();
   const s = useStrings(SCHEDULING_STRINGS);
   const dark = theme === 'dark';
-  const key = `${city}|${material}`;
+  // The plan day is part of the key, so a tab left open past midnight starts the next plan clean.
+  const key = `${city}|${material}|${planDay}`;
   const [draft, setDraft] = useDraft(key);
   const m = useMemo(() => buildModel(rows, drivers, city, material, planDay, draft), [rows, drivers, city, material, planDay, draft]);
 

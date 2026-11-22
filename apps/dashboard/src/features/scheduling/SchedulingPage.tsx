@@ -33,7 +33,7 @@ export function SchedulingPage() {
 
   const requests = useRequests();
   const drivers = useDrivers();
-  const [draft] = useDraft(`${city}|${material}`);
+  const [draft] = useDraft(`${city}|${material}|${planDay}`);
   const model = requests.data && drivers.data ? buildModel(requests.data, drivers.data, city, material, planDay, draft) : null;
   const matName = l(MATERIALS[material].name);
   const cityLabel = l(CITIES[city]);

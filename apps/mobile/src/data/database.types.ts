@@ -1055,6 +1055,7 @@ export type Database = {
         Args: { p_login: string; p_ok: boolean }
         Returns: Json
       }
+      mark_notification_read: { Args: { p_id: number }; Returns: undefined }
       mark_notifications_read: { Args: never; Returns: undefined }
       set_temp_password: {
         Args: { p_password: string; p_user_id: string }

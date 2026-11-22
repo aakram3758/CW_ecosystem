@@ -43,7 +43,9 @@ function PasswordForm() {
       // change to that same password again. The server still decides whether completion is valid.
       if (updatedPassword.current !== values.password) {
         const result = await supabase.auth.updateUser({ password: values.password });
-        if (result.error) throw result.error;
+        // `same_password` after a restart mid-change means Auth already has this password, so the
+        // completion RPC still runs. It refuses (PASSWORD_NOT_CHANGED) if that is the temporary one.
+        if (result.error && result.error.code !== 'same_password') throw result.error;
         updatedPassword.current = values.password;
       }
       const completed = await supabase.rpc('complete_password_change');
